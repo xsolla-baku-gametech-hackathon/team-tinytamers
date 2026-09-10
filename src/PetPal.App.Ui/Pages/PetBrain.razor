@@ -16,6 +16,7 @@
    Alt naviqasiyaya ALTINCI element ƏLAVƏ EDİLMİR: bura ana ekrandakı çipdən
    və otaqdan gəlinir. Beş bölmə qəsdən beşdir. *@
 
+<div class="@PageClass">
 <h1 class="visually-hidden-title">@Loc.T("Pet Brain", "Pet Brain")</h1>
 
 <LoadingState IsLoading="_loading" Error="@_error" OnRetry="LoadAsync"
@@ -42,6 +43,7 @@
                             PetStage="PetStageValue"
                             PetAccessories="PetAccessoriesValue"
                             SceneKey="@_run.SceneKey"
+                            ReducedMotion="@(_state?.Settings.ReducedMotion == true)"
                             OnDone="FinishAsync" />
             }
             else if (_run.Stage is not null)
@@ -166,7 +168,20 @@
     {
         @* ---------- Giriş ---------- *@
         <div class="list-scroll">
-
+            @if (_state.OnboardingPending)
+            {
+                @if (_onboarding is not null)
+                {
+                    <div class="pbx-onboarding-host">
+                        <OnboardingWizard Onboarding="_onboarding"
+                                          Settings="_state.Settings"
+                                          Busy="_busy"
+                                          OnSubmit="SubmitOnboardingAsync" />
+                    </div>
+                }
+            }
+            else
+            {
             <section class="pbx-intro">
                 <div class="pbx-intro__pet">
                     <PetAvatar Stage="PetStageValue" Mood="PetMoodValue" Species="@PetSpecies"
@@ -224,66 +239,95 @@
                 <section class="card pbx-card">
                     <div class="pbx-card__head">
                         <span class="pbx-card__icon" aria-hidden="true">@recommendation.Icon</span>
-                        <div>
+                        <div class="pbx-card__heading">
                             <h2 class="pbx-card__title">@recommendation.Title</h2>
                             <p class="pbx-card__meta">
-                                @recommendation.TargetMinutes @Loc.T("dəqiqə", "min")
-                                · @DifficultyLabel(recommendation.Difficulty)
+                                <span class="pbx-card__meta-item">
+                                    <span aria-hidden="true">⏱️</span>
+                                    <span>@recommendation.TargetMinutes @Loc.T("dəqiqə", "min")</span>
+                                </span>
+                                <span class="pbx-card__meta-separator" aria-hidden="true">·</span>
+                                <span class="pbx-card__meta-item">
+                                    <span aria-hidden="true">🎯</span>
+                                    <span>@recommendation.ChallengeLabel</span>
+                                </span>
                             </p>
                         </div>
                     </div>
 
                     <p class="pbx-card__intro">@recommendation.Intro</p>
 
+                    <div class="pbx-card__reward">
+                        <span aria-hidden="true">🎁</span>
+                        <span class="pbx-card__reward-prefix">@Loc.T("Qazanacağın", "What you get"):</span>
+                        <span>@recommendation.RewardLabel</span>
+                    </div>
+
+                    @if (recommendation.SupportAvailable)
+                    {
+                        <p class="pbx-card__support">
+                            <span aria-hidden="true">🤝</span>
+                            <span>@recommendation.SupportLabel</span>
+                        </p>
+                    }
+
                     @if (!string.IsNullOrWhiteSpace(recommendation.PetLine))
                     {
-                        @* Pet-in ÖZ cümləsi — xarakter burada eşidilir. *@
                         <p class="pbx-card__petline">@recommendation.PetLine</p>
                     }
 
-                    @* Düymə səbəblərdən ƏVVƏLdir və bu, ölçmə ilə qərara alınıb:
-                       sürüşən sahənin görünən hündürlüyü 550px-dir (kətan 690 −
-                       üst boşluq − naviqasiya üçün ayrılan 104px). Səbəblər
-                       yuxarıda olanda «Macərəyə başla» 585px-ə düşürdü, yəni
-                       uşaq əsas düyməni GÖRMÜRDÜ və sürüşdürməli olurdu.
-                       İndi düymə həmişə ekrandadır, izah isə altında qalır. *@
                     <button class="btn btn--primary btn--block pbx-card__start"
-                            disabled="@_busy" @onclick="StartAsync">
-                        @(_busy ? Loc.T("Hazırlaşırıq…", "Getting ready…") : Loc.T("Macərəyə başla", "Start the adventure"))
+                            disabled="@_busy" @onclick="() => StartAsync(recommendation)">
+                        <span aria-hidden="true">▶️</span>
+                        <span>@(_startingDecisionId == recommendation.DecisionId
+                            ? Loc.T("Hazırlaşırıq…", "Getting ready…")
+                            : Loc.T("Macərəyə başla", "Start the adventure"))</span>
                     </button>
 
-                    @* Uşağın "yox" demək HÜQUQU. Bir kart məcburiyyət deyil:
-                       "başqa fikir" növbəti təhlükəsiz namizədi gətirir, "sonra"
-                       isə sadəcə indi uyğun olmadığını bildirir. Heç biri marağı
-                       AZALTMIR — bax ProfileLearningRules. *@
+                    @if (_likedConfirmation)
+                    {
+                        <p class="pbx-card__confirmation" role="status">
+                            <span aria-hidden="true">✅</span>
+                            <span>@Loc.T("Sevdiyini yadda saxladım — indi oynaya bilərsən!", "I saved what you like — you can play it now!")</span>
+                        </p>
+                    }
+
                     <div class="pbx-card__more">
                         @if (recommendation.CanShowAnother)
                         {
-                            <button class="btn btn--ghost pbx-card__alt" disabled="@_busy"
+                            <button type="button" class="btn btn--ghost pbx-card__alt" disabled="@_busy"
                                     @onclick="ShowAnotherAsync">
                                 <span aria-hidden="true">🔄</span>
-                                @Loc.T("Başqa fikir", "Another idea")
+                                <span>@Loc.T("Başqa fikir", "Another idea")</span>
                             </button>
                         }
 
-                        <button class="btn btn--ghost pbx-card__alt" disabled="@_busy"
+                        <button type="button" class="btn btn--ghost pbx-card__alt" disabled="@_busy"
                                 @onclick="NotNowAsync">
                             <span aria-hidden="true">🕒</span>
-                            @Loc.T("Sonra", "Later")
+                            <span>@Loc.T("Sonra", "Later")</span>
                         </button>
+
+                        @if (recommendation.CanGiveFeedback)
+                        {
+                            <button type="button" class="btn btn--ghost pbx-card__alt pbx-card__feedback"
+                                    disabled="@_busy" @onclick="LikeAsync">
+                                <span aria-hidden="true">💚</span>
+                                <span>@Loc.T("Bunu bəyənirəm", "I like this")</span>
+                            </button>
+
+                            <button type="button" class="btn btn--ghost pbx-card__alt pbx-card__feedback"
+                                    disabled="@_busy" @onclick="ShowLessAsync">
+                                <span aria-hidden="true">🔕</span>
+                                <span>@Loc.T("Bunu daha az göstər", "Show this less")</span>
+                            </button>
+                        }
                     </div>
 
                     @if (recommendation.Reasons.Count > 0)
                     {
                         <p class="pbx-reasons__title">@Loc.T("Niyə məhz bu?", "Why this one?")</p>
 
-                        @* Səbəblər uşağa da göstərilir, amma BAL YOX — "kosmos
-                           sənin güclü maraqlarındandır" cümləsi uşaq üçün
-                           anlaşılandır, "84%" isə deyil.
-
-                           Uşağa ƏN ÇOX ÜÇÜ göstərilir; dördüncüsü (çətinlik
-                           qeydi) daha çox valideyn/münsif üçündür və tam siyahı
-                           nümayiş panelindədir. *@
                         <ul class="pbx-reasons">
                             @foreach (var reason in recommendation.Reasons.Take(3))
                             {
@@ -294,6 +338,46 @@
                         </ul>
                     }
                 </section>
+
+                @if (_state.Alternatives.Count > 0)
+                {
+                    <section class="pbx-alternatives" aria-labelledby="pbx-alternatives-title">
+                        <h2 id="pbx-alternatives-title" class="pbx-alternatives__title">
+                            <span aria-hidden="true">🎮</span>
+                            <span>@Loc.T("Macərəni sən seç", "Choose your adventure")</span>
+                        </h2>
+
+                        <div class="pbx-alternatives__row" role="list">
+                            @foreach (var alt in _state.Alternatives)
+                            {
+                                <article class="pbx-alternatives__card" role="listitem">
+                                    <div class="pbx-alternatives__head">
+                                        <span class="pbx-alternatives__icon" aria-hidden="true">@alt.Icon</span>
+                                        <span class="pbx-alternatives__slot">
+                                            <span aria-hidden="true">✨</span>
+                                            <span>@alt.SlotLabel</span>
+                                        </span>
+                                    </div>
+
+                                    <h3 class="pbx-alternatives__name">@alt.Title</h3>
+
+                                    <p class="pbx-alternatives__meta">
+                                        <span aria-hidden="true">⏱️</span>
+                                        <span>@alt.TargetMinutes @Loc.T("dəqiqə", "min")</span>
+                                    </p>
+
+                                    <button type="button" class="btn btn--primary pbx-alternatives__play"
+                                            disabled="@_busy" @onclick="() => StartAlternativeAsync(alt)">
+                                        <span aria-hidden="true">▶️</span>
+                                        <span>@(_startingDecisionId == alt.DecisionId
+                                            ? Loc.T("Hazırlaşırıq…", "Getting ready…")
+                                            : Loc.T("Bunu oyna", "Play this one"))</span>
+                                    </button>
+                                </article>
+                            }
+                        </div>
+                    </section>
+                }
             }
 
             @if (_state.BondUnlocks.Count > 0)
@@ -354,18 +438,24 @@
                                  PlayStyles="_state.PlayStyles"
                                  Reasons="RecommendationReasons" />
             }
+            }
         </div>
     }
 </LoadingState>
+</div>
 
 @code {
     private PetBrainStateDto? _state;
     private PetBrainRunDto? _run;
+    private PetBrainOnboardingDto? _onboarding;
 
     private bool _loading = true;
     private bool _busy;
+    private bool _likedConfirmation;
     private string? _error;
     private string? _pending;
+    private string? _runIcon;
+    private Guid? _startingDecisionId;
 
     /// <summary>
     /// Hazır hekayə rəsminin <c>data:</c> URI-si və hansı tapmacaya aid olduğu.
@@ -440,6 +530,12 @@
     private string ThinkingText =>
         Loc.T($"{PetName} yeni macəranı düşünür…", $"{PetName} is imagining your next adventure…");
 
+    private string PageClass =>
+        $"pbx-page {(_state?.Settings.ReducedMotion == true ? "pbx--reduced-motion" : null)} " +
+        $"{(_state?.Settings.LargeText == true ? "pbx--large-text" : null)} " +
+        $"{(_state?.Settings.HighContrast == true ? "pbx--high-contrast" : null)} " +
+        $"{(_state?.Settings.IconWithText == true ? "pbx--icon-text" : null)}";
+
     private string PetName => _state?.PetName ?? State.Pet?.Name ?? "Pet";
 
     // Pet-in görünüşü paylaşılan vəziyyətdən gəlir (ana ekran onsuz da onu
@@ -455,7 +551,19 @@
     private IReadOnlyList<string> RecommendationReasons =>
         _state?.Recommendation?.Reasons ?? new List<string>();
 
-    private string RunIcon => _state?.Recommendation?.Icon ?? "✨";
+    private string RunIcon
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(_runIcon))
+                return _runIcon;
+
+            if (_state?.Recommendation is { } recommendation && recommendation.TemplateKey == _run?.TemplateKey)
+                return recommendation.Icon;
+
+            return _state?.Alternatives.FirstOrDefault(alt => alt.TemplateKey == _run?.TemplateKey)?.Icon ?? "✨";
+        }
+    }
 
     /// <summary>
     /// Ekran oxuyucusu üçün bağ mətni: pillənin adı + növbəti pilləyə qalan yol.
@@ -487,26 +595,21 @@
         _ => "✨"
     };
 
-    private string DifficultyLabel(PetBrainDifficulty difficulty) => difficulty switch
-    {
-        PetBrainDifficulty.Easy => Loc.T("Rahat", "Gentle"),
-        PetBrainDifficulty.Hard => Loc.T("Cəsur", "Bold"),
-        _ => Loc.T("Orta", "Steady")
-    };
-
     protected override Task OnInitializedAsync() => LoadAsync();
 
     private async Task LoadAsync()
     {
         _loading = true;
         _error = null;
+        _likedConfirmation = false;
+        _startingDecisionId = null;
 
         var result = await Api.GetPetBrainAsync();
-        _loading = false;
 
         if (!result.Succeeded || result.Value is null)
         {
             // Şəbəkə xətasında boş ekran qalmır: mesaj + "yenidən cəhd et".
+            _loading = false;
             _error = result.Error;
             return;
         }
@@ -514,22 +617,72 @@
         _state = result.Value;
         Brain.Apply(_state);
 
+        _onboarding = null;
+
+        if (_state.OnboardingPending)
+        {
+            var onboardingResult = await Api.GetPetBrainOnboardingAsync();
+
+            if (!onboardingResult.Succeeded || onboardingResult.Value is null)
+            {
+                _loading = false;
+                _error = onboardingResult.Error;
+                return;
+            }
+
+            _onboarding = onboardingResult.Value;
+        }
+
         // Yarımçıq macəra varsa uşaq birbaşa onun içinə düşür — yenilənmə,
         // app-in bağlanması və ya telefon dəyişməsi macərəni itirmir.
         _run = _state.ActiveRun;
+        _runIcon = null;
+        _loading = false;
     }
 
-    private async Task StartAsync()
+    private async Task SubmitOnboardingAsync(PetBrainOnboardingRequest request)
     {
-        if (_busy || _state?.Recommendation is null)
+        if (_busy)
             return;
 
         _busy = true;
 
-        var result = await Api.StartPetBrainRunAsync(
-            _state.Recommendation.TemplateKey, _state.Recommendation.DecisionId);
+        var result = await Api.SubmitPetBrainOnboardingAsync(request);
 
         _busy = false;
+
+        if (!result.Succeeded)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private Task StartAsync(PetBrainRecommendationDto recommendation) =>
+        StartAsync(
+            recommendation,
+            () => Api.StartPetBrainRunAsync(recommendation.TemplateKey, recommendation.DecisionId));
+
+    private Task StartAlternativeAsync(PetBrainRecommendationDto alt) =>
+        StartAsync(alt, () => Api.StartPetBrainRunAsync(alt.TemplateKey, alt.DecisionId));
+
+    private async Task StartAsync(
+        PetBrainRecommendationDto recommendation,
+        Func<Task<ApiResult<PetBrainRunDto>>> startRequestAsync)
+    {
+        if (_busy)
+            return;
+
+        _busy = true;
+        _likedConfirmation = false;
+        _startingDecisionId = recommendation.DecisionId;
+
+        var result = await startRequestAsync();
+
+        _busy = false;
+        _startingDecisionId = null;
 
         if (!result.Succeeded || result.Value is null)
         {
@@ -538,6 +691,7 @@
         }
 
         _run = result.Value;
+        _runIcon = recommendation.Icon;
         Brain.Invalidate();
     }
 
@@ -553,12 +707,17 @@
     /// <summary>«Sonra» — indi uyğun deyil. Profilə heç nə yazılmır.</summary>
     private Task NotNowAsync() => SendFeedbackAsync(PetBrainRecommendationFeedback.NotNow);
 
+    private Task LikeAsync() => SendFeedbackAsync(PetBrainRecommendationFeedback.Liked);
+
+    private Task ShowLessAsync() => SendFeedbackAsync(PetBrainRecommendationFeedback.ShowLess);
+
     private async Task SendFeedbackAsync(PetBrainRecommendationFeedback feedback)
     {
         if (_busy || _state?.Recommendation is null)
             return;
 
         _busy = true;
+        _likedConfirmation = false;
 
         var result = await Api.SendPetBrainFeedbackAsync(_state.Recommendation.DecisionId, feedback);
 
@@ -575,6 +734,7 @@
         _state = result.Value;
         Brain.Apply(_state);
         _run = _state.ActiveRun;
+        _likedConfirmation = feedback == PetBrainRecommendationFeedback.Liked;
     }
 
     /// <summary>Giriş mərhələsi: seçim yoxdur, yalnız "davam".</summary>

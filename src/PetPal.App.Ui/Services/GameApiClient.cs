@@ -70,6 +70,18 @@ public class GameApiClient : ApiClientBase
     public Task<ApiResult<PetBrainStateDto>> GetPetBrainAsync(CancellationToken ct = default) =>
         GetAsync<PetBrainStateDto>("api/pet-brain", ct);
 
+    public Task<ApiResult<PetBrainOnboardingDto>> GetPetBrainOnboardingAsync(CancellationToken ct = default) =>
+        GetAsync<PetBrainOnboardingDto>("api/pet-brain/onboarding", ct);
+
+    public Task<ApiResult<bool>> SubmitPetBrainOnboardingAsync(
+        PetBrainOnboardingRequest request, CancellationToken ct = default) =>
+        PostAsync<PetBrainOnboardingRequest, bool>("api/pet-brain/onboarding", request, ct);
+
+    public Task<ApiResult<PetBrainSettingsDto>> UpdatePetBrainSettingsAsync(
+        UpdatePetBrainSettingsRequest request, CancellationToken ct = default) =>
+        PutAsync<UpdatePetBrainSettingsRequest, PetBrainSettingsDto>(
+            "api/pet-brain/settings", request, ct);
+
     /// <param name="templateKey">
     /// Ekranda görünən şablon. Server onu ÖZ tövsiyəsi ilə tutuşdurur — klient
     /// kataloqdan istədiyini seçə bilmir.

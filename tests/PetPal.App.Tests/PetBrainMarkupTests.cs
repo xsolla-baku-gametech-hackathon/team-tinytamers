@@ -567,13 +567,18 @@ public class PetBrainMarkupTests
     /// <summary>
     /// Bütün animasiyalar qlobal <c>prefers-reduced-motion</c> qaydasına
     /// tabedir: onlar `animation`/`transition` işlədir, `!important` YOX.
+    ///
+    /// <para>Elan blokun SONUNCUSU ola bilər, yəni nöqtəli vergül olmadan.
+    /// Regex əvvəllər yalnız <c>;</c> ilə bitəni tuturdu və bir elanı nöqtəli
+    /// vergülsüz yazmaq qaydadan yayınmağın hazır yolu idi — indi bağlayan
+    /// mötərizə də sayılır.</para>
     /// </summary>
     [Fact]
     public void Animasiyalar_ReducedMotionQaydasindanQacmir()
     {
         var css = PetBrainCss();
 
-        foreach (Match match in Regex.Matches(css, @"(animation|transition)\s*:[^;]*;"))
+        foreach (Match match in Regex.Matches(css, @"(animation|transition)\s*:[^;}]*[;}]"))
             Assert.DoesNotContain("!important", match.Value, StringComparison.Ordinal);
     }
 

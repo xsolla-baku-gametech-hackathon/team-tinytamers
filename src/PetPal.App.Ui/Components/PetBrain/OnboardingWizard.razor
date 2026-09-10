@@ -1,0 +1,389 @@
+@inject Loc Loc
+
+<section class="pbx-onboarding" aria-labelledby="pbx-onboarding-question">
+    <div class="pbx-onboarding__header">
+        <div class="pbx-onboarding__progress" aria-live="polite">
+            <span class="pbx-onboarding__progress-icon" aria-hidden="true">🧭</span>
+            <span>@Loc.T($"Addım {_step} / 4", $"Step {_step} of 4")</span>
+        </div>
+
+        <button type="button"
+                class="pbx-onboarding__button pbx-onboarding__skip"
+                disabled="@Busy"
+                @onclick="SkipAsync">
+            <span aria-hidden="true">↪</span>
+            <span>@Loc.T("Keç", "Skip")</span>
+        </button>
+    </div>
+
+    @if (_step == 1)
+    {
+        <fieldset class="pbx-onboarding__step">
+            <legend id="pbx-onboarding-question" class="pbx-onboarding__question">
+                @Loc.T("Sevdiyin 3 mövzunu seç", "Choose 3 topics you love")
+            </legend>
+
+            <div class="pbx-onboarding__selection-status" aria-live="polite">
+                <span aria-hidden="true">@(_selectedTopics.Count == TopicLimit ? "✓" : "○")</span>
+                <span>@Loc.T($"{_selectedTopics.Count} / {TopicLimit} seçildi", $"{_selectedTopics.Count} of {TopicLimit} selected")</span>
+            </div>
+
+            <div class="pbx-onboarding__choices" role="group" aria-label="@Loc.T("Mövzular", "Topics")">
+                @foreach (var topic in Onboarding.Topics)
+                {
+                    var isSelected = _selectedTopics.Contains(topic.Key);
+                    var isAtLimit = _selectedTopics.Count >= TopicLimit;
+
+                    <button type="button"
+                            class="pbx-onboarding__button pbx-onboarding__choice @(isSelected ? "pbx-onboarding__choice--selected" : null)"
+                            disabled="@(Busy || (!isSelected && isAtLimit))"
+                            aria-pressed="@(isSelected ? "true" : "false")"
+                            aria-label="@TopicAriaLabel(topic, isSelected, isAtLimit)"
+                            @onclick="() => ToggleTopic(topic.Key)">
+                        <span class="pbx-onboarding__choice-icon" aria-hidden="true">@topic.Icon</span>
+                        <span class="pbx-onboarding__choice-label">@topic.Label</span>
+                        <span class="pbx-onboarding__choice-state">
+                            <span aria-hidden="true">@(isSelected ? "✓" : isAtLimit ? "🔒" : "+")</span>
+                            <span>@ChoiceStateLabel(isSelected, isAtLimit)</span>
+                        </span>
+                    </button>
+                }
+            </div>
+        </fieldset>
+    }
+    else if (_step == 2)
+    {
+        <fieldset class="pbx-onboarding__step">
+            <legend id="pbx-onboarding-question" class="pbx-onboarding__question">
+                @Loc.T("Hansı iş daha maraqlıdır?", "Which activities sound more fun?")
+            </legend>
+
+            <div class="pbx-onboarding__selection-status" aria-live="polite">
+                <span aria-hidden="true">@(_selectedActivities.Count == ActivityLimit ? "✓" : "○")</span>
+                <span>@Loc.T($"{_selectedActivities.Count} / {ActivityLimit} seçildi", $"{_selectedActivities.Count} of {ActivityLimit} selected")</span>
+            </div>
+
+            <div class="pbx-onboarding__choices" role="group" aria-label="@Loc.T("Fəaliyyətlər", "Activities")">
+                @foreach (var activity in Onboarding.Activities)
+                {
+                    var isSelected = _selectedActivities.Contains(activity.Key);
+                    var isAtLimit = _selectedActivities.Count >= ActivityLimit;
+
+                    <button type="button"
+                            class="pbx-onboarding__button pbx-onboarding__choice @(isSelected ? "pbx-onboarding__choice--selected" : null)"
+                            disabled="@(Busy || (!isSelected && isAtLimit))"
+                            aria-pressed="@(isSelected ? "true" : "false")"
+                            aria-label="@ActivityAriaLabel(activity, isSelected, isAtLimit)"
+                            @onclick="() => ToggleActivity(activity.Key)">
+                        <span class="pbx-onboarding__choice-icon" aria-hidden="true">@activity.Icon</span>
+                        <span class="pbx-onboarding__choice-label">@activity.Label</span>
+                        <span class="pbx-onboarding__choice-state">
+                            <span aria-hidden="true">@(isSelected ? "✓" : isAtLimit ? "🔒" : "+")</span>
+                            <span>@ChoiceStateLabel(isSelected, isAtLimit)</span>
+                        </span>
+                    </button>
+                }
+            </div>
+        </fieldset>
+    }
+    else if (_step == 3)
+    {
+        <fieldset class="pbx-onboarding__step">
+            <legend id="pbx-onboarding-question" class="pbx-onboarding__question">
+                @Loc.T("Pet necə danışsın?", "How should your pet talk?")
+            </legend>
+
+            <div class="pbx-onboarding__selection-status" aria-live="polite">
+                <span aria-hidden="true">@(_tone.HasValue ? "✓" : "○")</span>
+                <span>@(_tone.HasValue ? Loc.T("Səs seçildi", "Voice selected") : Loc.T("Bir səs seç", "Choose one voice"))</span>
+            </div>
+
+            <div class="pbx-onboarding__tones" role="radiogroup" aria-label="@Loc.T("Pet-in səsi", "Pet voice")">
+                @foreach (var tone in Onboarding.Tones)
+                {
+                    var isSelected = _tone == tone.Personality;
+
+                    <button type="button"
+                            class="pbx-onboarding__button pbx-onboarding__tone @(isSelected ? "pbx-onboarding__tone--selected" : null)"
+                            disabled="@Busy"
+                            role="radio"
+                            aria-checked="@(isSelected ? "true" : "false")"
+                            aria-pressed="@(isSelected ? "true" : "false")"
+                            @onclick="() => _tone = tone.Personality">
+                        <span class="pbx-onboarding__tone-icon" aria-hidden="true">@tone.Icon</span>
+                        <span class="pbx-onboarding__tone-body">
+                            <span class="pbx-onboarding__tone-label">@tone.Label</span>
+                            <span class="pbx-onboarding__tone-sample">“@tone.SampleLine”</span>
+                        </span>
+                        <span class="pbx-onboarding__choice-state">
+                            <span aria-hidden="true">@(isSelected ? "✓" : "○")</span>
+                            <span>@(isSelected ? Loc.T("Seçildi", "Selected") : Loc.T("Seç", "Choose"))</span>
+                        </span>
+                    </button>
+                }
+            </div>
+        </fieldset>
+    }
+    else
+    {
+        <fieldset class="pbx-onboarding__step">
+            <legend id="pbx-onboarding-question" class="pbx-onboarding__question">
+                @Loc.T("Nə qədər oynayaq?", "How long should we play?")
+            </legend>
+
+            <div class="pbx-onboarding__lengths" role="radiogroup" aria-label="@Loc.T("Oyun vaxtı", "Play time")">
+                @foreach (var length in SessionLengths)
+                {
+                    var isSelected = _sessionLength == length;
+
+                    <button type="button"
+                            class="pbx-onboarding__button pbx-onboarding__length @(isSelected ? "pbx-onboarding__length--selected" : null)"
+                            disabled="@Busy"
+                            role="radio"
+                            aria-checked="@(isSelected ? "true" : "false")"
+                            aria-pressed="@(isSelected ? "true" : "false")"
+                            @onclick="() => _sessionLength = length">
+                        <span class="pbx-onboarding__length-icon" aria-hidden="true">@SessionLengthIcon(length)</span>
+                        <span>@SessionLengthLabel(length)</span>
+                        <span class="pbx-onboarding__choice-state">
+                            <span aria-hidden="true">@(isSelected ? "✓" : "○")</span>
+                            <span>@(isSelected ? Loc.T("Seçildi", "Selected") : Loc.T("Seç", "Choose"))</span>
+                        </span>
+                    </button>
+                }
+            </div>
+
+            <div class="pbx-onboarding__toggles" role="group" aria-label="@Loc.T("Rahatlıq seçimləri", "Comfort choices")">
+                <button type="button"
+                        class="pbx-onboarding__button pbx-onboarding__toggle @(_surpriseEnabled ? "pbx-onboarding__toggle--enabled" : null)"
+                        disabled="@Busy"
+                        aria-pressed="@(_surpriseEnabled ? "true" : "false")"
+                        @onclick="() => _surpriseEnabled = !_surpriseEnabled">
+                    <span class="pbx-onboarding__toggle-icon" aria-hidden="true">🎲</span>
+                    <span class="pbx-onboarding__toggle-label">@Loc.T("Məni təəccübləndir", "Surprise me")</span>
+                    <span class="pbx-onboarding__toggle-state">
+                        <span aria-hidden="true">@(_surpriseEnabled ? "✓" : "○")</span>
+                        <span>@ToggleStateLabel(_surpriseEnabled)</span>
+                    </span>
+                </button>
+
+                <button type="button"
+                        class="pbx-onboarding__button pbx-onboarding__toggle @(_reducedMotion ? "pbx-onboarding__toggle--enabled" : null)"
+                        disabled="@Busy"
+                        aria-pressed="@(_reducedMotion ? "true" : "false")"
+                        @onclick="() => _reducedMotion = !_reducedMotion">
+                    <span class="pbx-onboarding__toggle-icon" aria-hidden="true">🪶</span>
+                    <span class="pbx-onboarding__toggle-label">@Loc.T("Hərəkəti azalt", "Reduce motion")</span>
+                    <span class="pbx-onboarding__toggle-state">
+                        <span aria-hidden="true">@(_reducedMotion ? "✓" : "○")</span>
+                        <span>@ToggleStateLabel(_reducedMotion)</span>
+                    </span>
+                </button>
+
+                <button type="button"
+                        class="pbx-onboarding__button pbx-onboarding__toggle @(_largeText ? "pbx-onboarding__toggle--enabled" : null)"
+                        disabled="@Busy"
+                        aria-pressed="@(_largeText ? "true" : "false")"
+                        @onclick="() => _largeText = !_largeText">
+                    <span class="pbx-onboarding__toggle-icon" aria-hidden="true">A+</span>
+                    <span class="pbx-onboarding__toggle-label">@Loc.T("Böyük mətn", "Large text")</span>
+                    <span class="pbx-onboarding__toggle-state">
+                        <span aria-hidden="true">@(_largeText ? "✓" : "○")</span>
+                        <span>@ToggleStateLabel(_largeText)</span>
+                    </span>
+                </button>
+
+                <button type="button"
+                        class="pbx-onboarding__button pbx-onboarding__toggle @(_highContrast ? "pbx-onboarding__toggle--enabled" : null)"
+                        disabled="@Busy"
+                        aria-pressed="@(_highContrast ? "true" : "false")"
+                        @onclick="() => _highContrast = !_highContrast">
+                    <span class="pbx-onboarding__toggle-icon" aria-hidden="true">◐</span>
+                    <span class="pbx-onboarding__toggle-label">@Loc.T("Yüksək kontrast", "High contrast")</span>
+                    <span class="pbx-onboarding__toggle-state">
+                        <span aria-hidden="true">@(_highContrast ? "✓" : "○")</span>
+                        <span>@ToggleStateLabel(_highContrast)</span>
+                    </span>
+                </button>
+            </div>
+        </fieldset>
+    }
+
+    @if (Busy)
+    {
+        <div class="pbx-onboarding__busy" role="status">
+            <span aria-hidden="true">⏳</span>
+            <span>@Loc.T("Yadda saxlanılır…", "Saving…")</span>
+        </div>
+    }
+
+    <div class="pbx-onboarding__navigation">
+        @if (_step > 1)
+        {
+            <button type="button"
+                    class="pbx-onboarding__button pbx-onboarding__nav pbx-onboarding__nav--back"
+                    disabled="@Busy"
+                    @onclick="PreviousStep">
+                <span aria-hidden="true">←</span>
+                <span>@Loc.T("Geri", "Back")</span>
+            </button>
+        }
+
+        @if (_step < 4)
+        {
+            <button type="button"
+                    class="pbx-onboarding__button pbx-onboarding__nav pbx-onboarding__nav--next"
+                    disabled="@(Busy || !CanAdvance)"
+                    @onclick="NextStep">
+                <span>@Loc.T("Davam et", "Continue")</span>
+                <span aria-hidden="true">→</span>
+            </button>
+        }
+        else
+        {
+            <button type="button"
+                    class="pbx-onboarding__button pbx-onboarding__nav pbx-onboarding__nav--submit"
+                    disabled="@Busy"
+                    @onclick="SubmitAsync">
+                <span aria-hidden="true">✓</span>
+                <span>@Loc.T("Başlayaq", "Let's go")</span>
+            </button>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public PetBrainOnboardingDto Onboarding { get; set; } = default!;
+    [Parameter, EditorRequired] public PetBrainSettingsDto Settings { get; set; } = default!;
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public EventCallback<PetBrainOnboardingRequest> OnSubmit { get; set; }
+
+    private static readonly PetBrainSessionLength[] SessionLengths =
+    [
+        PetBrainSessionLength.Short,
+        PetBrainSessionLength.Medium,
+        PetBrainSessionLength.Long
+    ];
+
+    private const int ActivityLimit = 3;
+    private readonly HashSet<string> _selectedTopics = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _selectedActivities = new(StringComparer.Ordinal);
+    private int _step = 1;
+    private bool _settingsInitialized;
+    private PetBrainPersonality? _tone;
+    private PetBrainSessionLength _sessionLength = PetBrainSessionLength.Medium;
+    private bool _surpriseEnabled;
+    private bool _reducedMotion;
+    private bool _largeText;
+    private bool _highContrast;
+
+    private int TopicLimit => Math.Min(Math.Max(Onboarding.MaxTopics, 0), 3);
+
+    private bool CanAdvance => _step switch
+    {
+        1 => _selectedTopics.Count > 0,
+        2 => _selectedActivities.Count > 0,
+        3 => _tone.HasValue,
+        _ => true
+    };
+
+    protected override void OnParametersSet()
+    {
+        if (_settingsInitialized)
+            return;
+
+        _sessionLength = Settings.SessionLength;
+        _surpriseEnabled = Settings.SurpriseEnabled;
+        _reducedMotion = Settings.ReducedMotion;
+        _largeText = Settings.LargeText;
+        _highContrast = Settings.HighContrast;
+        _settingsInitialized = true;
+    }
+
+    private void ToggleTopic(string key)
+    {
+        if (_selectedTopics.Remove(key))
+            return;
+
+        if (_selectedTopics.Count < TopicLimit)
+            _selectedTopics.Add(key);
+    }
+
+    private void ToggleActivity(string key)
+    {
+        if (_selectedActivities.Remove(key))
+            return;
+
+        if (_selectedActivities.Count < ActivityLimit)
+            _selectedActivities.Add(key);
+    }
+
+    private void PreviousStep()
+    {
+        if (_step > 1)
+            _step--;
+    }
+
+    private void NextStep()
+    {
+        if (_step < 4 && CanAdvance)
+            _step++;
+    }
+
+    private Task SkipAsync() =>
+        Busy
+            ? Task.CompletedTask
+            : OnSubmit.InvokeAsync(new PetBrainOnboardingRequest { Skipped = true });
+
+    private Task SubmitAsync()
+    {
+        if (Busy)
+            return Task.CompletedTask;
+
+        return OnSubmit.InvokeAsync(new PetBrainOnboardingRequest
+        {
+            Topics = _selectedTopics.ToList(),
+            Activities = _selectedActivities.ToList(),
+            Tone = _tone,
+            SessionLength = _sessionLength,
+            SurpriseEnabled = _surpriseEnabled,
+            ReducedMotion = _reducedMotion,
+            LargeText = _largeText,
+            HighContrast = _highContrast
+        });
+    }
+
+    private string ChoiceStateLabel(bool selected, bool atLimit) =>
+        selected
+            ? Loc.T("Seçildi", "Selected")
+            : atLimit
+                ? Loc.T("Limit doludur", "Limit reached")
+                : Loc.T("Seç", "Choose");
+
+    private string TopicAriaLabel(PetBrainTraitDto topic, bool selected, bool atLimit) =>
+        Loc.T(
+            $"{topic.Label}, {ChoiceStateLabel(selected, atLimit)}",
+            $"{topic.Label}, {ChoiceStateLabel(selected, atLimit)}");
+
+    private string ActivityAriaLabel(PetBrainTraitDto activity, bool selected, bool atLimit) =>
+        Loc.T(
+            $"{activity.Label}, {ChoiceStateLabel(selected, atLimit)}",
+            $"{activity.Label}, {ChoiceStateLabel(selected, atLimit)}");
+
+    private string ToggleStateLabel(bool enabled) =>
+        enabled ? Loc.T("Açıq", "On") : Loc.T("Bağlı", "Off");
+
+    private string SessionLengthLabel(PetBrainSessionLength length) => length switch
+    {
+        PetBrainSessionLength.Short => Loc.T("Qısa", "Short"),
+        PetBrainSessionLength.Long => Loc.T("Uzun", "Long"),
+        _ => Loc.T("Orta", "Medium")
+    };
+
+    private static string SessionLengthIcon(PetBrainSessionLength length) => length switch
+    {
+        PetBrainSessionLength.Short => "⚡",
+        PetBrainSessionLength.Long => "🚀",
+        _ => "⭐"
+    };
+}
