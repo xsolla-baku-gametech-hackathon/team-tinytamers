@@ -193,6 +193,14 @@ public class PetBrainService : IPetBrainService
         if (activeRun is not null)
             state.ActiveRun = await ToDtoAsync(activeRun, child, ct);
 
+        // Təxmin edilən dəstək vaxtlaması SAXLANILIR.
+        //
+        // Səbəb: onu hər oxunuşda yenidən hesablasaydıq, tapmaca ekranı ilə
+        // tövsiyə ekranı fərqli plana baxa bilərdi (birində tarixçə var,
+        // digərində yox). Saxlanan dəyər həm də auditə açıqdır — valideyn onu
+        // «sistem təxmin etdi» kimi görür və bir toxunuşla ləğv edir.
+        await PersistInferredSupportAsync(child, mind, now, ct);
+
         state.Mechanics = TopTraits(
             ScoresOf(child, PetBrainTraitCategory.Mechanic), MechanicKeys.All, language);
         state.Settings = PersonalizationMapper.ToDto(child.PersonalizationSettings, mind, language);
@@ -1580,7 +1588,8 @@ public class PetBrainService : IPetBrainService
 
         var dto = await ToDtoAsync(run, child, ct);
         dto.Summary = BuildSummary(
-            template, language, pet, xp, bondGranted, unlockedCode, memories, pet.Level > levelBefore);
+            template, language, pet, xp, bondGranted, unlockedCode, memories, pet.Level > levelBefore,
+            child.PersonalizationSettings?.PersonalizationEnabled ?? true);
 
         // Recap TRANZAKSİYADAN SONRA açılır və heç nə gözlətmir: XP, bağ,
         // xatirə və kosmetik artıq verilib. Video gec gəlsə də (və ya heç
@@ -1809,6 +1818,54 @@ public class PetBrainService : IPetBrainService
     }
 
     // ==================== Köməkçilər ====================
+
+    /// <summary>
+    /// Təxmin edilən dəstək vaxtlamasını sətirə yazır.
+    ///
+    /// <para><b>Yalnız heç kim toxunmayanda.</b> Valideyn və ya uşaq seçim
+    /// edibsə, təxmin onu ƏVƏZ ETMİR — üstünlük sırası burada da
+    /// pozulmur.</para>
+    ///
+    /// <para>Yazılan sahənin mənbəyi <see cref="PetBrainSettingSource.Inferred"/>
+    /// olur: valideyn panelində «bunu sistem təklif etdi» kimi görünür və bir
+    /// toxunuşla ləğv edilə bilir.</para>
+    /// </summary>
+    private async Task PersistInferredSupportAsync(
+        ChildProfile child, PetMindContext mind, DateTime now, CancellationToken ct)
+    {
+        var settings = child.PersonalizationSettings;
+
+        if (settings is null || settings.HintTimingSource != PetBrainSettingSource.Default)
+            return;
+
+        var inferred = mind.Personalization.Support.Timing;
+
+        if (inferred == settings.HintTiming)
+            return;
+
+        settings.HintTiming = inferred;
+        settings.HintTimingSource = PetBrainSettingSource.Inferred;
+        settings.UpdatedAt = now;
+
+        await _tracker.TrackAsync(
+            child.Id,
+            PetBrainEventType.SettingChanged,
+            new PetBrainEventData("hint-timing", PetBrainSettingSource.Inferred.ToString(), []),
+            $"infer-hint-timing:{child.Id:N}:{inferred}",
+            ct);
+    }
+
+    /// <summary>
+    /// Uşağın DƏSTƏK planı — saxlanan ayarlardan.
+    ///
+    /// <para>Tam <see cref="PetMindContext"/> qurmadan oxunur: tapmaca ekranı
+    /// hər cavabda bütün profili yenidən yığmamalıdır. Təxmin edilən dəyər
+    /// onsuz da sətirdə saxlanılır (bax
+    /// <see cref="PersistInferredSupportAsync"/>), ona görə burada oxunan plan
+    /// tövsiyə ekranındakı ilə eynidir.</para>
+    /// </summary>
+    private static SupportPlan SupportOf(ChildProfile child) =>
+        PersonalizationProfileFactory.SupportOf(child.PersonalizationSettings, []);
 
     /// <summary>Ana ekran çipinin bir sətirlik səbəbi — Pet Brain ilə eyni koddan.</summary>
     private static string ChipReason(CandidateScore candidate, string language)
@@ -2233,7 +2290,8 @@ public class PetBrainService : IPetBrainService
         int bond,
         string unlockedCode,
         IReadOnlyList<PetMemory> memories,
-        bool leveledUp)
+        bool leveledUp,
+        bool personalizationEnabled)
     {
         var accessory = string.IsNullOrEmpty(unlockedCode) ? null : PetAccessories.Find(unlockedCode);
 
@@ -2253,6 +2311,9 @@ public class PetBrainService : IPetBrainService
                 ? string.Empty
                 : Localized.T(language, accessory.NameAz, accessory.Name),
             UnlockedAccessoryIcon = accessory?.Icon ?? string.Empty,
+            RewardFlavor = template.RewardFlavor,
+            RewardLabel = RecommendationVoice.RewardLabel(template.RewardFlavor, language),
+            CanGiveFeedback = personalizationEnabled,
             NewMemories = [.. memories.Select(m => MemoryPolicy.ToDto(m, language, pet.Name))],
             PetLeveledUp = leveledUp,
             PetLevel = pet.Level
@@ -2276,7 +2337,8 @@ public class PetBrainService : IPetBrainService
             : string.Empty;
 
         dto.Summary = BuildSummary(
-            template, language, child.Pet, 0, 0, unlocked, memories, leveledUp: false);
+            template, language, child.Pet, 0, 0, unlocked, memories, leveledUp: false,
+            child.PersonalizationSettings?.PersonalizationEnabled ?? true);
 
         // Təkrar açılışda "yeni əşya!" anı göstərilmir — o, bir dəfəlik andır.
         dto.Summary.UnlockedAccessoryCode = string.Empty;
@@ -2350,7 +2412,11 @@ public class PetBrainService : IPetBrainService
 
         if (stage.Kind != PetBrainStageKind.Puzzle)
         {
-            dto.Stage.Options = [.. stage.Options.Select(o => ToOptionDto(o, language))];
+            dto.Stage.Options =
+            [
+                .. SupportVoice.Narrow(stage.Options, SupportOf(child))
+                    .Select(o => ToOptionDto(o, language))
+            ];
             dto.UpcomingScene = await UpcomingSceneAsync(run, template, child, ct);
             return dto;
         }
@@ -2366,10 +2432,19 @@ public class PetBrainService : IPetBrainService
         // dəyişmir — yalnız fon.
         await ApplySceneAsync(puzzle, issued, template, child, ct);
 
-        // İpucu YALNIZ istənəndə (və ya dəstək rejimində) göndərilir; əks halda
-        // sahə boş qalır və klientə heç nə sızmır.
-        if (!showHint && issued.HintsUsed == 0 && !issued.Assisted)
+        // İpucu YALNIZ istənəndə, dəstək rejimində və ya uşağın SEÇDİYİ
+        // vaxtlamaya görə göndərilir; əks halda sahə boş qalır və klientə heç
+        // nə sızmır.
+        var support = SupportOf(child);
+        var reveal = showHint
+                     || issued.HintsUsed > 0
+                     || issued.Assisted
+                     || SupportVoice.ShouldRevealHint(support, run.Mistakes);
+
+        if (!reveal)
             puzzle.Hint = string.Empty;
+        else
+            puzzle.Hint = SupportVoice.Frame(puzzle.Hint, support.Style, language);
 
         dto.Stage.Puzzle = puzzle;
         dto.Stage.SupportsHint = puzzle.HintAvailable;
@@ -2433,7 +2508,11 @@ public class PetBrainService : IPetBrainService
 
         if (node.Kind != PetBrainStageKind.Puzzle)
         {
-            dto.Stage.Options = [.. node.Options.Select(o => ToOptionDto(o, language))];
+            dto.Stage.Options =
+            [
+                .. SupportVoice.Narrow(node.Options, SupportOf(child))
+                    .Select(o => ToOptionDto(o, language))
+            ];
             dto.UpcomingScene = await UpcomingGraphSceneAsync(run, template, child, graph, node, ct);
 
             return dto;
@@ -2446,8 +2525,16 @@ public class PetBrainService : IPetBrainService
 
         await ApplySceneAsync(puzzle, issued, template, child, ct);
 
-        if (!showHint && issued.HintsUsed == 0 && !issued.Assisted)
+        var support = SupportOf(child);
+        var reveal = showHint
+                     || issued.HintsUsed > 0
+                     || issued.Assisted
+                     || SupportVoice.ShouldRevealHint(support, run.Mistakes);
+
+        if (!reveal)
             puzzle.Hint = string.Empty;
+        else
+            puzzle.Hint = SupportVoice.Frame(puzzle.Hint, support.Style, language);
 
         dto.Stage.Puzzle = puzzle;
         dto.Stage.SupportsHint = puzzle.HintAvailable;

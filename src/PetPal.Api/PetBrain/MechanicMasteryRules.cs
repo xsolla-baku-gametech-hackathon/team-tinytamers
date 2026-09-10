@@ -121,6 +121,15 @@ public static class MechanicMasteryRules
             -MaxStepPerAttempt,
             MaxStepPerAttempt);
 
+        // Köməklə də olsa BİTİRMƏK səviyyəni aşağı salmır.
+        //
+        // Saf Elo bunu edərdi: asan tapmacada ipucu istəmək «gözləntidən aşağı»
+        // sayılır. Amma nəticə uşaq üçün tələ olardı — kömək istədikcə səviyyə
+        // düşər, səviyyə düşdükcə tapmaca asanlaşar və o, heç vaxt irəli
+        // getməzdi. Uğursuzluq hələ də səviyyəni endirir; BİTİRMƏK yox.
+        if (attempt.Solved && delta < 0)
+            delta = 0;
+
         mastery.EstimatedLevel = Math.Clamp(
             mastery.EstimatedLevel + delta, MechanicMastery.MinLevel, MechanicMastery.MaxLevel);
 

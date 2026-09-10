@@ -38,11 +38,23 @@ public static class RecommendationPolicy
     /// <summary>Bir addım fərqin temp uyğunluğuna dəyəri.</summary>
     public const int PaceStepPenalty = 18;
 
+    /// <summary>Bir dəqiqə fərqin temp uyğunluğuna dəyəri.</summary>
+    public const int PaceMinutePenalty = 10;
+
     /// <summary>Mövzu balının qabarıqlığı — güclü maraq keçər maraqdan ayrılsın.</summary>
     public const double TopicCurve = 100.0;
 
     /// <summary>Yenilik cəzasının pəncərəsi (son run sayı).</summary>
     public const int NoveltyWindow = 5;
+
+    /// <summary>
+    /// Təkrar cəzasının yekun bala təsiri.
+    ///
+    /// <para>Təzəcə oynanmış macəra ən çox <c>25</c> bal itirir — bu, güclü
+    /// marağı ləğv etməyə yetmir, amma eyni başlığın gün-gün təkrarlanmasını
+    /// dayandırır.</para>
+    /// </summary>
+    public const double RepetitionWeight = 0.25;
 
     private static readonly int[] TemplateRepeatPenalty = [60, 40, 25, 12, 6];
     private static readonly int[] ThemeRepeatPenalty = [10, 6, 3];
@@ -192,7 +204,15 @@ public static class RecommendationPolicy
             + (options.RewardFit * reward)
             + (options.NoveltyValue * novelty);
 
-        var total = Math.Clamp(weighted + explicitAdjustment, 0, 100);
+        // Təkrar cəzası çəkili cəmə DEYİL, yekuna birbaşa tətbiq olunur.
+        //
+        // Yalnız yenilik komponenti ilə getsək, güclü maraq onu asanlıqla
+        // udurdu: kosmosu sevən uşaq eyni macərəni gün-gün əsas kart kimi
+        // görürdü — yəni filter bubble. Birbaşa çıxma təzəcə oynanmış macərəni
+        // başlıqdan çıxarır, amma onu hovuzdan ATMIR: uşaq alternativlər
+        // arasında ona qayıda bilir.
+        var total = Math.Clamp(
+            weighted + explicitAdjustment - (repetition * RepetitionWeight), 0, 100);
 
         return new CandidateScore(
             template, topic, mechanic, mastery, style, support, pace, continuity, reward,
@@ -297,13 +317,21 @@ public static class RecommendationPolicy
         return template.HasPuzzle ? 85 : 75;
     }
 
-    /// <summary>Sessiya uzunluğu ilə macəranın addım sayının uyğunluğu.</summary>
+    /// <summary>
+    /// Sessiya uzunluğu ilə macəranın uyğunluğu — həm ADDIM, həm DƏQİQƏ.
+    ///
+    /// <para>Yalnız addım sayına baxmaq kifayət etmir: kataloqda mərhələ sayı
+    /// yaxın, davametmə müddəti isə fərqli macəralar var və uşaq «qısa» deyəndə
+    /// hər ikisini nəzərdə tutur.</para>
+    /// </summary>
     public static int PaceFit(ExperienceTemplate template, PetMindContext mind)
     {
-        var budget = mind.Personalization.PreferredStepBudget;
-        var distance = Math.Abs(template.StageCount - budget);
+        var stepDistance = Math.Abs(template.StageCount - mind.Personalization.PreferredStepBudget);
+        var minuteDistance = Math.Abs(template.TargetMinutes - mind.Personalization.PreferredMinutes);
 
-        return Math.Clamp(100 - (distance * PaceStepPenalty), 0, 100);
+        var penalty = (stepDistance * PaceStepPenalty) + (minuteDistance * PaceMinutePenalty);
+
+        return Math.Clamp(100 - penalty, 0, 100);
     }
 
     /// <summary>
@@ -397,36 +425,38 @@ public static class RecommendationPolicy
         HashSet<string> used = new(StringComparer.Ordinal);
         HashSet<string> usedThemes = new(StringComparer.Ordinal);
 
-        var exploring = ShouldExplore(mind, options, seed);
-
-        var primary = exploring
-            ? PickExploration(ranked, mind) ?? ranked[0]
-            : ranked[0];
-
-        Add(primary, PetBrainRecommendationSlot.Primary, exploring && primary != ranked[0]);
+        // ƏSAS kart HƏMİŞƏ ən yüksək baldır.
+        //
+        // Kəşf payının əsas kartı ələ keçirməsi cazibədar görünürdü, amma iki
+        // dəfə səhv idi: uşaq gözlədiyi macərəni tapa bilmirdi, və eyni profil
+        // eyni ekranda fərqli başlıq göstərirdi. Kəşf ALTERNATİV yuvalarda
+        // yaşayır — orada o, adı ilə birlikdə görünür («Yeni») və uşaq onu
+        // seçib-seçməməkdə azaddır.
+        Add(ranked[0], PetBrainRecommendationSlot.Primary, wasExploration: false);
 
         if (cards.Count < options.CardCount && PickContinuity(ranked, mind, used) is { } continuity)
             Add(continuity, PetBrainRecommendationSlot.Continuity, wasExploration: false);
 
-        if (cards.Count < options.CardCount && PickNearby(ranked, mind, used, usedThemes) is { } nearby)
-            Add(nearby, PetBrainRecommendationSlot.NearbyDiscovery, wasExploration: true);
+        // Kəşf payı SON yuvanın xarakterini müəyyən edir: ya yaxın qonşu
+        // (tanış mexanika, yeni mövzu), ya da tam sürpriz. Profil zəif
+        // tanınanda sürpriz daha tez-tez düşür — sistem az şey biləndə daha
+        // çox soruşmalıdır, daha inadkar olmamalıdır.
+        var exploring = ShouldExplore(mind, options, seed);
 
         if (cards.Count < options.CardCount
+            && exploring
             && mind.Personalization.SurpriseEnabled
             && PickSurprise(ranked, used, usedThemes) is { } surprise)
             Add(surprise, PetBrainRecommendationSlot.SafeExploration, wasExploration: true);
 
-        // Boşluq qalıbsa bal sırası ilə doldurulur — uşaq həmişə seçim görməlidir.
-        foreach (var candidate in ranked)
-        {
-            if (cards.Count >= options.CardCount)
-                break;
+        if (cards.Count < options.CardCount && PickNearby(ranked, mind, used, usedThemes) is { } nearby)
+            Add(nearby, PetBrainRecommendationSlot.NearbyDiscovery, wasExploration: true);
 
-            if (used.Contains(candidate.Key))
-                continue;
-
-            Add(candidate, PetBrainRecommendationSlot.NearbyDiscovery, wasExploration: false);
-        }
+        // Boşluq qalıbsa bal sırası ilə doldurulur — uşaq həmişə seçim
+        // görməlidir. Əvvəlcə MÖVZUCA fərqli namizədlər: doldurma mərhələsi
+        // siyahını səssizcə bir mövzuya kilidləməməlidir.
+        Fill(themeDistinct: true);
+        Fill(themeDistinct: false);
 
         return cards;
 
@@ -435,6 +465,23 @@ public static class RecommendationPolicy
             cards.Add(new RecommendationCard(candidate, slot, wasExploration));
             used.Add(candidate.Key);
             usedThemes.Add(candidate.Theme);
+        }
+
+        void Fill(bool themeDistinct)
+        {
+            foreach (var candidate in ranked)
+            {
+                if (cards.Count >= options.CardCount)
+                    return;
+
+                if (used.Contains(candidate.Key))
+                    continue;
+
+                if (themeDistinct && usedThemes.Contains(candidate.Theme))
+                    continue;
+
+                Add(candidate, PetBrainRecommendationSlot.NearbyDiscovery, wasExploration: false);
+            }
         }
     }
 
@@ -457,22 +504,6 @@ public static class RecommendationPolicy
         var roll = StableHash.Unit($"petbrain-explore:{mind.ChildId:N}:{options.PolicyVersion}:{seed}");
 
         return roll < share;
-    }
-
-    private static CandidateScore? PickExploration(IReadOnlyList<CandidateScore> ranked, PetMindContext mind)
-    {
-        if (!mind.Personalization.SurpriseEnabled)
-            return null;
-
-        // Ən yüksək yenilik, amma sıranın ən altından deyil: uşağa "sürpriz"
-        // adı ilə ən uyğunsuz macərəni vermək kəşf deyil, cəzadır.
-        var pool = ranked.Take(Math.Max(2, ranked.Count - 1)).ToList();
-
-        return pool
-            .OrderByDescending(c => c.NoveltyValue)
-            .ThenByDescending(c => c.Total)
-            .ThenBy(c => c.Key, StringComparer.Ordinal)
-            .FirstOrDefault();
     }
 
     private static CandidateScore? PickContinuity(

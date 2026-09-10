@@ -84,12 +84,26 @@ public sealed record PersonalizationProfile(
         Accessibility: accessibility,
         OnboardingPending: false);
 
-    /// <summary>Macəranın hədəflədiyi ADDIM sayı — sessiya uzunluğundan.</summary>
+    /// <summary>
+    /// Macəranın hədəflədiyi ADDIM sayı — sessiya uzunluğundan.
+    ///
+    /// <para>Rəqəmlər kataloqun REAL aralığına kalibrlənib (4–5 mərhələ).
+    /// «3 və 7» kimi nəzəri büdcə bütün namizədləri eyni məsafəyə salır və
+    /// ölçünü səssizcə ölü sütuna çevirirdi.</para>
+    /// </summary>
     public int PreferredStepBudget => SessionLength switch
     {
-        PetBrainSessionLength.Short => 3,
-        PetBrainSessionLength.Long => 7,
+        PetBrainSessionLength.Short => 4,
+        PetBrainSessionLength.Long => 6,
         _ => 5
+    };
+
+    /// <summary>Hədəflənən dəqiqə — kataloqun real aralığına (3–4) uyğun.</summary>
+    public int PreferredMinutes => SessionLength switch
+    {
+        PetBrainSessionLength.Short => 3,
+        PetBrainSessionLength.Long => 5,
+        _ => 4
     };
 
     /// <summary>

@@ -507,6 +507,26 @@ public class PetBrainSummaryDto
     /// <summary>Bu təcrübədən yaranan yeni xatirələr.</summary>
     public List<PetBrainMemoryDto> NewMemories { get; set; } = new();
 
+    /// <summary>
+    /// Mükafatın FORMASI — uşağın seçdiyi növ.
+    ///
+    /// <para>Mükafat iqtisadiyyatı bununla dəyişmir (xp, bağ və kosmetik olduğu
+    /// kimi qalır): dəyişən onun necə təqdim olunmasıdır. Kolleksiya sevən uşaq
+    /// «tapıntı», hekayə sevən «albom səhifəsi» görür.</para>
+    /// </summary>
+    public PetBrainRewardPreference RewardFlavor { get; set; }
+
+    /// <summary>Mükafatın uşağın dilində adı.</summary>
+    public string RewardLabel { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Uşaq bu macəra haqqında açıq rəy verə bilirmi.
+    ///
+    /// <para>Yekun ekranı rəy üçün ən dürüst andır: uşaq macəranı ARTIQ
+    /// oynayıb, ona görə «bəyəndim» sözü təxmin deyil, təcrübədir.</para>
+    /// </summary>
+    public bool CanGiveFeedback { get; set; } = true;
+
     /// <summary>Pet-in yaşı artdımı.</summary>
     public bool PetLeveledUp { get; set; }
     public int PetLevel { get; set; }
