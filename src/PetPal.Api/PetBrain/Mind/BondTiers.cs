@@ -95,6 +95,14 @@ public static class BondTiers
     /// Pillənin açdığı görünən şeylər. Açarlar QAPALIDIR — UI onları tanıyır,
     /// klient isə yenisini uydura bilmir.
     /// </summary>
+    ///
+    /// <remarks>
+    /// <b>Bu gün ekranda YALNIZ <see cref="BondUnlock.Emote"/> görünür.</b>
+    /// Qalan üçü — otaq bəzəyi, macəra reaksiyası və poza — tərif kimi
+    /// yazılıb, amma hələ heç bir ekrana bağlanmayıb; onlar pet avatarına və
+    /// otaq səhnəsinə toxunmağı tələb edir. Bax
+    /// <c>docs/PET_BRAIN_V2.md</c> backlog bölməsi.
+    /// </remarks>
     public static BondUnlock UnlockFor(PetBrainBondTier tier) => tier switch
     {
         PetBrainBondTier.TrustedFriend => new(

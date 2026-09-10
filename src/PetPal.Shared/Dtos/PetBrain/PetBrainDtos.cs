@@ -274,6 +274,20 @@ public class PetBrainStageDto
 
     /// <summary>İpucu istənibsə mətni burada gəlir (server verir, klient uydurmur).</summary>
     public string Hint { get; set; } = string.Empty;
+
+    /// <summary>
+    /// İpucu TƏKLİFİNİN üslubu — xarakterin səsi ilə.
+    ///
+    /// <para>İpucunun ÖZÜ deyil: bu, uşağı köməyə dəvət edən cümlədir və
+    /// kömək istəməyi zəiflik kimi göstərmir.</para>
+    /// </summary>
+    public string HintOffer { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Seçimdən sonra pet-in reaksiyası — nəticə ekranında hekayənin öz
+    /// replikasının yanında gəlir. Xarakterə görə dəyişir.
+    /// </summary>
+    public string PetReaction { get; set; } = string.Empty;
 }
 
 public class PetBrainOptionDto

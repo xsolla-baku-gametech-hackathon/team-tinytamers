@@ -104,7 +104,15 @@
                         {
                             @* Seçimin NƏTİCƏSİ ayrıca ekrandır: uşaq nə etdiyini
                                dərhal görməlidir. Seçimlə birləşdirmək nəticəni
-                               bəzəyə çevirərdi. *@
+                               bəzəyə çevirərdi.
+
+                               Hekayənin replikası hamı üçün eynidir; reaksiya
+                               isə pet-in XARAKTERİNDƏNDİR. *@
+                            @if (!string.IsNullOrWhiteSpace(_run.Stage.PetReaction))
+                            {
+                                <p class="pbx__reaction">@_run.Stage.PetReaction</p>
+                            }
+
                             <button class="btn btn--primary btn--block" disabled="@_busy"
                                     @onclick="ContinueAsync">
                                 @Loc.T("Davam", "Keep going")
@@ -124,7 +132,7 @@
                                nəticə seçib. Doğru cavab burada YOXDUR — o,
                                yalnız serverdə saxlanılır. *@
                             <PuzzleBoard Puzzle="puzzle" Busy="_busy" SceneImage="@PuzzleSceneImage"
-                                         SceneAwakening="@SceneAwaited"
+                                         SceneAwakening="@SceneAwaited" HintOffer="@_run.Stage.HintOffer"
                                          OnSubmit="SubmitPuzzleAsync" OnHint="HintAsync" />
                         }
                         else

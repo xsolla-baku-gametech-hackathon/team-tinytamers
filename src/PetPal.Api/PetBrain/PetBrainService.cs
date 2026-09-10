@@ -2014,6 +2014,11 @@ public class PetBrainService : IPetBrainService
             MemoryCallback = MemoryCallbackFor(node, child, language)
         };
 
+        // Nəticə ekranında pet ÖZ səsi ilə cavab verir: hekayənin replikası
+        // hamı üçün eynidir, reaksiya isə xarakterə görə dəyişir.
+        if (node.Kind == PetBrainStageKind.Consequence)
+            dto.Stage.PetReaction = PersonalityVoice.ChoiceReaction(child.Personality, language);
+
         if (node.Kind != PetBrainStageKind.Puzzle)
         {
             dto.Stage.Options = [.. node.Options.Select(o => ToOptionDto(o, language))];
@@ -2036,6 +2041,11 @@ public class PetBrainService : IPetBrainService
         dto.Stage.SupportsHint = puzzle.HintAvailable;
         dto.Stage.Hint = puzzle.Hint;
         dto.Stage.Prompt = puzzle.Instruction;
+
+        // İpucu TƏKLİFİ də xarakterin səsindədir — kömək istəmək heç bir
+        // variantda zəiflik kimi verilmir.
+        if (puzzle.HintAvailable)
+            dto.Stage.HintOffer = PersonalityVoice.HintOffer(child.Personality, language);
 
         // Ruhlandırma XARAKTERƏ uyğundur — cəza dili heç bir variantda yoxdur.
         if (puzzleMissed)

@@ -6,6 +6,7 @@ using PetPal.Api.Data;
 using PetPal.Api.Entities;
 using PetPal.Api.PetBrain;
 using PetPal.Api.PetBrain.Mind;
+using PetPal.Api.PetBrain.Story;
 using PetPal.Shared.Dtos.PetBrain;
 using PetPal.Shared.Enums;
 
@@ -459,5 +460,147 @@ public class PetBrainBondAndVoiceTests
         foreach (var text in all)
         foreach (var phrase in banned)
             Assert.DoesNotContain(phrase, text, StringComparison.OrdinalIgnoreCase);
+    }
+}
+
+/// <summary>
+/// Xarakterin səsi ÖLÜ KOD deyil: hər cümlə ekranın bir yerinə çatır.
+///
+/// <para>Bu testin öz səbəbi var. Xarakter mətnləri bir dəfə yazılıb ayrıca
+/// test olunanda «var» görünür, amma heç kim onları çağırmasa uşaq onları
+/// GÖRMÜR — və bu, kompilyasiya ilə tutulmur.</para>
+/// </summary>
+public class PetBrainPersonalityReachTests : IClassFixture<TestWebAppFactory>
+{
+    private readonly TestWebAppFactory _factory;
+
+    public PetBrainPersonalityReachTests(TestWebAppFactory factory) => _factory = factory;
+
+    /// <summary>Nəticə ekranı xarakterin reaksiyasını daşıyır.</summary>
+    [Fact]
+    public async Task NeticeEkrani_XarakterinReaksiyasiniDasiyir()
+    {
+        var client = await MoonChildAsync("voice-reaction@petpal.test");
+        var run = await SeedMoonRunAsync(client);
+
+        run = await PetBrainPlaythrough.StepAsync(client, run);
+        run = await PetBrainPlaythrough.StepAsync(client, run, "north-crater");
+
+        Assert.Equal(PetBrainStageKind.Consequence, run.Stage!.Kind);
+        Assert.False(string.IsNullOrWhiteSpace(run.Stage.PetReaction));
+
+        // Hekayənin replikasından AYRIDIR — biri tərifdən, digəri xarakterdən.
+        Assert.NotEqual(run.Stage.PetLine, run.Stage.PetReaction);
+    }
+
+    /// <summary>Tapmaca ekranı ipucu DƏVƏTİNİ daşıyır.</summary>
+    [Fact]
+    public async Task TapmacaEkrani_IpucuDevetiniDasiyir()
+    {
+        var client = await MoonChildAsync("voice-hint@petpal.test");
+        var run = await SeedMoonRunAsync(client);
+
+        run = await PetBrainPlaythrough.AdvanceToPuzzleAsync(client, run);
+
+        Assert.True(run.Stage!.SupportsHint);
+        Assert.False(string.IsNullOrWhiteSpace(run.Stage.HintOffer));
+
+        // Dəvət ipucunun ÖZÜ deyil: cavab hələ göndərilməyib.
+        Assert.Empty(run.Stage.Hint);
+    }
+
+    /// <summary>
+    /// Fərqli xarakterlər fərqli reaksiya alır — cümlə sabit deyil.
+    /// </summary>
+    [Fact]
+    public async Task FerqliXarakter_FerqliReaksiyaAlir()
+    {
+        var scientist = await MoonChildAsync("voice-a@petpal.test", TraitKeys.ProblemSolver);
+        var explorer = await MoonChildAsync("voice-b@petpal.test", TraitKeys.Explorer);
+
+        var first = await ReactionAsync(scientist);
+        var second = await ReactionAsync(explorer);
+
+        Assert.NotEqual(first, second);
+    }
+
+    private async Task<string> ReactionAsync(ApiTestClient client)
+    {
+        var run = await SeedMoonRunAsync(client);
+
+        run = await PetBrainPlaythrough.StepAsync(client, run);
+        run = await PetBrainPlaythrough.StepAsync(client, run, "north-crater");
+
+        return run.Stage!.PetReaction;
+    }
+
+    private async Task<ApiTestClient> MoonChildAsync(string email, string? leadingStyle = null)
+    {
+        var client = await ApiTestClient.CreateAsync(_factory, email, "Aylin");
+        await client.HatchAsync(_factory);
+
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var now = _factory.Clock.GetUtcNow().UtcDateTime;
+
+        void Add(PetBrainTraitCategory category, string key, int score) =>
+            db.PlayerTraits.Add(new PlayerTrait
+            {
+                ChildProfileId = client.ChildId,
+                Category = category,
+                Key = key,
+                Score = score,
+                UpdatedAt = now
+            });
+
+        // Alim oxu üçün elm/tapmaca, kəşfiyyatçı oxu üçün kosmos/təbiət.
+        var scientist = leadingStyle != TraitKeys.Explorer;
+
+        Add(PetBrainTraitCategory.Interest, TraitKeys.Science, scientist ? 92 : 20);
+        Add(PetBrainTraitCategory.Interest, TraitKeys.Puzzles, scientist ? 90 : 20);
+        Add(PetBrainTraitCategory.Interest, TraitKeys.Space, scientist ? 40 : 92);
+        Add(PetBrainTraitCategory.Interest, TraitKeys.Nature, scientist ? 20 : 88);
+        Add(PetBrainTraitCategory.PlayStyle, TraitKeys.ProblemSolver, scientist ? 94 : 20);
+        Add(PetBrainTraitCategory.PlayStyle, TraitKeys.Explorer, scientist ? 30 : 94);
+
+        await db.SaveChangesAsync();
+
+        // Xarakter ekran açılanda hesablanır və SAXLANILIR.
+        (await client.Http.GetAsync("/api/pet-brain")).EnsureSuccessStatusCode();
+
+        return client;
+    }
+
+    /// <summary>Ay run-unu birbaşa qurur — direktorun seçimi bu testin mövzusu deyil.</summary>
+    private async Task<PetBrainRunDto> SeedMoonRunAsync(ApiTestClient client)
+    {
+        Guid runId;
+
+        await using (var scope = _factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var template = ExperienceCatalog.Find(ExperienceCatalog.MoonCrystalRescue)!;
+            var graph = MoonCrystalHunt.Definition;
+
+            var run = new ExperienceRun
+            {
+                ChildProfileId = client.ChildId,
+                TemplateKey = template.Key,
+                DefinitionVersion = graph.Version,
+                CurrentNodeId = graph.StartNodeId,
+                ExperienceType = template.Type,
+                Theme = template.Theme,
+                Difficulty = PetBrainDifficulty.Medium,
+                Status = PetBrainRunStatus.Active,
+                StartedAt = _factory.Clock.GetUtcNow().UtcDateTime
+            };
+
+            db.ExperienceRuns.Add(run);
+            await db.SaveChangesAsync();
+
+            runId = run.Id;
+        }
+
+        return (await client.Http.GetFromJsonAsync<PetBrainRunDto>($"/api/pet-brain/runs/{runId}"))!;
     }
 }

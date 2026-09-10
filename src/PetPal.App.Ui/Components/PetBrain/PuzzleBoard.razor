@@ -61,6 +61,14 @@
         }
         else
         {
+            @if (!string.IsNullOrWhiteSpace(HintOffer))
+            {
+                @* Dəvətin ÜSLUBU pet-in xarakterindəndir: alim yoxlamağa,
+                   kəşfiyyatçı xəritəyə baxmağa çağırır. Heç bir variantda
+                   kömək istəmək zəiflik kimi verilmir. *@
+                <p class="pbx__hint-offer">@HintOffer</p>
+            }
+
             <button class="btn btn--ghost btn--block pbx__hint-btn" disabled="@Busy" @onclick="OnHint">
                 💡 @Loc.T("İpucu ver", "Give me a hint")
             </button>
@@ -72,6 +80,9 @@
     [Parameter, EditorRequired] public PetBrainPuzzleDto Puzzle { get; set; } = new();
 
     [Parameter] public bool Busy { get; set; }
+
+    /// <summary>Xarakterin səsi ilə ipucu dəvəti; boşdursa göstərilmir.</summary>
+    [Parameter] public string? HintOffer { get; set; }
 
     /// <summary>
     /// Hazır hekayə rəsmi (data URI) — YOXDURSA lövhə deterministik səhnə ilə

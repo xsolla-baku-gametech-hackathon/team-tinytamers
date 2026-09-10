@@ -11433,3 +11433,24 @@
     .pbx-moon__crystal { transition: none; }
     .pbx-moon__echo { animation: none; }
 }
+
+/* Xarakterin səsi: seçimdən sonrakı reaksiya və ipucu dəvəti.
+   İkisi də hekayənin öz mətnindən SAKİTdir — əsas replika danışıq buludundadır,
+   bunlar isə onun altında, panelin içində qalır. */
+.pbx__reaction {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--pp-primary-dark);
+    text-align: center;
+}
+
+.pbx__hint-offer {
+    margin: 10px 0 6px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--pp-ink-soft);
+    text-align: center;
+}
