@@ -69,6 +69,13 @@ public static class PetAccessories
             MinLevel: 0, MinHappiness: 0, Unlock: AccessoryUnlock.Experience),
         new("wings-rainbow", "Rainbow wings", "Göy qurşağı qanadları", "🌈",
             MinLevel: 0, MinHappiness: 0, Unlock: AccessoryUnlock.Experience),
+
+        new("halo-guardian", "Guardian halo", "Qoruyucu haləsi", "🛡️",
+            MinLevel: 0, MinHappiness: 0, Unlock: AccessoryUnlock.Experience),
+        new("visor-explorer", "Explorer visor", "Tədqiqatçı eynəyi", "🔭",
+            MinLevel: 0, MinHappiness: 0, Unlock: AccessoryUnlock.Experience),
+        new("badge-robot-friend", "Robot friend badge", "Robot dostu nişanı", "🤖",
+            MinLevel: 0, MinHappiness: 0, Unlock: AccessoryUnlock.Experience),
     ];
 
     /// <summary>

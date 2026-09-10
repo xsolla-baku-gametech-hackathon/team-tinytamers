@@ -35,7 +35,8 @@ public class PetBrainMarkupTests
     /// <summary>Hər QAPALI mexanikanın öz təqdimat komponenti.</summary>
     private static readonly string[] PuzzleComponents =
     [
-        "OrderedRoutePuzzle", "SequenceOrderPuzzle", "RouteLogicPuzzle", "LightFragmentsPuzzle"
+        "OrderedRoutePuzzle", "SequenceOrderPuzzle", "RouteLogicPuzzle", "LightFragmentsPuzzle",
+        "SignalPatternPuzzle", "ObservationRecallPuzzle", "MatchingPairsPuzzle"
     ];
 
     // ==================== Marşrut və klient ====================
@@ -113,18 +114,25 @@ public class PetBrainMarkupTests
         Assert.Contains("crater", scene, StringComparison.Ordinal);
     }
 
-    /// <summary>Hər üç mərhələ növünün ekran qarşılığı var.</summary>
+    /// <summary>
+    /// Hər üç ekran ailəsinin qarşılığı var: seçim, tapmaca və variantsız.
+    ///
+    /// <para>Variantsız ekranlar (giriş, nəticə, hekayə, qurma…) BİR yolla
+    /// emal olunur və fərqi <c>NodePresentation</c> reyestrindən alır — ona
+    /// görə burada ayrı-ayrı növ adları axtarılmır.</para>
+    /// </summary>
     [Fact]
     public void PetBrain_ButunMerheleNovleriniCizir()
     {
         var page = ReadPage("PetBrain.razor");
 
-        Assert.Contains("PetBrainStageKind.Intro", page, StringComparison.Ordinal);
         Assert.Contains("<StageChoices", page, StringComparison.Ordinal);
 
         // Tapmaca mərhələsi ayrıca lövhəyə gedir — ipucu da oradadır.
         Assert.Contains("<PuzzleBoard", page, StringComparison.Ordinal);
         Assert.Contains("Stage.Puzzle is", page, StringComparison.Ordinal);
+
+        Assert.Contains("NodePresentation.ContinueLabel", page, StringComparison.Ordinal);
     }
 
     /// <summary>

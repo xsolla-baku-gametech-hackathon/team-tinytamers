@@ -134,7 +134,8 @@ public sealed class PetMindContextBuilder
 
         var unfinished = await _db.ExperienceRuns
             .AsNoTracking()
-            .Where(r => r.ChildProfileId == child.Id && r.Status == PetBrainRunStatus.Active)
+            .Where(r => r.ChildProfileId == child.Id
+                        && (r.Status == PetBrainRunStatus.Active || r.Status == PetBrainRunStatus.Paused))
             .OrderByDescending(r => r.StartedAt)
             .Select(r => r.TemplateKey)
             .FirstOrDefaultAsync(ct);

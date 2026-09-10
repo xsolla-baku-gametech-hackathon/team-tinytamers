@@ -387,6 +387,17 @@ public class PetBrainRunDto
 
     /// <summary>Run tamamlanıbsa yekun ekranın məlumatı.</summary>
     public PetBrainSummaryDto? Summary { get; set; }
+
+    /// <summary>
+    /// Chapter-li macəranın vəziyyəti — məqsədlər, inventar, jurnal, irəliləmə.
+    ///
+    /// <para>Chapter-siz (qısa) macərada <c>null</c> qalır və ekran köhnə,
+    /// sadə görünüşünü saxlayır: HUD yalnız onu daşıya bilən macərada çıxır.</para>
+    /// </summary>
+    public PetBrainAdventureStateDto? Adventure { get; set; }
+
+    /// <summary>Chapter indicə bitibsə onun yekun ekranı; əks halda <c>null</c>.</summary>
+    public PetBrainChapterCompleteDto? ChapterComplete { get; set; }
 }
 
 /// <summary>
@@ -468,6 +479,32 @@ public class PetBrainStageDto
     /// replikasının yanında gəlir. Xarakterə görə dəyişir.
     /// </summary>
     public string PetReaction { get; set; } = string.Empty;
+
+    /// <summary>
+    /// İpucunun hazırkı PİLLƏSİ — hər istəkdə bir pillə güclənir.
+    ///
+    /// <para>Ekran bunu uşağa «neçənci kömək» kimi göstərmir: məqsəd sayğac
+    /// deyil, növbəti köməyin nə olacağını bilməkdir.</para>
+    /// </summary>
+    public PetBrainHintLevel HintLevel { get; set; }
+
+    /// <summary>
+    /// Cavabın ARTIQ açılmış addımları — ekran onları işarələyir.
+    ///
+    /// <para>Tam həll heç vaxt burada olmur; ən çox yarısı.</para>
+    /// </summary>
+    public List<string> HintRevealIds { get; set; } = new();
+
+    /// <summary>Pet «gəl birlikdə bitirək» təklif edir — ipucunun son pilləsi.</summary>
+    public bool AssistAvailable { get; set; }
+
+    /// <summary>
+    /// Jurnaldan bu tapmacaya aid QEYD — uşaq əvvəllər tapdığı ipucunu
+    /// tapmacanın yanında görür. Uyğun ipucu yoxdursa boş.
+    /// </summary>
+    public string JournalNote { get; set; } = string.Empty;
+
+    public string JournalNoteTitle { get; set; } = string.Empty;
 }
 
 public class PetBrainOptionDto
@@ -478,6 +515,15 @@ public class PetBrainOptionDto
 
     /// <summary>Seçimin qısa təsviri — uşaq nəticəni əvvəlcədən görsün.</summary>
     public string Detail { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Pet bu variantı TƏKLİF edir — uşağın öz üslubuna ən yaxın olanı.
+    ///
+    /// <para>Sıra dəyişmir və digər variantlar gizlənmir: təklif bir işarədir,
+    /// qərar isə uşağındır. «Pet-in təklifini qəbul etmək və ya başqasını
+    /// seçmək» özü bir seçimdir.</para>
+    /// </summary>
+    public bool Suggested { get; set; }
 }
 
 public class PetBrainSummaryDto
@@ -497,6 +543,12 @@ public class PetBrainSummaryDto
     public int XpEarned { get; set; }
     public int BondEarned { get; set; }
     public int BondTotal { get; set; }
+
+    /// <summary>
+    /// Fəsilli macəranın epiloqu — sonluq, ünvan, dünyadakı izlər, növbəti
+    /// qarmaq. Qısa macərada <c>null</c>.
+    /// </summary>
+    public PetBrainEpilogueDto? Epilogue { get; set; }
 
     /// <summary>Bu tamamlamada açılan kosmetik əşya (ilk dəfə); yoxdursa boş.</summary>
     public string UnlockedAccessoryCode { get; set; } = string.Empty;
@@ -614,8 +666,15 @@ public class PetBrainChoiceRequest
     /// <summary>
     /// Serverin gözlədiyi mərhələnin indeksi. Uyğun gəlməsə <c>409</c> qayıdır —
     /// iki dəfə basmaq və ya mərhələ atlamaq mümkün olmur.
+    ///
+    /// <para>Yuxarı hədd chapter-li macəranın ən uzun yolundan (bax
+    /// <c>ExperienceGraphValidator.MaxPathLength</c>) BÖYÜK olmalıdır. Əvvəlki
+    /// 31 həddi dörd mərhələli xətti macəraya görə seçilmişdi və altı fəsilli
+    /// macərada beşinci fəsildə sorğunu rədd edirdi — yəni uşaq macərənin
+    /// ortasında bağlı qapı görürdü. Hədd yenə var: o, sonsuz indeks deyil,
+    /// REAL yolun uzunluğunu qoruyur.</para>
     /// </summary>
-    [Range(0, 31)]
+    [Range(0, 127)]
     public int StageIndex { get; set; }
 
     /// <summary>
@@ -644,6 +703,43 @@ public class PetBrainChoiceRequest
 
     /// <summary>İpucu istəyi — seçim göndərilmir, mərhələ irəliləmir.</summary>
     public bool RequestHint { get; set; }
+
+    /// <summary>
+    /// Klientin gördüyü vəziyyət nömrəsi.
+    ///
+    /// <para>Serverinkindən KÖHNƏdirsə <c>409</c> qayıdır: uşaq iki cihazda
+    /// eyni macərəni açıbsa, biri digərinin addımını səssizcə üstələməməlidir.
+    /// Göndərilməyəndə (<c>null</c>) yoxlama aparılmır — köhnə klientlər
+    /// işləməyə davam edir.</para>
+    /// </summary>
+    public int? ClientRevision { get; set; }
+
+    /// <summary>
+    /// Bu addımın TƏKRARSIZLIQ açarı.
+    ///
+    /// <para>Zəif şəbəkədə klient eyni sorğunu iki dəfə göndərir. Açar
+    /// tətbiq olunmuş sayılırsa, server heç nə etmir və cari vəziyyəti
+    /// qaytarır — yəni bir seçim üçün iki dəfə əşya düşmür.</para>
+    /// </summary>
+    [StringLength(64)]
+    public string? IdempotencyKey { get; set; }
+
+    /// <summary>
+    /// Uşaq pet-in «birlikdə bitirək» təklifini qəbul etdi.
+    ///
+    /// <para>Yalnız ipucunun son pilləsində etibarlıdır — server pilləni öz
+    /// sayğacı ilə yoxlayır. Tapmaca hekayə üçün tamamlanır, mənimsəməyə isə
+    /// köməksiz həll kimi YAZILMIR.</para>
+    /// </summary>
+    public bool AcceptAssist { get; set; }
+}
+
+/// <summary>Macərəni dayandırmaq və ya davam etdirmək istəyi.</summary>
+public class PetBrainPauseRequest
+{
+    /// <summary>Bu sessiyada faktiki oynanılan saniyə — ölçmə üçün.</summary>
+    [Range(0, 7200)]
+    public int PlayedSeconds { get; set; }
 }
 
 /// <summary>Nümayiş rejimində qərarın izahı. Uşaq üçün deyil, münsif/valideyn üçündür.</summary>
@@ -746,4 +842,19 @@ public class PetBrainHomeChipDto
 
     /// <summary>Bir sətirlik səbəb — çipdə göstərilir.</summary>
     public string Reason { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Chapter-li yarımçıq macərada «Fəsil 3/6»; qısa macərada boş.
+    ///
+    /// <para>Ana ekran uzun macəranı «yarımçıq qalıb» deyə yox, HARADA
+    /// qaldığını deyərək xatırladır — uşaq bir həftə sonra qayıtsa da
+    /// macəranın ortasında olduğunu bilir.</para>
+    /// </summary>
+    public string ChapterLabel { get; set; } = string.Empty;
+
+    /// <summary>0–100, tamamlanmış fəsillərdən; qısa macərada 0.</summary>
+    public int ProgressPercent { get; set; }
+
+    /// <summary>Macəra uşaq tərəfindən DAYANDIRILIB (itirilməyib).</summary>
+    public bool IsPaused { get; set; }
 }

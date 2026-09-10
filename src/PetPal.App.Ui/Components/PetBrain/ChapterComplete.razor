@@ -1,0 +1,103 @@
+@inject Loc Loc
+
+<div class="pbx-chapter" role="dialog" aria-modal="true" aria-label="@Model.Title">
+
+    <p class="pbx-chapter__eyebrow">@Loc.T("Fəsil tamamlandı", "Chapter complete")</p>
+    <h2 class="pbx-chapter__title">@Model.Title</h2>
+
+    <p class="pbx-chapter__summary">@Model.Summary</p>
+
+    @if (Model.KeyChoices.Count > 0)
+    {
+        <div class="pbx-chapter__block">
+            <h3 class="pbx-chapter__label">@Loc.T("Sənin qərarların", "Your decisions")</h3>
+            <ul class="pbx-chapter__chips">
+                @foreach (var choice in Model.KeyChoices)
+                {
+                    <li class="pbx-chapter__chip">@choice</li>
+                }
+            </ul>
+        </div>
+    }
+
+    @if (Model.CompletedObjectives.Count > 0)
+    {
+        <div class="pbx-chapter__block">
+            <h3 class="pbx-chapter__label">@Loc.T("Bunları bacardın", "You did these")</h3>
+            <ul class="pbx-chapter__list">
+                @foreach (var objective in Model.CompletedObjectives)
+                {
+                    <li class="pbx-chapter__done">
+                        <span aria-hidden="true">✓</span> @objective.Title
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+
+    @if (Model.GainedItems.Count > 0 || Model.NewClues.Count > 0)
+    {
+        <div class="pbx-chapter__block">
+            <h3 class="pbx-chapter__label">@Loc.T("Yeni tapıntılar", "New finds")</h3>
+            <ul class="pbx-chapter__chips">
+                @foreach (var item in Model.GainedItems)
+                {
+                    <li class="pbx-chapter__chip"><span aria-hidden="true">@item.Icon</span> @item.Name</li>
+                }
+                @foreach (var clue in Model.NewClues)
+                {
+                    <li class="pbx-chapter__chip"><span aria-hidden="true">@clue.Icon</span> @clue.Title</li>
+                }
+            </ul>
+        </div>
+    }
+
+    @if (Model.MissedOptional.Count > 0)
+    {
+        <div class="pbx-chapter__block pbx-chapter__block--soft">
+            <h3 class="pbx-chapter__label">@Loc.T("Burada başqa yol da vardı", "There was another path here")</h3>
+            <ul class="pbx-chapter__list">
+                @foreach (var objective in Model.MissedOptional)
+                {
+                    <li class="pbx-chapter__missed">
+                        <span aria-hidden="true">☆</span> @objective.Title
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+
+    @if (!Model.IsFinalChapter && !string.IsNullOrWhiteSpace(Model.NextChapterTitle))
+    {
+        <div class="pbx-chapter__next">
+            <span class="pbx-chapter__next-label">@Loc.T("Növbəti fəsil", "Next chapter")</span>
+            <span class="pbx-chapter__next-title">@Model.NextChapterTitle</span>
+            <span class="pbx-chapter__next-time">
+                @Loc.T($"təxminən {Model.NextChapterMinutes} dəqiqə", $"about {Model.NextChapterMinutes} minutes")
+            </span>
+        </div>
+    }
+
+    <div class="pbx-chapter__actions">
+        <button type="button" class="btn btn--primary btn--block" disabled="@Busy" @onclick="OnContinue">
+            @(Model.IsFinalChapter
+                ? Loc.T("Finala keç", "On to the finale")
+                : Loc.T("Davam edək", "Keep going"))
+        </button>
+
+        <button type="button" class="btn btn--ghost btn--block" disabled="@Busy" @onclick="OnLater">
+            @Loc.T("Sonra davam edərəm", "I will continue later")
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PetBrainChapterCompleteDto Model { get; set; } = new();
+
+    [Parameter] public bool Busy { get; set; }
+
+    [Parameter] public EventCallback OnContinue { get; set; }
+
+    /// <summary>Macərəni dayandırır — vəziyyət saxlanılır, mükafat hüququ qalır.</summary>
+    [Parameter] public EventCallback OnLater { get; set; }
+}

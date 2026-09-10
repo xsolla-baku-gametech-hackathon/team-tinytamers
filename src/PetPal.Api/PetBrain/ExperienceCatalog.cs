@@ -21,6 +21,25 @@ public sealed record ExperienceOption(
 {
     public string Label(string language) => Localized.T(language, LabelAz, LabelEn);
     public string Detail(string language) => Localized.T(language, DetailAz, DetailEn);
+
+    /// <summary>
+    /// Variantın GÖRÜNMƏ şərti — inventar, ipucu, məqsəd, variant.
+    ///
+    /// <para>Ödənməyən variant ekrana ÇIXMIR. «Görünür, amma bağlıdır» forması
+    /// qəsdən seçilməyib: uşağa əlçatmaz düyməni göstərmək onu nəyi əldən
+    /// verdiyini düşünməyə məcbur edir, halbuki hər yol öz mükafatı ilə
+    /// bütövdür.</para>
+    /// </summary>
+    public Story.ExperienceCondition Requires { get; init; } = Story.ExperienceCondition.None;
+
+    /// <summary>
+    /// Bu variantın SEÇİLMƏSİ ilə dərhal baş verənlər.
+    ///
+    /// <para>Düyün effektlərindən fərqi: onlar səhnəyə DAXİL OLARKƏN işləyir
+    /// və hamıya aiddir, bunlar isə yalnız bu düyməni basan uşağa. Beləliklə
+    /// «enerjini xəritəyə verdim» seçimi elə həmin anda əşyanı dəyişir.</para>
+    /// </summary>
+    public IReadOnlyList<Story.ExperienceEffect> Effects { get; init; } = [];
 }
 
 public sealed record ExperienceStage(
@@ -97,6 +116,30 @@ public sealed record ExperienceTemplate(
     public string? PrimaryMechanic => MechanicAffinity.Count > 0 ? MechanicAffinity[0] : null;
 
     /// <summary>
+    /// BİR OTURUŞUN uzunluğu — uşaqdan indi nə qədər vaxt istənir.
+    ///
+    /// <para><see cref="TargetMinutes"/> macəranın BÜTÖV uzunluğudur və
+    /// chapter-li macərada ikisi eyni deyil: «Ay Kristalının Sirri» qırx
+    /// dəqiqəlikdir, amma bir oturuşda səkkiz dəqiqə istəyir, sonra isə
+    /// checkpoint verir.</para>
+    ///
+    /// <para>Direktor məhz bunu oxuyur, çünki uşağın cavab verdiyi sual «bu
+    /// macəra nə qədərdir» deyil, <b>«indi nə qədər vaxtım var»</b>dır. İki
+    /// ölçünü ayırmasaydıq, uzun macəra qısa sessiya sevən uşağa heç vaxt
+    /// təklif olunmazdı — halbuki o, məhz hissə-hissə oynanmaq üçün qurulub.</para>
+    ///
+    /// <para>Verilmədikdə <see cref="TargetMinutes"/>-a bərabərdir: bölünməmiş
+    /// macərada bir oturuş = bütün macəra.</para>
+    /// </summary>
+    public int SessionMinutes { get; init; }
+
+    /// <summary>Bir oturuşun faktiki uzunluğu — elan edilməyibsə bütöv uzunluq.</summary>
+    public int SittingMinutes => SessionMinutes > 0 ? SessionMinutes : TargetMinutes;
+
+    /// <summary>Macəra hissə-hissə oynanmaq üçün qurulubmu.</summary>
+    public bool IsChaptered => SessionMinutes > 0 && SessionMinutes < TargetMinutes;
+
+    /// <summary>
     /// Tamamlamanın uşağa NƏ verdiyi — mükafatın forması.
     ///
     /// <para>Mükafat İQTİSADİYYATI bununla dəyişmir: xp, bağ və kosmetik
@@ -143,6 +186,16 @@ public static class ExperienceCatalog
     public const string MarsRoverRescue = "mars-rover-rescue";
     public const string DragonLostColors = "dragon-lost-colors";
     public const string MoonCrystalRescue = "moon-crystal-rescue";
+
+    /// <summary>
+    /// <b>«Ay Kristalının Sirri»</b> — altı chapter-lik tam macəra.
+    ///
+    /// <para><see cref="MoonCrystalRescue"/> ilə eyni mövzudadır, amma ONU
+    /// ƏVƏZ ETMİR: qısa macəra qısa sessiya üçün lazımdır və yarımçıq run-ları
+    /// olan uşaqlar var. İkisi eyni engine üzərində, ayrı-ayrı təriflərlə
+    /// yaşayır.</para>
+    /// </summary>
+    public const string MoonCrystalSecret = "moon-crystal-secret";
     public const string OceanGlowQuest = "ocean-glow-quest";
     public const string ForestFriendsParade = "forest-friends-parade";
     public const string RobotLabPuzzle = "robot-lab-puzzle";
@@ -408,6 +461,87 @@ public static class ExperienceCatalog
         {
             MechanicAffinity = [MechanicKeys.Route, MechanicKeys.Observation, MechanicKeys.StoryChoice, MechanicKeys.Memory],
             RewardFlavor = PetBrainRewardPreference.StoryPage,
+        },
+
+        new(
+            Key: MoonCrystalSecret,
+            Version: 1,
+            Type: PetBrainExperienceType.Adventure,
+            Theme: TraitKeys.Space,
+            ActivityType: "chaptered-expedition",
+            SceneKey: "moon",
+            Icon: "🌘",
+            TargetMinutes: 40,
+            MinAge: 6,
+            TitleAz: "Ay Kristalının Sirri",
+            TitleEn: "The Secret of the Moon Crystal",
+            IntroAz: "Aydan gələn siqnal bir sirr daşıyır. Onu birlikdə açaq — bu, uzun yoldur.",
+            IntroEn: "A signal from the Moon carries a secret. Let us open it together — this is a long road.",
+            CelebrationAz: "Rəsədxana yenidən işləyir və Ay işığı geri döndü. Bunu sən bacardın.",
+            CelebrationEn: "The observatory is running again and the moonlight is back. You did this.",
+
+            RewardCode: "halo-guardian",
+            XpReward: 120,
+            BondReward: 20,
+            InterestAffinity: [TraitKeys.Space, TraitKeys.Science, TraitKeys.Puzzles],
+            PlayStyleAffinity: [TraitKeys.Explorer, TraitKeys.ProblemSolver, TraitKeys.Creative],
+            Stages:
+            [
+                Intro(
+                    "Aydan siqnal gəlir",
+                    "A signal is coming from the Moon",
+                    "Bu siqnal təkrarlanır — deməli kimsə onu qəsdən göndərir. Gedək?",
+                    "This signal repeats — that means someone is sending it on purpose. Shall we go?"),
+
+                new(PetBrainStageKind.Choice,
+                    "Missiyada rolun nədir?",
+                    "What is your role on the mission?",
+                    "Hər rol Ayda başqa qapı açır. Sən hansısan?",
+                    "Each role opens a different door on the Moon. Which one are you?",
+                    [
+                        new("role-scientist", "Tədqiqatçı", "Researcher", "🔬",
+                            "Siqnalı oxuyursan", "You read the signal",
+                            [new(TraitKeys.Science, 2), new(TraitKeys.ProblemSolver, 1)]),
+                        new("role-engineer", "Mühəndis", "Engineer", "🛠️",
+                            "Sınanı düzəldirsən", "You repair what is broken",
+                            [new(TraitKeys.ProblemSolver, 2), new(TraitKeys.Creative, 1)]),
+                        new("role-tracker", "İzçi", "Tracker", "🧭",
+                            "İzi tapırsan", "You find the trail",
+                            [new(TraitKeys.Explorer, 2), new(TraitKeys.Space, 1)])
+                    ]),
+
+                new(PetBrainStageKind.Puzzle,
+                    "Siqnalın naxışını tap",
+                    "Find the pattern in the signal",
+                    "Siqnal bir qayda ilə təkrarlanır. Onu tuta bilərsən?",
+                    "The signal repeats with a rule. Can you catch it?",
+                    []),
+
+                new(PetBrainStageKind.Choice,
+                    "Kristalı nə edək?",
+                    "What do we do with the crystal?",
+                    "Kristal üç yerə bölünüb. Sənin planın nədir?",
+                    "The crystal broke into three pieces. What is your plan?",
+                    [
+                        new("finale-shield", "Qoruyucu sistemi bərpa et", "Restore the shield", "🛡️",
+                            "Ay bir daha zərər görməsin", "So the Moon is never harmed again",
+                            [new(TraitKeys.Caring, 2), new(TraitKeys.Science, 1)]),
+                        new("finale-study", "Kristalın sirrini öyrən", "Study the crystal's secret", "🔭",
+                            "Yeni xəritə açılsın", "So a new map opens",
+                            [new(TraitKeys.Science, 2), new(TraitKeys.Explorer, 1)]),
+                        new("finale-share", "Enerjini bazaya payla", "Share the energy with the base", "🤖",
+                            "Robotlar yenidən oyansın", "So the robots wake up again",
+                            [new(TraitKeys.Caring, 2), new(TraitKeys.Creative, 1)])
+                    ])
+            ])
+        {
+            MechanicAffinity =
+            [
+                MechanicKeys.Pattern, MechanicKeys.Observation, MechanicKeys.Route,
+                MechanicKeys.Building, MechanicKeys.StoryChoice, MechanicKeys.Exploration
+            ],
+            SessionMinutes = 8,
+            RewardFlavor = PetBrainRewardPreference.PetCosmetic,
         },
 
         // ================= Okeanda İşıq =================

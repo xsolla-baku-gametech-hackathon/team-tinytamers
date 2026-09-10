@@ -1,0 +1,63 @@
+@inject Loc Loc
+
+<div class="pbx-recall">
+    <p class="pbx-recall__rule">@Puzzle.Instruction</p>
+
+    @if (Puzzle.RecalledScene.Count > 0)
+    {
+        <div class="pbx-recall__before">
+            <span class="pbx-recall__tag">
+                <span aria-hidden="true">📓</span>
+                @Loc.T("Jurnalda belə idi", "Your journal says")
+            </span>
+
+            <div class="pbx-recall__row" role="img" aria-label="@BeforeLabel">
+                @foreach (var mark in Puzzle.RecalledScene)
+                {
+                    <span class="pbx-recall__chip pbx-cell--@mark.Shape">
+                        <span aria-hidden="true">@mark.Icon</span>
+                    </span>
+                }
+            </div>
+        </div>
+    }
+
+    <span class="pbx-recall__tag">
+        <span aria-hidden="true">👀</span>
+        @Loc.T("İndi belədir", "Now it looks like this")
+    </span>
+
+    <div class="pbx-recall__grid">
+        @foreach (var item in Puzzle.Items)
+        {
+            var chosen = Selected.Contains(item.Id);
+
+            <button type="button"
+                    class="pbx-cell pbx-cell--@item.Shape @(chosen ? "pbx-cell--on" : null)"
+                    disabled="@Busy"
+                    aria-pressed="@chosen"
+                    aria-label="@item.Label"
+                    @onclick="() => OnToggle.InvokeAsync(item.Id)">
+                <span class="pbx-cell__icon" aria-hidden="true">@item.Icon</span>
+                <span class="pbx-cell__value">@item.Label</span>
+
+                @if (chosen)
+                {
+                    <span class="pbx-cell__order" aria-hidden="true">✓</span>
+                }
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PetBrainPuzzleDto Puzzle { get; set; } = new();
+    [Parameter, EditorRequired] public List<string> Selected { get; set; } = [];
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public EventCallback<string> OnToggle { get; set; }
+
+    /// <summary>Jurnal sırasının sözlə təsviri — ikon zolağı görməyən uşaq üçün.</summary>
+    private string BeforeLabel =>
+        Loc.T("Jurnaldakı izlər: ", "Tracks in your journal: ")
+        + string.Join(", ", Puzzle.RecalledScene.Select(m => m.Label));
+}

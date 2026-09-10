@@ -9,7 +9,18 @@ namespace PetPal.Api.PetBrain.Story;
 public sealed record StoryInput(
     string OptionKey,
     PetBrainStageResult Result,
-    IReadOnlySet<string> Flags);
+    IReadOnlySet<string> Flags)
+{
+    /// <summary>
+    /// Macəranın tam vəziyyəti — inventar, jurnal, məqsədlər, chapter-lər.
+    ///
+    /// <para>Boş buraxıla bilər: chapter-siz köhnə təriflər yalnız bayraq
+    /// oxuyur və onları yenidən yazmaq lazım gəlmir. Dolu olanda isə
+    /// <see cref="ExperienceTransition.Requires"/> şərtləri bu vəziyyətə görə
+    /// qiymətləndirilir.</para>
+    /// </summary>
+    public AdventureState State { get; init; } = AdventureState.Empty;
+}
 
 /// <summary>
 /// Qrafın icra qatı — <b>saf</b>: baza yoxdur, saat yoxdur, təsadüf yoxdur.
@@ -21,12 +32,28 @@ public sealed record StoryInput(
 public static class StoryRuntime
 {
     /// <summary>
+    /// «Tapmaca ilk cəhddə, ipucusuz həll olundu» bayrağı.
+    ///
+    /// <para>Engine səviyyəsindədir, macəraya aid deyil: server bu bayrağı
+    /// tapmaca həll olunan anda addımın girişinə əlavə edir və heç yerdə
+    /// saxlamır. Hər macəra öz açarını seçsəydi, servis yalnız birini
+    /// tanıyardı — flaqman macəranın «bir dəfəyə tapdın» səhnəsi məhz buna
+    /// görə heç vaxt açılmırdı.</para>
+    /// </summary>
+    public const string CleanSolveFlag = "clean-solve";
+
+    /// <summary>
     /// Növbəti düyün. Uyğun keçid yoxdursa ehtiyat keçid işləyir; o da yoxdursa
     /// <c>null</c> — bu, tərifin nasazlığıdır və validator onu buraxmır.
     /// </summary>
     public static ExperienceNode? Next(
         ExperienceDefinition definition, ExperienceNode current, StoryInput input)
     {
+        if (current.ResolvesEnding
+            && AdventureEngine.ResolveEnding(definition, input.State) is { } ending
+            && definition.Find(ending.NodeId) is { } endingNode)
+            return endingNode;
+
         // Sıralama DETERMİNİSTDİR: əvvəl prioritet, sonra tərifdəki yazılış
         // sırası. Ehtiyat keçid həmişə sonda yoxlanılır.
         var ordered = current.Transitions
@@ -40,8 +67,13 @@ public static class StoryRuntime
             if (!Matches(transition, input))
                 continue;
 
-            if (definition.Find(transition.TargetNodeId) is { } target)
-                return target;
+            if (definition.Find(transition.TargetNodeId) is not { } target)
+                continue;
+
+            if (!input.State.Satisfies(target.Requires))
+                continue;
+
+            return target;
         }
 
         return null;
@@ -49,6 +81,9 @@ public static class StoryRuntime
 
     private static bool Matches(ExperienceTransition transition, StoryInput input)
     {
+        if (!input.State.Satisfies(transition.Requires))
+            return false;
+
         if (transition.IsFallback)
             return true;
 

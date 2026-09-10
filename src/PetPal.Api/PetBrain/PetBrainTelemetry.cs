@@ -93,6 +93,27 @@ public sealed class PetBrainTelemetry
             new KeyValuePair<string, object?>("template", templateKey),
             new KeyValuePair<string, object?>("steps", stepsTaken));
 
+    /// <summary>
+    /// Bir fəsil bağlandı.
+    ///
+    /// <para>Ayrıca ölçülür, çünki chapter-li macərada ən vacib sual budur:
+    /// <b>uşaqlar hansı fəsildə dayanır?</b> «Tamamlandı/yarımçıq» nisbəti
+    /// bunu göstərmir — 40 dəqiqəlik macərada dördüncü fəsildə dayanmaq
+    /// uğursuzluq deyil, gözlənilən davranışdır.</para>
+    /// </summary>
+    public void ChapterCompleted(string templateKey, string chapterId) =>
+        _nodes.Add(1,
+            new KeyValuePair<string, object?>("template", templateKey),
+            new KeyValuePair<string, object?>("kind", "ChapterCompleted"),
+            new KeyValuePair<string, object?>("branch", chapterId));
+
+    /// <summary>Macəra dayandırıldı və ya davam etdirildi — bərpa nisbətini ölçür.</summary>
+    public void RunSession(string phase, string templateKey, string chapterId) =>
+        _runs.Add(1,
+            new KeyValuePair<string, object?>("phase", phase),
+            new KeyValuePair<string, object?>("template", templateKey),
+            new KeyValuePair<string, object?>("chapter", string.IsNullOrEmpty(chapterId) ? "none" : chapterId));
+
     public void NodeCompleted(string templateKey, PetBrainStageKind kind, string optionKey) =>
         _nodes.Add(1,
             new KeyValuePair<string, object?>("template", templateKey),

@@ -28,7 +28,7 @@ public static class MoonCrystalHunt
     public const string BrightFlag = "moon-bright";
 
     /// <summary>Tapmaca ilk cəhddə həll olundu — sonrakı düyün dəyişir.</summary>
-    public const string CleanSolveFlag = "moon-clean-solve";
+    public const string CleanSolveFlag = StoryRuntime.CleanSolveFlag;
 
     public const string ExplorerEnding = "explorer-summit";
     public const string ScientistEnding = "scientist-signal";

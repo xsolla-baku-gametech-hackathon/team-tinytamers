@@ -126,7 +126,65 @@ public enum PetBrainStageKind
     Consequence = 3,
 
     /// <summary>Macəranın sonluğu — uşaq yolunu bütöv görür.</summary>
-    Ending = 4
+    Ending = 4,
+
+    /// <summary>
+    /// Hekayənin öz səsi — pet danışmır, dünya danışır.
+    ///
+    /// <para><see cref="Intro"/>-dan fərqi budur ki, giriş macəranı AÇIR;
+    /// bu isə onun ortasında baş verən bir hadisəni danışır.</para>
+    /// </summary>
+    Narration = 5,
+
+    /// <summary>Səhnədə nəyi araşdıracağını seçmək — üç-dörd baxış nöqtəsi.</summary>
+    Exploration = 6,
+
+    /// <summary>Tapılan bir şeyi OXUMAQ: qeyd, iz, ekran. Jurnala ipucu düşür.</summary>
+    Investigation = 7,
+
+    /// <summary>Bir obyektlə qarşılıqlı təsir — təmir, açmaq, işə salmaq.</summary>
+    ObjectInteraction = 8,
+
+    /// <summary>İki və ya üç YOL arasında seçim; hər yol ayrı səhnələr açır.</summary>
+    RouteSelection = 9,
+
+    /// <summary>Nəyisə QURMAQ — körpü, sığınacaq, dövrə.</summary>
+    Building = 10,
+
+    /// <summary>Yolu tapmaq və keçmək.</summary>
+    Navigation = 11,
+
+    /// <summary>Səssizcə izləmək — müdaxilə etmədən öyrənmək.</summary>
+    StealthObservation = 12,
+
+    /// <summary>Pet-in xüsusi bacarığı ilə birgə hərəkət.</summary>
+    CooperativePetAction = 13,
+
+    /// <summary>Fəslin xülasəsi və TƏHLÜKƏSİZ dayanma nöqtəsi.</summary>
+    ChapterRecap = 14,
+
+    /// <summary>Çoxmərhələli final — döyüş deyil, əməkdaşlıq.</summary>
+    FinaleChallenge = 15,
+
+    /// <summary>Sonluqdan sonrakı səhnə: nə dəyişdi, nə qazanıldı.</summary>
+    Epilogue = 16,
+
+    /// <summary>Kiməsə və ya nəyəsə QAYĞI göstərmək — sulamaq, isitmək, sakitləşdirmək.</summary>
+    Caring = 17
+}
+
+/// <summary>Uşağın bir fəsilli macəra ilə münasibəti — mərkəz ekranında göstərilir.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum PetBrainAdventureProgress
+{
+    NotStarted = 0,
+    InProgress = 1,
+
+    /// <summary>Dayandırılıb — itirilməyib, davam etdirilə bilər.</summary>
+    Paused = 2,
+
+    /// <summary>Ən azı bir dəfə bitirilib — təkrar oynamaq açıqdır.</summary>
+    Completed = 3
 }
 
 /// <summary>Bir addımın nəticəsi — xülasə real qeydlərdən qurulsun deyə.</summary>
@@ -139,7 +197,16 @@ public enum PetBrainStageResult
     Solved = 1,
 
     /// <summary>Təzyiqsiz yolda hər etibarlı cavab qəbul edilir.</summary>
-    Accepted = 2
+    Accepted = 2,
+
+    /// <summary>
+    /// Tapmaca pet-in KÖMƏYİ ilə tamamlandı (ipucunun son pilləsi).
+    ///
+    /// <para>Hekayə üçün uğurdur — uşaq macərədən çıxarılmır. Mənimsəmə üçün
+    /// isə köməksiz həll deyil: <see cref="Solved"/> ilə eyni sayılsaydı,
+    /// sistem uşağın bacarmadığı mexanikanı «öyrənilib» sayıb çətinləşdirərdi.</para>
+    /// </summary>
+    Assisted = 3
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -147,7 +214,22 @@ public enum PetBrainRunStatus
 {
     Active = 0,
     Completed = 1,
-    Abandoned = 2
+    Abandoned = 2,
+
+    /// <summary>
+    /// Uşaq macərəni DAYANDIRDI və sonra davam edəcək.
+    ///
+    /// <para><see cref="Abandoned"/>-dan fərqi budur ki, bu, itki deyil:
+    /// bütün vəziyyət saxlanılır, mükafat hüququ qalır və uşaq checkpoint-dən
+    /// davam edir. Yarımçıq qoymaq CƏZALANDIRILMIR — 40 dəqiqəlik macəranı bir
+    /// oturuşda bitirmək tələbi uşaq məhsulunda yolverilməzdir.</para>
+    ///
+    /// <para>Bazadakı «bir uşaqda bir açıq macəra» indeksi yalnız
+    /// <see cref="Active"/> sətirləri süzür, ona görə dayandırılmış macəra
+    /// yeni macəranın başlamasını bloklamır — amma xidmət onu davam etdirməyi
+    /// TƏKLİF edir.</para>
+    /// </summary>
+    Paused = 3
 }
 
 /// <summary>
@@ -211,4 +293,56 @@ public enum PetBrainPersonality
     CreativeCompanion = 2,
     ExplorerCompanion = 3,
     CaringCompanion = 4
+}
+
+/// <summary>
+/// Bir məqsədin vəziyyəti.
+///
+/// <para><see cref="Skipped"/> ilə uğursuzluq arasındakı fərq qəsdəndir: yan
+/// tapşırıq buraxıla bilər və bu, uğursuzluq deyil — uşaq onu sonra, başqa
+/// oyunda tuta bilər. Əsas məqsəd isə ümumiyyətlə buraxıla bilmir.</para>
+/// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum AdventureObjectiveStatus
+{
+    /// <summary>Hələ açılmayıb — uşaq onu görmür.</summary>
+    Locked = 0,
+
+    /// <summary>Aktivdir və izləyicidə görünür.</summary>
+    Active = 1,
+
+    Completed = 2,
+
+    /// <summary>Yan tapşırıq buraxıldı — cəza yoxdur.</summary>
+    Skipped = 3
+}
+
+/// <summary>
+/// Chapter-in vəziyyəti — xəritədə göstərilən şey.
+/// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum AdventureChapterStatus
+{
+    Locked = 0,
+    Active = 1,
+    Completed = 2
+}
+
+/// <summary>
+/// İpucunun ƏHƏMİYYƏTİ — jurnal onları bu sıra ilə göstərir.
+///
+/// <para>Uşaq jurnalı açanda ən vacib qeydi axtarmamalıdır: açar ipucu
+/// yuxarıda durur, fon məlumatı isə aşağıda.</para>
+/// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum AdventureClueImportance
+{
+    /// <summary>Dünyanı zənginləşdirir, həlli dəyişmir.</summary>
+    Background = 0,
+
+    /// <summary>Bir tapmacanı asanlaşdırır.</summary>
+    Helpful = 1,
+
+    /// <summary>Hekayənin düyün nöqtəsi.</summary>
+    Key = 2
 }

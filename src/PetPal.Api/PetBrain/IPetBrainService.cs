@@ -45,6 +45,41 @@ public interface IPetBrainService
     Task<ServiceResult<PetBrainRunDto>> AbandonRunAsync(Guid childId, Guid runId, CancellationToken ct = default);
 
     /// <summary>
+    /// Macərəni dayandırır — vəziyyət qalır, mükafat hüququ itmir.
+    ///
+    /// <para><see cref="AbandonRunAsync"/>-dan fərqi əsaslıdır: yarımçıq qoymaq
+    /// imtina deyil. Uzun macərada uşaq nahara çağırıla bilər.</para>
+    /// </summary>
+    Task<ServiceResult<PetBrainResumeDto>> PauseRunAsync(
+        Guid childId, Guid runId, PetBrainPauseRequest request, CancellationToken ct = default);
+
+    /// <summary>Dayandırılmış macərəni ən son checkpoint-dən davam etdirir.</summary>
+    Task<ServiceResult<PetBrainRunDto>> ResumeRunAsync(Guid childId, Guid runId, CancellationToken ct = default);
+
+    /// <summary>Davam edilə bilən macəranın kartı — ana ekran və hub üçün.</summary>
+    Task<PetBrainResumeDto?> GetResumeCardAsync(Guid childId, CancellationToken ct = default);
+
+    /// <summary>Fəsilli macəralar — uşağın öz irəliləməsi ilə.</summary>
+    Task<ServiceResult<List<PetBrainAdventureSummaryDto>>> GetAdventuresAsync(
+        Guid childId, CancellationToken ct = default);
+
+    /// <summary>Bir macəranın ön baxışı.</summary>
+    Task<ServiceResult<PetBrainAdventurePreviewDto>> GetAdventureAsync(
+        Guid childId, string key, CancellationToken ct = default);
+
+    /// <summary>Mərkəzdən başlamaq, davam etmək və ya təkrar oynamaq.</summary>
+    Task<ServiceResult<PetBrainRunDto>> StartAdventureAsync(
+        Guid childId, string key, CancellationToken ct = default);
+
+    /// <summary>Açıq run-ın vəziyyətinin bir hissəsi — məqsəd, çanta, jurnal, xəritə.</summary>
+    Task<ServiceResult<T>> GetAdventurePartAsync<T>(
+        Guid childId, Guid runId, Func<PetBrainAdventureStateDto, T> select, CancellationToken ct = default);
+
+    /// <summary>Tapmaca cavabı — cari addımın tapmacasının id-si ilə.</summary>
+    Task<ServiceResult<PetBrainRunDto>> SubmitPuzzleAnswerAsync(
+        Guid childId, Guid runId, Guid puzzleId, PetBrainChoiceRequest request, CancellationToken ct = default);
+
+    /// <summary>
     /// Uşağın ÖZ tapmacasının rəsm vəziyyəti və hazırdırsa saxlanc açarı.
     ///
     /// <para>Yad və naməlum tapmaca üçün <c>null</c> qaytarır — endpoint ona

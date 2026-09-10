@@ -1,3 +1,5 @@
+using PetPal.App.Ui.Services;
+using PetPal.Shared.Enums;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
@@ -18,8 +20,13 @@ public class PetBrainV2MarkupTests
     /// <summary>
     /// <b>Hər</b> mərhələ növünün ekran qarşılığı var.
     ///
-    /// <para>Açarlar enum-un MƏNBƏYİNDƏN oxunur: yeni növ əlavə edib ekran
-    /// yazmamaq səssiz xətadır — uşaq boş panel görər.</para>
+    /// <para>Yoxlama artıq səhifənin MƏTNİNDƏ deyil, REYESTRDƏ aparılır:
+    /// on yeddi növ üçün on yeddi <c>if</c> budağı yazmaq həm oxunmaz, həm də
+    /// səhvə açıq idi. İndi səhifə variantsız ekranları bir yolla emal edir və
+    /// fərqi <see cref="NodePresentation"/> cədvəlindən alır.</para>
+    ///
+    /// <para>Bu, əvvəlkindən GÜCLÜ zəmanətdir: mətn axtarışı yalnız adı
+    /// çəkilən növləri tuturdu, cədvəl isə hamısını əhatə etməlidir.</para>
     /// </summary>
     [Fact]
     public void HerMerheleNovu_EkranaBaglidir()
@@ -30,36 +37,46 @@ public class PetBrainV2MarkupTests
 
         var page = ReadPage("PetBrain.razor");
 
-        foreach (var kind in kinds)
+        // Tapmaca lövhəyə, seçim isə StageChoices komponentinə gedir.
+        Assert.Contains("<PuzzleBoard", page, StringComparison.Ordinal);
+        Assert.Contains("<StageChoices", page, StringComparison.Ordinal);
+
+        foreach (var name in kinds)
         {
-            // Tapmaca lövhəyə, seçim isə StageChoices komponentinə gedir.
-            if (kind == "Puzzle")
-            {
-                Assert.Contains("<PuzzleBoard", page, StringComparison.Ordinal);
-                continue;
-            }
+            var kind = Enum.Parse<PetBrainStageKind>(name);
+            var look = NodePresentation.For(kind);
 
-            if (kind == "Choice")
-            {
-                Assert.Contains("<StageChoices", page, StringComparison.Ordinal);
-                continue;
-            }
-
-            Assert.Contains($"PetBrainStageKind.{kind}", page, StringComparison.Ordinal);
+            Assert.False(string.IsNullOrWhiteSpace(look.Icon), $"«{name}» üçün işarə yoxdur.");
+            Assert.False(string.IsNullOrWhiteSpace(look.StyleKey), $"«{name}» üçün üslub açarı yoxdur.");
         }
     }
 
-    /// <summary>Nəticə və sonluq ekranlarının uşağa görünən düyməsi var.</summary>
+    /// <summary>
+    /// Variantsız ekranların davam düyməsi VAR və sözü növə görə dəyişir.
+    ///
+    /// <para>Hamısına «Davam et» yazmaq qadağandır: eyni ritmli, fərqsiz
+    /// ekranlar zənciri məhz qaçmalı olduğumuz şeydir.</para>
+    /// </summary>
     [Fact]
     public void NeticeVeSonluq_DavamDuymesiDasiyir()
     {
         var page = ReadPage("PetBrain.razor");
 
-        Assert.Contains("PetBrainStageKind.Consequence", page, StringComparison.Ordinal);
         Assert.Contains("PetBrainStageKind.Ending", page, StringComparison.Ordinal);
-
-        Assert.Contains("Loc.T(\"Davam\", \"Keep going\")", page, StringComparison.Ordinal);
+        Assert.Contains("NodePresentation.ContinueLabel", page, StringComparison.Ordinal);
         Assert.Contains("Loc.T(\"Macərəni bitir\", \"Finish the adventure\")", page, StringComparison.Ordinal);
+
+        var loc = new Loc(new InMemoryTokenStore());
+
+        var labels = EnumMembers("PetBrainStageKind")
+            .Select(name => NodePresentation.ContinueLabel(Enum.Parse<PetBrainStageKind>(name), loc))
+            .ToList();
+
+        Assert.All(labels, label => Assert.False(string.IsNullOrWhiteSpace(label)));
+
+        Assert.True(
+            labels.Distinct(StringComparer.Ordinal).Count() >= 5,
+            $"Yalnız {labels.Distinct(StringComparer.Ordinal).Count()} fərqli davam sözü var.");
     }
 
     // ==================== Uşağın "yox" demək hüququ ====================

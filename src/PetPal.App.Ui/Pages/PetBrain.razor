@@ -35,7 +35,17 @@
                              SceneVariant="@_run.Stage?.SceneVariant"
                              SceneImage="@AdventureSceneImage" Awakening="@SceneAwaited" />
 
-            @if (_run.Summary is not null)
+            @if (_run.Adventure is { ChapterCount: > 0 } adventure && _run.Summary is null)
+            {
+                <AdventureHud State="adventure" />
+            }
+
+            @if (_run.ChapterComplete is { } chapter)
+            {
+                <ChapterComplete Model="chapter" Busy="_busy"
+                                 OnContinue="ContinueAsync" OnLater="PauseAsync" />
+            }
+            else if (_run.Summary is not null)
             {
                 <RunSummary Summary="_run.Summary"
                             PetName="@PetName"
@@ -52,6 +62,11 @@
                     @* Pet-in replikası səhnənin üstündə üzür — uşaq üçün ən
                        tanış giriş nöqtəsi onun DEDİYİdir. *@
                     <div class="pbx__bubble" aria-live="polite">@_run.Stage.PetLine</div>
+
+                    @if (_run.Adventure?.Changes is { } changes)
+                    {
+                        <StepChanges Changes="changes" />
+                    }
 
                     @if (!string.IsNullOrWhiteSpace(_run.Stage.MemoryCallback))
                     {
@@ -95,21 +110,15 @@
                             <p class="pbx__prompt">@_run.Stage.Prompt</p>
                         }
 
-                        @if (_run.Stage.Kind == PetBrainStageKind.Intro)
+                        @if (_run.Stage.Kind == PetBrainStageKind.Ending)
                         {
                             <button class="btn btn--primary btn--block" disabled="@_busy"
-                                    @onclick="ContinueAsync">
-                                @Loc.T("Gedək!", "Let us go!")
+                                    @onclick="CompleteAsync">
+                                @Loc.T("Macərəni bitir", "Finish the adventure")
                             </button>
                         }
-                        else if (_run.Stage.Kind == PetBrainStageKind.Consequence)
+                        else if (_run.Stage.Options.Count == 0 && _run.Stage.Puzzle is null)
                         {
-                            @* Seçimin NƏTİCƏSİ ayrıca ekrandır: uşaq nə etdiyini
-                               dərhal görməlidir. Seçimlə birləşdirmək nəticəni
-                               bəzəyə çevirərdi.
-
-                               Hekayənin replikası hamı üçün eynidir; reaksiya
-                               isə pet-in XARAKTERİNDƏNDİR. *@
                             @if (!string.IsNullOrWhiteSpace(_run.Stage.PetReaction))
                             {
                                 <p class="pbx__reaction">@_run.Stage.PetReaction</p>
@@ -117,14 +126,7 @@
 
                             <button class="btn btn--primary btn--block" disabled="@_busy"
                                     @onclick="ContinueAsync">
-                                @Loc.T("Davam", "Keep going")
-                            </button>
-                        }
-                        else if (_run.Stage.Kind == PetBrainStageKind.Ending)
-                        {
-                            <button class="btn btn--primary btn--block" disabled="@_busy"
-                                    @onclick="CompleteAsync">
-                                @Loc.T("Macərəni bitir", "Finish the adventure")
+                                @NodePresentation.ContinueLabel(_run.Stage.Kind, Loc)
                             </button>
                         }
                         else if (_run.Stage.Puzzle is { } puzzle)
@@ -135,7 +137,11 @@
                                yalnız serverdə saxlanılır. *@
                             <PuzzleBoard Puzzle="puzzle" Busy="_busy" SceneImage="@PuzzleSceneImage"
                                          SceneAwakening="@SceneAwaited" HintOffer="@_run.Stage.HintOffer"
-                                         OnSubmit="SubmitPuzzleAsync" OnHint="HintAsync" />
+                                         JournalNote="@_run.Stage.JournalNote"
+                                         JournalNoteTitle="@_run.Stage.JournalNoteTitle"
+                                         RevealIds="_run.Stage.HintRevealIds"
+                                         AssistAvailable="_run.Stage.AssistAvailable"
+                                         OnSubmit="SubmitPuzzleAsync" OnHint="HintAsync" OnAssist="AssistAsync" />
                         }
                         else
                         {
@@ -233,6 +239,15 @@
                     <div class="card__title">@Loc.T("Bugünlük bu qədər", "That is it for today")</div>
                     <p class="card__subtitle">@_state.ScreenTimeMessage</p>
                 </div>
+            }
+            else if (_resume is { } resumeCard)
+            {
+                <section class="card pbx-card pbx-card--resume">
+                    <ResumeCard Card="resumeCard" Busy="_busy"
+                                ShowRecall="@(!string.IsNullOrWhiteSpace(resumeCard.LastEventSummary))"
+                                RecallOpen="_recallOpen"
+                                OnResume="ResumeAsync" OnRecall="ToggleRecallAsync" />
+                </section>
             }
             else if (_state.Recommendation is { } recommendation)
             {
@@ -458,6 +473,20 @@
     private Guid? _startingDecisionId;
 
     /// <summary>
+    /// Bu sessiyanın başlanğıcı — FAKTİKİ oyun vaxtını ölçmək üçün.
+    ///
+    /// <para>Ölçü dayandırma anında serverə göndərilir. Run-ın öz
+    /// <c>StartedAt</c> sahəsi bunun yerinə keçmir: uzun macərada arada
+    /// günlər ola bilər və o fərq oyun vaxtı deyil.</para>
+    /// </summary>
+    private DateTime _runOpenedAt = DateTime.UtcNow;
+
+    /// <summary>Dayandırılmış macəranın kartı; yoxdursa <c>null</c>.</summary>
+    private PetBrainResumeDto? _resume;
+
+    private bool _recallOpen;
+
+    /// <summary>
     /// Hazır hekayə rəsminin <c>data:</c> URI-si və hansı tapmacaya aid olduğu.
     ///
     /// <para>Rəsm AYRICA yüklənir və gec gələ bilər — tapmaca ondan ASILI
@@ -637,7 +666,53 @@
         // app-in bağlanması və ya telefon dəyişməsi macərəni itirmir.
         _run = _state.ActiveRun;
         _runIcon = null;
+        _runOpenedAt = DateTime.UtcNow;
+        _resume = null;
+
+        if (_run is null)
+        {
+            var resume = await Api.GetPetBrainResumeCardAsync();
+
+            if (resume is { Succeeded: true, Value: not null })
+                _resume = resume.Value;
+        }
+
         _loading = false;
+    }
+
+    /// <summary>Dayandırılmış macərəni son checkpoint-dən davam etdirir.</summary>
+    private async Task ResumeAsync()
+    {
+        if (_busy || _resume is null)
+            return;
+
+        _busy = true;
+
+        var result = await Api.ResumePetBrainRunAsync(_resume.RunId);
+
+        _busy = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _run = result.Value;
+        _resume = null;
+        _runOpenedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// «Fəsli yenidən xatırla» — xülasəni açıb-bağlayır.
+    ///
+    /// <para>Xülasə ARTIQ kartdadır: bu düymə yeni sorğu göndərmir və heç nə
+    /// generasiya etmir, sadəcə uşağa onu yenidən oxutdurur.</para>
+    /// </summary>
+    private Task ToggleRecallAsync()
+    {
+        _recallOpen = !_recallOpen;
+        return Task.CompletedTask;
     }
 
     private async Task SubmitOnboardingAsync(PetBrainOnboardingRequest request)
@@ -739,6 +814,45 @@
 
     /// <summary>Giriş mərhələsi: seçim yoxdur, yalnız "davam".</summary>
     private Task ContinueAsync() => ChooseAsync("continue");
+
+    /// <summary>
+    /// Bir addımın təkrarsızlıq açarı.
+    ///
+    /// <para>Run, düyün və seçimdən qurulur, ona görə eyni addımın təkrar
+    /// göndərilməsi eyni açarı daşıyır, növbəti addım isə fərqlisini. Təsadüfi
+    /// ədəd işlətsəydik, təkrar sorğu yeni açarla gələr və qoruma işləməzdi.</para>
+    /// </summary>
+    private string StepKey(string optionKey) =>
+        $"{_run!.RunId:N}:{_run.Stage!.NodeId}:{optionKey}";
+
+    /// <summary>
+    /// Macərəni DAYANDIRIR — imtina deyil.
+    ///
+    /// <para>Vəziyyət olduğu kimi qalır və uşaq sonra checkpoint-dən davam
+    /// edir. Ona görə burada heç bir xəbərdarlıq və ya təsdiq sualı yoxdur:
+    /// dayanmaq tam hüquqlu seçimdir.</para>
+    /// </summary>
+    private async Task PauseAsync()
+    {
+        if (_busy || _run is null)
+            return;
+
+        _busy = true;
+
+        var elapsed = (int)(DateTime.UtcNow - _runOpenedAt).TotalSeconds;
+        var result = await Api.PausePetBrainRunAsync(_run.RunId, Math.Clamp(elapsed, 0, 7200));
+
+        _busy = false;
+
+        if (!result.Succeeded)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _run = null;
+        await LoadAsync();
+    }
 
     /// <summary>
     /// Tapmaca cavabı — serverə YALNIZ seçilmiş id-lər gedir.
@@ -902,7 +1016,12 @@
         _pending = optionKey;
 
         var result = await Api.SubmitPetBrainChoiceAsync(
-            _run.RunId, _run.Stage.Index, optionKey, NodeIdOrNull);
+            _run.RunId,
+            _run.Stage.Index,
+            optionKey,
+            NodeIdOrNull,
+            _run.Adventure?.Revision,
+            StepKey(optionKey));
 
         _busy = false;
         _pending = null;
@@ -917,6 +1036,33 @@
 
         // Bütün mərhələlər bitdi: yekunu server hesablayır və mükafatı
         // DƏQİQ BİR DƏFƏ verir — təkrar çağırış təhlükəsizdir.
+        await CompleteIfFinishedAsync();
+    }
+
+    /// <summary>
+    /// Pet-in «birlikdə bitirək» təklifini qəbul edir.
+    ///
+    /// <para>Server pilləni öz sayğacı ilə yoxlayır; burada yalnız istək
+    /// göndərilir. Tapmaca bağlanır və hekayə davam edir.</para>
+    /// </summary>
+    private async Task AssistAsync()
+    {
+        if (_busy || _run?.Stage is null)
+            return;
+
+        _busy = true;
+
+        var result = await Api.AcceptPetBrainAssistAsync(_run.RunId, _run.Stage.Index, NodeIdOrNull);
+
+        _busy = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _run = result.Value;
         await CompleteIfFinishedAsync();
     }
 

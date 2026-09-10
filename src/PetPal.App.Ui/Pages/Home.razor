@@ -250,6 +250,10 @@
                     <span class="sprint__icon" aria-hidden="true">@brain.Icon</span>
                     <span class="sprint__body">
                         <span class="sprint__title">@brain.Title</span>
+                        @if (!string.IsNullOrWhiteSpace(brain.ChapterLabel))
+                        {
+                            <span class="sprint__chapter">@brain.ChapterLabel · @brain.ProgressPercent%</span>
+                        }
                         <span class="sprint__text">@brain.Reason</span>
                     </span>
                     <span class="sprint__go">

@@ -173,6 +173,12 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
             PetBrainPuzzleMechanic.SequenceOrder => BuildSequenceOrder(context, tier, random),
             PetBrainPuzzleMechanic.RouteLogic => BuildRouteLogic(context, tier, random),
             PetBrainPuzzleMechanic.LightFragments => BuildLightFragments(context, tier, random),
+            PetBrainPuzzleMechanic.SignalPattern
+                => MoonPuzzleGenerators.BuildSignalPattern(context, tier, random),
+            PetBrainPuzzleMechanic.ObservationRecall
+                => MoonPuzzleGenerators.BuildObservationRecall(context, tier, random),
+            PetBrainPuzzleMechanic.MatchingPairs
+                => MoonPuzzleGenerators.BuildMatchingPairs(context, tier, random),
             _ => null
         };
 

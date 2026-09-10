@@ -79,6 +79,9 @@ public static class MechanicKeys
         PetBrainPuzzleMechanic.OrderedRoute => Route,
         PetBrainPuzzleMechanic.SequenceOrder => Sequencing,
         PetBrainPuzzleMechanic.LightFragments => Pattern,
+        PetBrainPuzzleMechanic.SignalPattern => Pattern,
+        PetBrainPuzzleMechanic.ObservationRecall => Memory,
+        PetBrainPuzzleMechanic.MatchingPairs => Observation,
         _ => null
     };
 

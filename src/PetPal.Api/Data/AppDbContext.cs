@@ -45,6 +45,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<PetMemory> PetMemories => Set<PetMemory>();
     public DbSet<ExperienceRun> ExperienceRuns => Set<ExperienceRun>();
     public DbSet<RunStageOutcome> RunStageOutcomes => Set<RunStageOutcome>();
+    public DbSet<AdventureRunState> AdventureRunStates => Set<AdventureRunState>();
     public DbSet<RecommendationDecision> RecommendationDecisions => Set<RecommendationDecision>();
     public DbSet<PetIntent> PetIntents => Set<PetIntent>();
     public DbSet<IssuedPuzzle> IssuedPuzzles => Set<IssuedPuzzle>();
@@ -546,6 +547,41 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             e.HasOne(x => x.ExperienceRun)
                 .WithMany(r => r.StageOutcomes)
                 .HasForeignKey(x => x.ExperienceRunId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<AdventureRunState>(e =>
+        {
+            e.Property(x => x.CurrentChapterId).HasMaxLength(40).IsRequired();
+            e.Property(x => x.CheckpointNodeId).HasMaxLength(40).IsRequired();
+            e.Property(x => x.CheckpointChapterId).HasMaxLength(40).IsRequired();
+            e.Property(x => x.Variant).HasMaxLength(20).IsRequired();
+
+            foreach (var list in new[]
+                     {
+                         nameof(AdventureRunState.VisitedNodeIds),
+                         nameof(AdventureRunState.CompletedChapterIds),
+                         nameof(AdventureRunState.WorldFlags),
+                         nameof(AdventureRunState.SelectedChoiceIds),
+                         nameof(AdventureRunState.Inventory),
+                         nameof(AdventureRunState.Clues),
+                         nameof(AdventureRunState.Objectives),
+                         nameof(AdventureRunState.EndingScores),
+                         nameof(AdventureRunState.RetryCounts),
+                         nameof(AdventureRunState.NpcStates),
+                         nameof(AdventureRunState.AppliedActionKeys)
+                     })
+                e.Property<List<string>>(list)
+                    .HasConversion(StringListConverter.Converter)
+                    .Metadata.SetValueComparer(StringListConverter.Comparer);
+
+            e.HasIndex(x => x.ExperienceRunId).IsUnique();
+
+            e.HasIndex(x => new { x.ChildProfileId, x.LastPlayedAt });
+
+            e.HasOne(x => x.ExperienceRun)
+                .WithOne(r => r.State)
+                .HasForeignKey<AdventureRunState>(x => x.ExperienceRunId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

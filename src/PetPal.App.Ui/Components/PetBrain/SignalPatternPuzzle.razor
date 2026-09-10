@@ -1,0 +1,60 @@
+@inject Loc Loc
+
+<div class="pbx-pattern">
+    <p class="pbx-pattern__rule">@Puzzle.Instruction</p>
+
+    @if (Puzzle.PatternPreview.Count > 0)
+    {
+        <div class="pbx-pattern__preview" role="img" aria-label="@PreviewLabel">
+            @foreach (var beat in Puzzle.PatternPreview)
+            {
+                <span class="pbx-pattern__beat pbx-cell--@beat.Shape">
+                    <span class="pbx-pattern__beat-icon" aria-hidden="true">@beat.Icon</span>
+                </span>
+            }
+
+            <span class="pbx-pattern__next" aria-hidden="true">…</span>
+        </div>
+    }
+
+    <p class="pbx-pattern__hint-label">@Loc.T("Növbəti dövrü sən düz", "Build the next round")</p>
+
+    <div class="pbx-pattern__grid">
+        @foreach (var item in Puzzle.Items)
+        {
+            var index = Selected.IndexOf(item.Id);
+
+            <button type="button"
+                    class="pbx-cell pbx-cell--@item.Shape @(index >= 0 ? "pbx-cell--on" : null)"
+                    disabled="@Busy"
+                    aria-pressed="@(index >= 0)"
+                    aria-label="@item.Label"
+                    @onclick="() => OnToggle.InvokeAsync(item.Id)">
+                <span class="pbx-cell__icon" aria-hidden="true">@item.Icon</span>
+                <span class="pbx-cell__value">@item.Label</span>
+
+                @if (index >= 0)
+                {
+                    <span class="pbx-cell__order" aria-hidden="true">@(index + 1)</span>
+                }
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PetBrainPuzzleDto Puzzle { get; set; } = new();
+    [Parameter, EditorRequired] public List<string> Selected { get; set; } = [];
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public EventCallback<string> OnToggle { get; set; }
+
+    /// <summary>
+    /// Ekran oxuyucusu üçün naxışın SÖZLƏ təsviri.
+    ///
+    /// <para>İkon zolağı görməyən uşaq üçün naxış yalnız belə oxunur — ona
+    /// görə etiket bəzək deyil, tapmacanın girişidir.</para>
+    /// </summary>
+    private string PreviewLabel =>
+        Loc.T("Eşidilən naxış: ", "The pattern so far: ")
+        + string.Join(", ", Puzzle.PatternPreview.Select(b => b.Label));
+}

@@ -45,7 +45,64 @@ public enum PetBrainPuzzleMechanic
     /// <para>Təzyiqsizdir: bir neçə palitra eyni dərəcədə doğrudur. Yalnız
     /// yüksək pillədə simmetriya şərti əlavə olunur — cəza dili yenə yoxdur.</para>
     /// </summary>
-    LightFragments = 5
+    LightFragments = 5,
+
+    /// <summary>
+    /// Siqnalın NAXIŞINI davam etdirmək: işıq-səs zolağı təkrarlanan qayda ilə
+    /// gedir, uşaq növbəti addımları düzür.
+    ///
+    /// <para>Sıralamadan (<see cref="SequenceOrder"/>) fərqi budur ki, orada
+    /// qayda «kiçikdən böyüyə» kimi hazır verilir, burada isə uşaq qaydanı ÖZÜ
+    /// tapmalıdır — göstərilən hissədən çıxarır və davamını qurur.</para>
+    /// </summary>
+    SignalPattern = 6,
+
+    /// <summary>
+    /// Səhnədə NƏYİN DƏYİŞDİYİNİ tapmaq: jurnal əvvəlki vəziyyəti saxlayır,
+    /// uşaq indiki səhnə ilə tutuşdurur.
+    ///
+    /// <para>Bu mexanika ipucu jurnalı olmadan işləmir — məhz buna görə
+    /// seçilib: jurnal bəzək deyil, tapmacanın GİRİŞİdir.</para>
+    /// </summary>
+    ObservationRecall = 7,
+
+    /// <summary>
+    /// Hər elementi öz cütü ilə UYĞUNLAŞDIRMAQ: sol sütun sabit, uşaq sağ
+    /// sütunu onların qarşısına düzür.
+    ///
+    /// <para>Cavab SIRALIDIR, çünki sıra «kim kiminlədir» məlumatını daşıyır.</para>
+    /// </summary>
+    MatchingPairs = 8
+}
+
+/// <summary>
+/// İpucunun GÜCÜ — hər istəkdə bir pillə artır.
+///
+/// <para>Pillələr cavaba addım-addım yaxınlaşır: əvvəl ruhlandırma, sonra
+/// istiqamət, sonra nümunə, sonra cavabın bir hissəsi, sonda isə pet-in birgə
+/// tamamlaması. Uşaq heç vaxt macərədən çıxarılmır və heç vaxt «səhv etdin,
+/// yenidən başla» eşitmir — bu, yumşaq uğursuzluğun özüdür.</para>
+/// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum PetBrainHintLevel
+{
+    /// <summary>İpucu istənməyib.</summary>
+    None = 0,
+
+    /// <summary>«Tələsmə, bir daha bax» — cavab haqqında heç nə demir.</summary>
+    GentlePrompt = 1,
+
+    /// <summary>Qaydanın istiqaməti — generatorun öz ipucu.</summary>
+    DirectionalHint = 2,
+
+    /// <summary>Cavabın BİRİNCİ addımı göstərilir.</summary>
+    WorkedExample = 3,
+
+    /// <summary>Cavabın yarısı göstərilir — qalanını uşaq tamamlayır.</summary>
+    StepByStepHelp = 4,
+
+    /// <summary>Pet təklif edir: «gəl birlikdə edək». Mənimsəməyə ayrıca yazılır.</summary>
+    AssistedCompletion = 5
 }
 
 /// <summary>Cavabın forması. Klient bunu OXUYUR, təyin etmir.</summary>

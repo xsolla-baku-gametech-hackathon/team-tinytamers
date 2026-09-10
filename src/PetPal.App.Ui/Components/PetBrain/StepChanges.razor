@@ -1,0 +1,42 @@
+@inject Loc Loc
+
+@if (!Changes.IsEmpty)
+{
+    <div class="pbx-changes" aria-live="polite">
+        @foreach (var item in Changes.GainedItems)
+        {
+            <span class="pbx-changes__chip pbx-changes__chip--gain">
+                <span aria-hidden="true">@item.Icon</span>
+                @Loc.T($"{item.Name} çantaya düşdü", $"{item.Name} added to your kit")
+            </span>
+        }
+
+        @foreach (var clue in Changes.NewClues)
+        {
+            <span class="pbx-changes__chip pbx-changes__chip--clue">
+                <span aria-hidden="true">@clue.Icon</span>
+                @Loc.T($"Yeni ipucu: {clue.Title}", $"New clue: {clue.Title}")
+            </span>
+        }
+
+        @foreach (var objective in Changes.CompletedObjectives)
+        {
+            <span class="pbx-changes__chip pbx-changes__chip--goal">
+                <span aria-hidden="true">✓</span>
+                @objective.Title
+            </span>
+        }
+
+        @foreach (var name in Changes.LostItemNames)
+        {
+            <span class="pbx-changes__chip pbx-changes__chip--spend">
+                <span aria-hidden="true">↘</span>
+                @Loc.T($"{name} işlədildi", $"{name} used up")
+            </span>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public PetBrainStepChangesDto Changes { get; set; } = new();
+}

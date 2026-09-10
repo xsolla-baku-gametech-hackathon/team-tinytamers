@@ -1,0 +1,76 @@
+@inject Loc Loc
+
+<div class="pbx-match">
+    <p class="pbx-match__rule">@Puzzle.Instruction</p>
+
+    <ol class="pbx-match__sockets">
+        @for (var i = 0; i < Puzzle.MatchTargets.Count; i++)
+        {
+            var target = Puzzle.MatchTargets[i];
+            var filled = i < Selected.Count
+                ? Puzzle.Items.FirstOrDefault(item => item.Id == Selected[i])
+                : null;
+
+            <li class="pbx-match__socket @(filled is not null ? "pbx-match__socket--filled" : null)">
+                <span class="pbx-match__socket-face pbx-cell--@target.Shape">
+                    <span aria-hidden="true">@target.Icon</span>
+                    <span class="pbx-match__socket-label">@target.Label</span>
+                </span>
+
+                <span class="pbx-match__link" aria-hidden="true">→</span>
+
+                <span class="pbx-match__slot">
+                    @if (filled is not null)
+                    {
+                        <span class="pbx-match__slot-icon" aria-hidden="true">@filled.Icon</span>
+                        <span class="pbx-match__slot-label">@filled.Label</span>
+                    }
+                    else
+                    {
+                        <span class="pbx-match__slot-empty">@Loc.T("boş", "empty")</span>
+                    }
+                </span>
+            </li>
+        }
+    </ol>
+
+    <p class="pbx-match__hint-label">
+        @(NextSocket is null
+            ? Loc.T("Hamısı yerindədir", "Everything is in place")
+            : Loc.T($"İndi «{NextSocket.Label}» üçün parça seç",
+                    $"Now pick a shard for \"{NextSocket.Label}\""))
+    </p>
+
+    <div class="pbx-match__grid">
+        @foreach (var item in Puzzle.Items)
+        {
+            var index = Selected.IndexOf(item.Id);
+
+            <button type="button"
+                    class="pbx-cell pbx-cell--@item.Shape @(index >= 0 ? "pbx-cell--on" : null)"
+                    disabled="@Busy"
+                    aria-pressed="@(index >= 0)"
+                    aria-label="@item.Label"
+                    @onclick="() => OnToggle.InvokeAsync(item.Id)">
+                <span class="pbx-cell__icon" aria-hidden="true">@item.Icon</span>
+                <span class="pbx-cell__value">@item.Label</span>
+
+                @if (index >= 0)
+                {
+                    <span class="pbx-cell__order" aria-hidden="true">@(index + 1)</span>
+                }
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PetBrainPuzzleDto Puzzle { get; set; } = new();
+    [Parameter, EditorRequired] public List<string> Selected { get; set; } = [];
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public EventCallback<string> OnToggle { get; set; }
+
+    /// <summary>Növbəti doldurulası yuva; hamısı doludursa <c>null</c>.</summary>
+    private PetBrainPuzzleItemDto? NextSocket =>
+        Selected.Count < Puzzle.MatchTargets.Count ? Puzzle.MatchTargets[Selected.Count] : null;
+}

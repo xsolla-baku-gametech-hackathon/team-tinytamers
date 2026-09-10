@@ -275,9 +275,26 @@ public static partial class PuzzleValidator
 
             PetBrainPuzzleMechanic.RouteLogic => CountShortestOpenRoutes(items),
 
+            PetBrainPuzzleMechanic.SignalPattern =>
+                items.Select(i => i.Value).Distinct().Count() == items.Count ? 1 : 2,
+
+            PetBrainPuzzleMechanic.ObservationRecall =>
+                items.Count(i => string.Equals(i.Icon, ChangedMarkIcon, StringComparison.Ordinal))
+                == puzzle.AnswerSchema.Min ? 1 : 2,
+
+            PetBrainPuzzleMechanic.MatchingPairs =>
+                items.Select(i => i.Value).Distinct().Count() == items.Count
+                && puzzle.MatchTargets.Select(t => t.Value).Distinct().Count() == puzzle.MatchTargets.Count
+                && puzzle.MatchTargets.Count == items.Count
+                    ? 1
+                    : 2,
+
             _ => 1
         };
     }
+
+    /// <summary>Müşahidə tapmacasında dəyişmiş izin GÖRÜNƏN nişanı.</summary>
+    public const string ChangedMarkIcon = "❔";
 
     /// <summary>
     /// Marşrut qaydası: <b>açıq</b> yollar arasında <b>ən qısası</b>.

@@ -8,11 +8,13 @@
    Hər düymə ən azı 56px hündürlükdədir (dizayn sistemindəki toxunuş həddi) və
    rəng tək daşıyıcı deyil: seçilmiş variantda ✓ nişanı da var. *@
 
+@inject Loc Loc
+
 <div class="pbx-choices @(IsCompact ? "pbx-choices--compact" : null)" role="group" aria-label="@Prompt">
     @foreach (var option in Options)
     {
         <button type="button"
-                class="pbx-choice @(Pending == option.Key ? "pbx-choice--pending" : null)"
+                class="pbx-choice @(Pending == option.Key ? "pbx-choice--pending" : null) @(option.Suggested ? "pbx-choice--suggested" : null)"
                 disabled="@Busy"
                 aria-label="@AriaLabelFor(option)"
                 @onclick="() => OnChoose.InvokeAsync(option.Key)">
@@ -30,6 +32,11 @@
                     <span class="pbx-choice__detail">@option.Detail</span>
                 }
             </span>
+
+            @if (option.Suggested)
+            {
+                <span class="pbx-choice__suggest">@Loc.T("Pet təklif edir", "Pet's idea")</span>
+            }
 
             @if (Pending == option.Key)
             {
@@ -64,8 +71,14 @@
     /// Ekran oxuyucusu üçün tam cümlə: ikon oxunmur, təsvir isə ayrıca
     /// elementdədir və avtomatik birləşməyə bilər.
     /// </summary>
-    private string AriaLabelFor(PetBrainOptionDto option) =>
-        string.IsNullOrWhiteSpace(option.Detail)
+    private string AriaLabelFor(PetBrainOptionDto option)
+    {
+        var text = string.IsNullOrWhiteSpace(option.Detail)
             ? option.Label
             : $"{option.Label} — {option.Detail}";
+
+        return option.Suggested
+            ? $"{text} ({Loc.T("pet təklif edir", "your pet's idea")})"
+            : text;
+    }
 }

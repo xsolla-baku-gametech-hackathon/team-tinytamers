@@ -24,7 +24,16 @@ public sealed record PetBrainDirectorContext(
     IReadOnlySet<string> CompletedTemplates,
 
     PetBrainDifficulty Difficulty,
-    bool PetIsHatched);
+    bool PetIsHatched)
+{
+    /// <summary>
+    /// Uşağın bir oturuşda oynamağa hazır olduğu təxmini dəqiqə.
+    ///
+    /// <para>Standart dəyər orta sessiyanındır, yəni bu sahəni ötürməyən köhnə
+    /// çağırışlar əvvəlki davranışı alır.</para>
+    /// </summary>
+    public int PreferredMinutes { get; init; } = 4;
+}
 
 /// <summary>Bir namizədin bal kartı — nümayiş panelində olduğu kimi göstərilir.</summary>
 public sealed record DirectorCandidate(
@@ -112,7 +121,7 @@ public static class AdaptivePetDirector
             var novelty = NoveltyScore(template, context.RecentRuns);
             var surprise = SurpriseScore(context.ChildId, template.Key);
 
-            var total = (FitWeight * fit)
+            var total = (FitWeight * fit * CommitmentFit(template, context.PreferredMinutes))
                         + (NoveltyWeight * novelty)
                         + (((surprise / 100.0) * 2 - 1) * SurpriseHalfBand);
 
@@ -149,6 +158,32 @@ public static class AdaptivePetDirector
         var raw = (0.72 * interestFit) + (0.28 * styleFit);
 
         return (int)Math.Round(raw * raw / 100.0, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>
+    /// ÖHDƏLİK uyğunluğu (0.6–1.0) — uyğunluq balını zəiflədən əmsal.
+    ///
+    /// <para>Uşağın marağı ilə onun İNDİ nə qədər vaxtı olduğu ayrı suallardır.
+    /// Kosmosu çox sevən uşağa səkkiz dəqiqəlik fəsil təklif etmək, dörd
+    /// dəqiqəlik macəra ilə eyni ölçüdə «uyğun» sayıla bilməz — birincisi ondan
+    /// iki qat çox vaxt istəyir.</para>
+    ///
+    /// <para>Əmsal <b>sıfırlamır, zəiflədir</b>: alt hədd 0.6-dır. Uzun macəra
+    /// heç vaxt kataloqdan düşmür — marağı kifayət qədər güclü olan uşaq onu
+    /// yenə birinci alır, sadəcə həmin maraq daha aydın olmalıdır.</para>
+    ///
+    /// <para>Ölçü <see cref="ExperienceTemplate.SittingMinutes"/>-dir, bütöv
+    /// uzunluq deyil: chapter-li macəra hissə-hissə oynanır və onu qırx
+    /// dəqiqəlik bir blok kimi qiymətləndirmək yanlış olardı.</para>
+    /// </summary>
+    public static double CommitmentFit(ExperienceTemplate template, int preferredMinutes)
+    {
+        var overshoot = template.SittingMinutes - Math.Max(1, preferredMinutes);
+
+        if (overshoot <= 0)
+            return 1.0;
+
+        return Math.Max(0.6, 1.0 - (overshoot * 0.05));
     }
 
     /// <summary>Yenilik balı (0–100). Heç oynanmamış və mövzusu təzə olan şablon 100 alır.</summary>

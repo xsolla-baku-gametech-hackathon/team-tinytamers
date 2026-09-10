@@ -107,6 +107,29 @@ public class PetBrainPuzzleDto
     /// Cavabı VERMİR — yalnız istiqamət göstərir.
     /// </summary>
     public List<string> ClueIcons { get; set; } = new();
+
+    /// <summary>
+    /// Naxışın GÖRÜNƏN hissəsi (<see cref="PetBrainPuzzleMechanic.SignalPattern"/>).
+    ///
+    /// <para>Qayda burada YAZILMIR — uşaq onu nümunədən çıxarır. Cavab isə
+    /// davamıdır, ona görə bu siyahı həlli açmır.</para>
+    /// </summary>
+    public List<PetBrainPuzzleItemDto> PatternPreview { get; set; } = new();
+
+    /// <summary>
+    /// Sol sütun (<see cref="PetBrainPuzzleMechanic.MatchingPairs"/>) — sabit
+    /// sıra. Uşaq <see cref="Items"/>-i bunların qarşısına düzür.
+    /// </summary>
+    public List<PetBrainPuzzleItemDto> MatchTargets { get; set; } = new();
+
+    /// <summary>
+    /// Müşahidə tapmacasında ƏVVƏLKİ vəziyyət
+    /// (<see cref="PetBrainPuzzleMechanic.ObservationRecall"/>).
+    ///
+    /// <para>Uşağın jurnalındakı qeyd budur: indiki səhnə ilə tutuşdurulur.
+    /// Nəyin dəyişdiyi burada YAZILMIR.</para>
+    /// </summary>
+    public List<PetBrainPuzzleItemDto> RecalledScene { get; set; } = new();
 }
 
 /// <summary>

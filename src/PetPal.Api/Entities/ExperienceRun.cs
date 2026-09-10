@@ -99,6 +99,16 @@ public class ExperienceRun
     public ICollection<RunStageOutcome> StageOutcomes { get; set; } = new List<RunStageOutcome>();
 
     /// <summary>
+    /// Chapter-li macəranın TAM vəziyyəti — inventar, jurnal, məqsədlər,
+    /// checkpoint. Chapter-siz (köhnə, qısa) macərada <c>null</c>.
+    ///
+    /// <para>Ayrı sətirdə olmasının səbəbi <see cref="AdventureRunState"/>
+    /// sənədindədir: bu sütunlar yalnız macəra OYNANARKƏN lazımdır, run sətri
+    /// isə hər tövsiyə sorğusunda oxunur.</para>
+    /// </summary>
+    public AdventureRunState? State { get; set; }
+
+    /// <summary>
     /// Əlavə dəstək rejimi: tapmacada variant sayı azdır və ipucu əvvəldən
     /// görünür. Qərar run BAŞLAYANDA verilir və içəridə DƏYİŞMİR — uşaq
     /// oynadığı sualın formasının qəfil dəyişməsini görməməlidir.

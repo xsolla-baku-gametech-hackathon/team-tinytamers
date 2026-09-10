@@ -248,24 +248,84 @@ public static class MemoryPolicy
         Importance = memory.Importance
     };
 
+    /// <summary>
+    /// Seçim xatirəsinin cümləsi.
+    ///
+    /// <para>Dörd mənbə ardıcıl yoxlanılır, çünki chapter-li macəra bir
+    /// «seçim» altında dörd fərqli fakt saxlayır: hansı variant seçildi,
+    /// hansı sonluğa çatıldı, dünyada nə dəyişdi və hansı yan tapşırıq
+    /// tamamlandı. Hamısına eyni bomboş cümləni vermək («seçimini
+    /// xatırlayıram») yaddaşı bəzəyə çevirərdi — pet nəyi xatırladığını
+    /// DEYƏ bilməlidir.</para>
+    /// </summary>
     private static string RenderChoice(PetMemory memory, ExperienceTemplate? template, string language)
     {
-        var option = template?.Stages
+        if (template is null)
+            return Localized.T(language, "Seçimini yaxşı xatırlayıram!", "I remember your choice well!");
+
+        var title = template.Title(language);
+        var graph = Story.StoryCatalog.Find(memory.FactKey);
+
+        if (graph?.Ending(memory.ValueKey) is { } ending)
+            return Localized.T(language,
+                $"«{title}» macərasını bitirəndə sən «{ending.EarnedTitle(language)}» oldun.",
+                $"When we finished «{title}» you became «{ending.EarnedTitle(language)}».");
+
+        if (graph?.Objective(memory.ValueKey) is { IsOptional: true } objective)
+            return Localized.T(language,
+                $"«{title}» macərasında sən bunu da etdin: {objective.Title(language)}.",
+                $"In «{title}» you also did this: {objective.Description(language)}");
+
+        if (WorldLine(memory.ValueKey, language) is { } world)
+            return world;
+
+        var option = template.Stages
             .SelectMany(s => s.Options)
+            .Concat(graph?.Nodes.SelectMany(n => n.Options) ?? [])
             .FirstOrDefault(o => string.Equals(o.Key, memory.ValueKey, StringComparison.Ordinal));
 
-        if (option is null || template is null)
+        if (option is null)
             return Localized.T(language, "Seçimini yaxşı xatırlayıram!", "I remember your choice well!");
 
         return Localized.T(language,
-            $"«{template.Title(language)}» macərasında sən «{option.Label(language)}» seçdin.",
-            $"In «{template.Title(language)}» you chose «{option.Label(language)}».");
+            $"«{title}» macərasında sən «{option.Label(language)}» seçdin.",
+            $"In «{title}» you chose «{option.Label(language)}».");
     }
+
+    /// <summary>
+    /// Dünya bayrağının uşağa görünən cümləsi.
+    ///
+    /// <para>Açarlar QAPALIDIR: pet yalnız serverin təsdiqlədiyi faktı deyir.
+    /// Naməlum bayraq cümlə yaratmır — uydurma hekayə yaranmır.</para>
+    /// </summary>
+    public static string? WorldLine(string flag, string language) => flag switch
+    {
+        Story.MoonKeys.WorldRoverAwake => Localized.T(language,
+            "Ayda tapdığımız rover indi işləyir — bəzən bizə siqnal göndərir.",
+            "The rover we found on the Moon works again — sometimes it signals us."),
+
+        Story.MoonKeys.WorldGardenAlive => Localized.T(language,
+            "Ay bağçasının işıqlarını biz yandırdıq. İndi orada nəsə böyüyür.",
+            "We turned the Moon garden's lights back on. Something is growing there now."),
+
+        Story.MoonKeys.WorldObservatoryOn => Localized.T(language,
+            "Ay rəsədxanası yenidən işləyir — çünki sən kristalı geri qaytardın.",
+            "The Moon observatory runs again — because you brought the crystal back."),
+
+        Story.MoonKeys.WorldBaseAwake => Localized.T(language,
+            "Ay bazasının robotları oyandı. Onlar səni xatırlayır.",
+            "The robots at the Moon base woke up. They remember you."),
+
+        _ => null
+    };
 
     private static string AccessoryName(string code, string language) => code switch
     {
         ExperienceCatalog.HelmetMars => Localized.T(language, "Mars dəbilqəsi", "The Mars helmet"),
         ExperienceCatalog.WingsRainbow => Localized.T(language, "Göy qurşağı qanadları", "The rainbow wings"),
+        "halo-guardian" => Localized.T(language, "Qoruyucu haləsi", "The guardian halo"),
+        "visor-explorer" => Localized.T(language, "Tədqiqatçı eynəyi", "The explorer visor"),
+        "badge-robot-friend" => Localized.T(language, "Robot dostu nişanı", "The robot friend badge"),
         _ => Localized.T(language, "Yeni əşya", "A new item")
     };
 }

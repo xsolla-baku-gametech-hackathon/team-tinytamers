@@ -65,6 +65,64 @@
             </div>
         }
 
+        @if (Summary.Epilogue is { } epilogue)
+        {
+            <div class="pbx-epilogue">
+                @if (!string.IsNullOrWhiteSpace(epilogue.EarnedTitle))
+                {
+                    <div class="pbx-epilogue__title-card">
+                        <span class="pbx-epilogue__eyebrow">@Loc.T("Qazandığın ünvan", "Title earned")</span>
+                        <span class="pbx-epilogue__title">🏅 @epilogue.EarnedTitle</span>
+                        <span class="pbx-epilogue__count">
+                            @Loc.T($"{epilogue.EndingsFound}/{epilogue.EndingsTotal} sonluq tapıldı",
+                                   $"{epilogue.EndingsFound}/{epilogue.EndingsTotal} endings found")
+                        </span>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(epilogue.PetRecall))
+                {
+                    <p class="pbx-epilogue__recall">💭 @epilogue.PetRecall</p>
+                }
+
+                @if (epilogue.WorldChanges.Count > 0)
+                {
+                    <div class="pbx-epilogue__block">
+                        <h3 class="pbx-epilogue__label">@Loc.T("Ayda nə dəyişdi", "What changed")</h3>
+                        <ul class="pbx-epilogue__list">
+                            @foreach (var change in epilogue.WorldChanges)
+                            {
+                                <li>@change</li>
+                            }
+                        </ul>
+                    </div>
+                }
+
+                @if (epilogue.MissedSideQuests.Count > 0)
+                {
+                    <div class="pbx-epilogue__block pbx-epilogue__block--soft">
+                        <h3 class="pbx-epilogue__label">@Loc.T("Növbəti dəfəyə", "For next time")</h3>
+                        <ul class="pbx-epilogue__list">
+                            @foreach (var quest in epilogue.MissedSideQuests)
+                            {
+                                <li><span aria-hidden="true">☆</span> @quest</li>
+                            }
+                        </ul>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(epilogue.ReplayHint))
+                {
+                    <p class="pbx-epilogue__replay">🔁 @epilogue.ReplayHint</p>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(epilogue.SequelHook))
+                {
+                    <p class="pbx-epilogue__sequel">📡 @epilogue.SequelHook</p>
+                }
+            </div>
+        }
+
         @if (Summary.NewMemories.Count > 0)
         {
             <div class="pbx-memories">

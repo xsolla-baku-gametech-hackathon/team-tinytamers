@@ -117,11 +117,44 @@ public class GameApiClient : ApiClientBase
     /// Klientin gördüyü mərhələ. Server öz sayğacı ilə tutuşdurur: uyğun
     /// gəlməsə <c>409</c> qayıdır, yəni iki dəfə basmaq mərhələ atlatmır.
     /// </param>
+    /// <param name="revision">
+    /// Klientin gördüyü vəziyyət nömrəsi. Serverinki fərqlidirsə <c>409</c>
+    /// qayıdır — uşaq macərəni iki cihazda açıbsa, biri digərinin addımını
+    /// səssizcə üstələmir.
+    /// </param>
+    /// <param name="idempotencyKey">
+    /// Təkrar göndərilən sorğunun açarı. Zəif şəbəkədə eyni addım iki dəfə
+    /// gedə bilər; server ikincisini tətbiq etmir və cari vəziyyəti qaytarır.
+    /// </param>
     public Task<ApiResult<PetBrainRunDto>> SubmitPetBrainChoiceAsync(
-        Guid runId, int stageIndex, string optionKey, string? nodeId = null, CancellationToken ct = default) =>
+        Guid runId, int stageIndex, string optionKey, string? nodeId = null,
+        int? revision = null, string? idempotencyKey = null, CancellationToken ct = default) =>
         PostAsync<PetBrainChoiceRequest, PetBrainRunDto>(
             $"api/pet-brain/runs/{runId}/choices",
-            new PetBrainChoiceRequest { StageIndex = stageIndex, NodeId = nodeId, OptionKey = optionKey }, ct);
+            new PetBrainChoiceRequest
+            {
+                StageIndex = stageIndex,
+                NodeId = nodeId,
+                OptionKey = optionKey,
+                ClientRevision = revision,
+                IdempotencyKey = idempotencyKey
+            }, ct);
+
+    /// <summary>Macərəni dayandırır — vəziyyət saxlanılır, mükafat hüququ qalır.</summary>
+    public Task<ApiResult<PetBrainResumeDto>> PausePetBrainRunAsync(
+        Guid runId, int playedSeconds, CancellationToken ct = default) =>
+        PostAsync<PetBrainPauseRequest, PetBrainResumeDto>(
+            $"api/pet-brain/runs/{runId}/pause",
+            new PetBrainPauseRequest { PlayedSeconds = playedSeconds }, ct);
+
+    /// <summary>Dayandırılmış macərəni son checkpoint-dən davam etdirir.</summary>
+    public Task<ApiResult<PetBrainRunDto>> ResumePetBrainRunAsync(
+        Guid runId, CancellationToken ct = default) =>
+        PostAsync<PetBrainRunDto>($"api/pet-brain/runs/{runId}/resume", ct);
+
+    /// <summary>Davam edilə bilən macəranın kartı; yoxdursa <c>null</c>.</summary>
+    public Task<ApiResult<PetBrainResumeDto>> GetPetBrainResumeCardAsync(CancellationToken ct = default) =>
+        GetAsync<PetBrainResumeDto>("api/pet-brain/resume", ct);
 
     /// <summary>
     /// Tapmaca cavabı — YALNIZ seçilmiş elementlərin id-ləri.
@@ -146,6 +179,18 @@ public class GameApiClient : ApiClientBase
         PostAsync<PetBrainChoiceRequest, PetBrainRunDto>(
             $"api/pet-brain/runs/{runId}/choices",
             new PetBrainChoiceRequest { StageIndex = stageIndex, NodeId = nodeId, RequestHint = true }, ct);
+
+    /// <summary>
+    /// Pet-in «birlikdə bitirək» təklifinin qəbulu — ipucunun son pilləsi.
+    ///
+    /// <para>Server pilləni öz sayğacı ilə yoxlayır; vaxtından əvvəl
+    /// göndərilən istək rədd olunur.</para>
+    /// </summary>
+    public Task<ApiResult<PetBrainRunDto>> AcceptPetBrainAssistAsync(
+        Guid runId, int stageIndex, string? nodeId = null, CancellationToken ct = default) =>
+        PostAsync<PetBrainChoiceRequest, PetBrainRunDto>(
+            $"api/pet-brain/runs/{runId}/choices",
+            new PetBrainChoiceRequest { StageIndex = stageIndex, NodeId = nodeId, AcceptAssist = true }, ct);
 
     /// <summary>Mükafat serverdə DƏQİQ BİR DƏFƏ verilir — təkrar çağırış təhlükəsizdir.</summary>
     public Task<ApiResult<PetBrainRunDto>> CompletePetBrainRunAsync(Guid runId, CancellationToken ct = default) =>

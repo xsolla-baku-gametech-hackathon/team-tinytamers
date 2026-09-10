@@ -78,6 +78,16 @@ public class IssuedPuzzle
     public int Attempts { get; set; }
     public int HintsUsed { get; set; }
 
+    /// <summary>
+    /// Tapmaca pet-in birgə tamamlaması ilə bağlandı.
+    ///
+    /// <para><see cref="Assisted"/>-dən fərqlidir: o, tapmacanın ASAN
+    /// verildiyini deyir, bu isə uşağın onu KÖMƏKLƏ bitirdiyini. Mənimsəmə bu
+    /// sətri köməksiz həll kimi saymır — sayılsaydı, sistem bacarılmayan
+    /// mexanikanı «öyrənilib» hesab edib çətinləşdirərdi.</para>
+    /// </summary>
+    public bool CompletedWithAssist { get; set; }
+
     public PetBrainPuzzleStatus Status { get; set; } = PetBrainPuzzleStatus.Issued;
 
     /// <summary>Vaxt HƏMİŞƏ serverdən — klientin bildirdiyi müddət səlahiyyətli deyil.</summary>

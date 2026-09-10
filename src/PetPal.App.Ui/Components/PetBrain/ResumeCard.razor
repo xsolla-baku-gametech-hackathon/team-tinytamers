@@ -1,0 +1,92 @@
+@inject Loc Loc
+
+<div class="pbx-resume">
+    <div class="pbx-resume__head">
+        <span class="pbx-resume__icon" aria-hidden="true">@Card.Icon</span>
+
+        <div class="pbx-resume__titles">
+            <span class="pbx-resume__eyebrow">@Loc.T("Yarımçıq macəra", "Unfinished adventure")</span>
+            <h3 class="pbx-resume__title">@Card.Title</h3>
+        </div>
+    </div>
+
+    @if (Card.ChapterCount > 0)
+    {
+        <div class="pbx-resume__progress">
+            <span class="pbx-resume__chapter">
+                @Loc.T($"Fəsil {Card.ChapterOrder}/{Card.ChapterCount} — {Card.ChapterTitle}",
+                       $"Chapter {Card.ChapterOrder}/{Card.ChapterCount} — {Card.ChapterTitle}")
+            </span>
+
+            <div class="pbx-resume__bar" role="img"
+                 aria-label="@Loc.T($"{Card.ProgressPercent} faiz tamamlanıb",
+                                    $"{Card.ProgressPercent} percent complete")">
+                <span class="pbx-resume__fill" style="width:@(Card.ProgressPercent)%"></span>
+            </div>
+        </div>
+    }
+
+    @if (RecallOpen && !string.IsNullOrWhiteSpace(Card.LastEventSummary))
+    {
+        <p class="pbx-resume__recap" aria-live="polite">
+            <span class="pbx-resume__recap-label">@Loc.T("Ötən dəfə", "Last time")</span>
+            @Card.LastEventSummary
+        </p>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Card.CurrentObjective))
+    {
+        <p class="pbx-resume__goal">
+            <span aria-hidden="true">◆</span> @Card.CurrentObjective
+        </p>
+    }
+
+    @if (Card.KeyItems.Count > 0)
+    {
+        <ul class="pbx-resume__items" aria-label="@Loc.T("Çantanda", "In your kit")">
+            @foreach (var item in Card.KeyItems)
+            {
+                <li class="pbx-resume__item">
+                    <span aria-hidden="true">@item.Icon</span> @item.Name
+                </li>
+            }
+        </ul>
+    }
+
+    <p class="pbx-resume__time">
+        @Loc.T($"Təxminən {Card.RemainingMinutes} dəqiqə qalıb",
+               $"About {Card.RemainingMinutes} minutes left")
+    </p>
+
+    <div class="pbx-resume__actions">
+        <button type="button" class="btn btn--primary btn--block" disabled="@Busy" @onclick="OnResume">
+            @Loc.T("Davam et", "Continue")
+        </button>
+
+        @if (ShowRecall)
+        {
+            <button type="button" class="btn btn--ghost btn--block" disabled="@Busy"
+                    aria-expanded="@RecallOpen" @onclick="OnRecall">
+                @(RecallOpen
+                    ? Loc.T("Xülasəni gizlət", "Hide the recap")
+                    : Loc.T("Fəsli yenidən xatırla", "Remind me what happened"))
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PetBrainResumeDto Card { get; set; } = new();
+
+    [Parameter] public bool Busy { get; set; }
+
+    /// <summary>Xülasə varsa «xatırlat» düyməsi mənalıdır; yoxdursa göstərilmir.</summary>
+    [Parameter] public bool ShowRecall { get; set; } = true;
+
+    /// <summary>Xülasə açıqdırmı — düymə onu açıb-bağlayır.</summary>
+    [Parameter] public bool RecallOpen { get; set; }
+
+    [Parameter] public EventCallback OnResume { get; set; }
+
+    [Parameter] public EventCallback OnRecall { get; set; }
+}

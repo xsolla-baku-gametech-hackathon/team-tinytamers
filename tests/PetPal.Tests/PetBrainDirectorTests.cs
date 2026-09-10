@@ -123,9 +123,12 @@ public class PetBrainDirectorTests
 
         Assert.True(ranked.Count >= 2);
 
-        // Sürprizi çıxarıb yalnız uyğunluq + yenilik payına baxırıq.
-        static double WithoutSurprise(DirectorCandidate c) =>
-            (AdaptivePetDirector.FitWeight * c.FitScore) + (AdaptivePetDirector.NoveltyWeight * c.NoveltyScore);
+        var preferredMinutes = (aylin ? AylinContext() : MiaContext()).PreferredMinutes;
+
+        double WithoutSurprise(DirectorCandidate c) =>
+            (AdaptivePetDirector.FitWeight * c.FitScore
+             * AdaptivePetDirector.CommitmentFit(c.Template, preferredMinutes))
+            + (AdaptivePetDirector.NoveltyWeight * c.NoveltyScore);
 
         var leader = WithoutSurprise(ranked[0]);
         var runnerUp = ranked.Skip(1).Max(WithoutSurprise);

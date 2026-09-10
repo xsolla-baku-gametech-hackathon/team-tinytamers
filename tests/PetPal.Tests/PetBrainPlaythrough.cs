@@ -19,7 +19,7 @@ namespace PetPal.Tests;
 public static class PetBrainPlaythrough
 {
     /// <summary>Sonsuz döngəyə qarşı sərt hədd.</summary>
-    private const int MaxSteps = 40;
+    private const int MaxSteps = 90;
 
     public static async Task<PetBrainRunDto> StartAsync(ApiTestClient client)
     {
@@ -156,9 +156,36 @@ public static class PetBrainPlaythrough
         PetBrainPuzzleMechanic.RouteLogic =>
             [puzzle.Items.Where(i => i.Icon != "⛔").OrderBy(i => i.Value).First().Id],
 
+        PetBrainPuzzleMechanic.SignalPattern => SolvePattern(puzzle),
+
+        PetBrainPuzzleMechanic.ObservationRecall =>
+            [.. puzzle.Items.Where(i => i.Icon == "❔").Select(i => i.Id)],
+
+        PetBrainPuzzleMechanic.MatchingPairs =>
+            [.. puzzle.MatchTargets.Select(t => puzzle.Items.First(i => i.Value == t.Value).Id)],
+
         // Yaradıcı yolda səhv seçim yoxdur — sxemin istədiyi say kifayətdir.
         _ => [.. puzzle.Items.Take(puzzle.AnswerSchema.Min).Select(i => i.Id)]
     };
+
+    /// <summary>
+    /// Naxışın davamı — YALNIZ görünən nümunədən.
+    ///
+    /// <para>Nümunə iki tam dövrdür, ona görə bir dövr cavabın özüdür. Element
+    /// id-ləri nümunədə fərqlidir (cavabı köçürmək mümkün olmasın deyə), buna
+    /// görə uyğunluq GÖRÜNƏN dəyər üzərindən qurulur — uşağın gördüyü kimi.</para>
+    /// </summary>
+    public static List<string> SolvePattern(PetBrainPuzzleDto puzzle)
+    {
+        var cycle = puzzle.AnswerSchema.Min;
+
+        return
+        [
+            .. puzzle.PatternPreview
+                .Take(cycle)
+                .Select(beat => puzzle.Items.First(i => i.Value == beat.Value).Id)
+        ];
+    }
 
     /// <summary>Enerji büdcəsinə və məcburi düyünlərə uyğun ən qısa marşrut.</summary>
     public static List<string>? SolveRoute(PetBrainPuzzleDto puzzle)

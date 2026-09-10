@@ -1,0 +1,201 @@
+@inject Loc Loc
+
+<div class="pbx-hud">
+
+    <div class="pbx-hud__row">
+        <div class="pbx-hud__chapter">
+            <span class="pbx-hud__chapter-count">
+                @Loc.T($"Fəsil {State.CurrentChapterOrder}/{State.ChapterCount}",
+                       $"Chapter {State.CurrentChapterOrder}/{State.ChapterCount}")
+            </span>
+            <span class="pbx-hud__chapter-title">@State.CurrentChapterTitle</span>
+        </div>
+
+        <div class="pbx-hud__tools">
+            <button type="button" class="pbx-hud__tool"
+                    aria-label="@Loc.T($"Çanta, {State.Inventory.Count} əşya",
+                                       $"Kit, {State.Inventory.Count} items")"
+                    aria-expanded="@(_open == Panel.Inventory)"
+                    @onclick="() => Toggle(Panel.Inventory)">
+                <span aria-hidden="true">🎒</span>
+                <span class="pbx-hud__tool-count">@State.Inventory.Count</span>
+            </button>
+
+            <button type="button" class="pbx-hud__tool"
+                    aria-label="@Loc.T($"Jurnal, {State.Clues.Count} ipucu",
+                                       $"Journal, {State.Clues.Count} clues")"
+                    aria-expanded="@(_open == Panel.Clues)"
+                    @onclick="() => Toggle(Panel.Clues)">
+                <span aria-hidden="true">📓</span>
+                <span class="pbx-hud__tool-count">@State.Clues.Count</span>
+
+                @if (State.UnreadClues > 0)
+                {
+                    <span class="pbx-hud__dot" aria-hidden="true"></span>
+                }
+            </button>
+
+            <button type="button" class="pbx-hud__tool"
+                    aria-label="@Loc.T("Fəsil xəritəsi", "Chapter map")"
+                    aria-expanded="@(_open == Panel.Map)"
+                    @onclick="() => Toggle(Panel.Map)">
+                <span aria-hidden="true">🗺️</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="pbx-hud__bar" role="img"
+         aria-label="@Loc.T($"Macəra {State.ProgressPercent} faiz tamamlanıb",
+                            $"Adventure {State.ProgressPercent} percent complete")">
+        <span class="pbx-hud__fill" style="width:@(State.ProgressPercent)%"></span>
+    </div>
+
+    @if (State.Objectives.Count > 0)
+    {
+        <ul class="pbx-hud__goals" aria-label="@Loc.T("İndi nə etməliyəm", "What to do now")">
+            @foreach (var objective in State.Objectives)
+            {
+                <li class="pbx-hud__goal @(objective.IsOptional ? "pbx-hud__goal--optional" : null)">
+                    <span class="pbx-hud__goal-mark" aria-hidden="true">
+                        @(objective.IsOptional ? "☆" : "◆")
+                    </span>
+
+                    <span class="pbx-hud__goal-text">@objective.Title</span>
+
+                    @if (objective.RequiredCount > 1)
+                    {
+                        <span class="pbx-hud__goal-count">
+                            @objective.CurrentCount/@objective.RequiredCount
+                        </span>
+                    }
+                </li>
+            }
+        </ul>
+    }
+
+    @if (_open == Panel.Inventory)
+    {
+        <div class="pbx-panel" aria-live="polite">
+            <h3 class="pbx-panel__title">@Loc.T("Çanta", "Kit")</h3>
+
+            @if (State.Inventory.Count == 0)
+            {
+                <p class="pbx-panel__empty">@Loc.T("Çanta hələ boşdur.", "The kit is still empty.")</p>
+            }
+            else
+            {
+                <ul class="pbx-panel__list">
+                    @foreach (var item in State.Inventory)
+                    {
+                        <li class="pbx-panel__item">
+                            <span class="pbx-panel__icon" aria-hidden="true">@item.Icon</span>
+                            <span class="pbx-panel__body">
+                                <span class="pbx-panel__name">
+                                    @item.Name
+                                    @if (item.Quantity > 1)
+                                    {
+                                        <span class="pbx-panel__qty">×@item.Quantity</span>
+                                    }
+                                </span>
+                                <span class="pbx-panel__detail">@item.Description</span>
+                            </span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    }
+    else if (_open == Panel.Clues)
+    {
+        <div class="pbx-panel" aria-live="polite">
+            <h3 class="pbx-panel__title">@Loc.T("İpucu jurnalı", "Clue journal")</h3>
+
+            @if (State.Clues.Count == 0)
+            {
+                <p class="pbx-panel__empty">@Loc.T("Hələ ipucu tapmamışıq.", "We have not found a clue yet.")</p>
+            }
+            else
+            {
+                <ul class="pbx-panel__list">
+                    @foreach (var clue in State.Clues)
+                    {
+                        <li class="pbx-panel__item @(clue.IsNew ? "pbx-panel__item--new" : null)">
+                            <span class="pbx-panel__icon" aria-hidden="true">@clue.Icon</span>
+                            <span class="pbx-panel__body">
+                                <span class="pbx-panel__name">
+                                    @clue.Title
+                                    @if (clue.IsNew)
+                                    {
+                                        <span class="pbx-panel__tag">@Loc.T("yeni", "new")</span>
+                                    }
+                                </span>
+                                <span class="pbx-panel__detail">@clue.Text</span>
+                            </span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    }
+    else if (_open == Panel.Map)
+    {
+        <div class="pbx-panel" aria-live="polite">
+            <h3 class="pbx-panel__title">@Loc.T("Fəsillər", "Chapters")</h3>
+
+            <ol class="pbx-map">
+                @foreach (var chapter in State.Chapters)
+                {
+                    <li class="pbx-map__row pbx-map__row--@chapter.Status.ToString().ToLowerInvariant()">
+                        <span class="pbx-map__mark" aria-hidden="true">@MarkFor(chapter.Status)</span>
+
+                        <span class="pbx-map__body">
+                            <span class="pbx-map__title">@chapter.Order. @chapter.Title</span>
+
+                            @if (!string.IsNullOrWhiteSpace(chapter.Summary))
+                            {
+                                <span class="pbx-map__summary">@chapter.Summary</span>
+                            }
+                        </span>
+
+                        <span class="pbx-map__minutes">
+                            @Loc.T($"{chapter.EstimatedMinutes} dəq", $"{chapter.EstimatedMinutes} min")
+                        </span>
+                    </li>
+                }
+            </ol>
+
+            <p class="pbx-map__left">
+                @Loc.T($"Təxminən {State.RemainingMinutes} dəqiqə qalıb",
+                       $"About {State.RemainingMinutes} minutes left")
+            </p>
+        </div>
+    }
+</div>
+
+@code {
+    private enum Panel
+    {
+        None,
+        Inventory,
+        Clues,
+        Map
+    }
+
+    [Parameter, EditorRequired] public PetBrainAdventureStateDto State { get; set; } = new();
+
+    private Panel _open = Panel.None;
+
+    /// <summary>Eyni düymə paneli açır və bağlayır — ikinci "bağla" düyməsi lazım gəlmir.</summary>
+    private void Toggle(Panel panel) => _open = _open == panel ? Panel.None : panel;
+
+    /// <summary>
+    /// Vəziyyət nişanı. Rəngdən ƏLAVƏ işarədir: rəng görməyən uşaq üçün də
+    /// tamamlanmış fəsil bağlıdan fərqlənməlidir.
+    /// </summary>
+    private static string MarkFor(AdventureChapterStatus status) => status switch
+    {
+        AdventureChapterStatus.Completed => "✓",
+        AdventureChapterStatus.Active => "▶",
+        _ => "·"
+    };
+}

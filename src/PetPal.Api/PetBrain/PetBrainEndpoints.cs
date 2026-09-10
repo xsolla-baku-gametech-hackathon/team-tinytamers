@@ -114,6 +114,125 @@ public static class PetBrainEndpoints
             (await service.CompleteRunAsync(http.User.ChildIdOrThrow(), runId, ct)).ToHttpResult())
             .WithSummary("Macərəni bitirir və mükafatı DƏQİQ BİR DƏFƏ verir.");
 
+        group.MapPost("/runs/{runId:guid}/pause", async (
+                Guid runId,
+                [FromBody] PetBrainPauseRequest? request,
+                HttpContext http,
+                IPetBrainService service,
+                CancellationToken ct) =>
+            (await service.PauseRunAsync(
+                http.User.ChildIdOrThrow(), runId, request ?? new PetBrainPauseRequest(), ct)).ToHttpResult())
+            .WithSummary("Macərəni dayandırır — bütün vəziyyət saxlanılır.");
+
+        group.MapPost("/runs/{runId:guid}/resume", async (
+                Guid runId,
+                HttpContext http,
+                IPetBrainService service,
+                CancellationToken ct) =>
+            (await service.ResumeRunAsync(http.User.ChildIdOrThrow(), runId, ct)).ToHttpResult())
+            .WithSummary("Dayandırılmış macərəni son checkpoint-dən davam etdirir.");
+
+        group.MapGet("/resume", async (
+                HttpContext http,
+                IPetBrainService service,
+                CancellationToken ct) =>
+            await service.GetResumeCardAsync(http.User.ChildIdOrThrow(), ct) is { } card
+                ? Results.Ok(card)
+                : Results.NoContent())
+            .WithSummary("Davam edilə bilən macəranın kartı; yoxdursa boş cavab.");
+
+        group.MapGet("/adventures", async (
+                HttpContext http,
+                IPetBrainService service,
+                CancellationToken ct) =>
+            (await service.GetAdventuresAsync(http.User.ChildIdOrThrow(), ct)).ToHttpResult())
+            .WithSummary("Fəsilli macəralar — irəliləmə, müddət və tapılan sonluqlarla.");
+
+        group.MapGet("/adventures/{key}", async (
+                string key,
+                HttpContext http,
+                IPetBrainService service,
+                CancellationToken ct) =>
+            (await service.GetAdventureAsync(http.User.ChildIdOrThrow(), key, ct)).ToHttpResult())
+            .WithSummary("Macəranın ön baxışı: fəsillər, sonluqlar, əlçatanlıq.");
+
+        group.MapPost("/adventures/{key}/start", async (
+                string key,
+                HttpContext http,
+                IPetBrainService service,
+                CancellationToken ct) =>
+            (await service.StartAdventureAsync(http.User.ChildIdOrThrow(), key, ct)).ToHttpResult())
+            .WithSummary("Başlat, davam et və ya təkrar oyna — direktorun təklifi və təhlükəsizlik süzgəci ilə.");
+
+        group.MapGet("/runs/{runId:guid}/objectives", async (
+                Guid runId,
+                HttpContext http,
+                IPetBrainService service,
+                CancellationToken ct) =>
+            (await service.GetAdventurePartAsync(http.User.ChildIdOrThrow(), runId, s => s.Objectives, ct))
+            .ToHttpResult())
+            .WithSummary("Cari 1–3 məqsəd.");
+
+        group.MapGet("/runs/{runId:guid}/inventory", async (
+                Guid runId,
+                HttpContext http,
+                IPetBrainService service,
+                CancellationToken ct) =>
+            (await service.GetAdventurePartAsync(http.User.ChildIdOrThrow(), runId, s => s.Inventory, ct))
+            .ToHttpResult())
+            .WithSummary("Çantadakı əşyalar.");
+
+        group.MapGet("/runs/{runId:guid}/clues", async (
+                Guid runId,
+                HttpContext http,
+                IPetBrainService service,
+                CancellationToken ct) =>
+            (await service.GetAdventurePartAsync(http.User.ChildIdOrThrow(), runId, s => s.Clues, ct))
+            .ToHttpResult())
+            .WithSummary("İpucu jurnalı — ən vacibi əvvəl.");
+
+        group.MapGet("/runs/{runId:guid}/map", async (
+                Guid runId,
+                HttpContext http,
+                IPetBrainService service,
+                CancellationToken ct) =>
+            (await service.GetAdventurePartAsync(http.User.ChildIdOrThrow(), runId, s => s.Chapters, ct))
+            .ToHttpResult())
+            .WithSummary("Fəsil xəritəsi — tamamlanan, cari və bağlı fəsillər.");
+
+        group.MapPost("/runs/{runId:guid}/actions", async (
+                Guid runId,
+                [FromBody] PetBrainChoiceRequest request,
+                HttpContext http,
+                IPetBrainService service,
+                CancellationToken ct) =>
+            (await service.SubmitChoiceAsync(http.User.ChildIdOrThrow(), runId, request, ct)).ToHttpResult())
+            .WithSummary("Ümumi addım: seçim, qarşılıqlı təsir və ya davam — /choices ilə eyni yol.");
+
+        group.MapPost("/runs/{runId:guid}/hints", async (
+                Guid runId,
+                [FromBody] PetBrainChoiceRequest request,
+                HttpContext http,
+                IPetBrainService service,
+                CancellationToken ct) =>
+        {
+            request.RequestHint = true;
+
+            return (await service.SubmitChoiceAsync(http.User.ChildIdOrThrow(), runId, request, ct)).ToHttpResult();
+        })
+            .WithSummary("Növbəti ipucu pilləsi — addım irəliləmir.");
+
+        group.MapPost("/runs/{runId:guid}/puzzles/{puzzleId:guid}/submit", async (
+                Guid runId,
+                Guid puzzleId,
+                [FromBody] PetBrainChoiceRequest request,
+                HttpContext http,
+                IPetBrainService service,
+                CancellationToken ct) =>
+            (await service.SubmitPuzzleAnswerAsync(http.User.ChildIdOrThrow(), runId, puzzleId, request, ct))
+            .ToHttpResult())
+            .WithSummary("Tapmaca cavabı — yalnız cari addımın tapmacasına.");
+
         group.MapPost("/runs/{runId:guid}/abandon", async (
                 Guid runId,
                 HttpContext http,

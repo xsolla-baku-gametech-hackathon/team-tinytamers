@@ -230,6 +230,107 @@ namespace PetPal.Api.Migrations
                     b.ToTable("AdventureRecaps");
                 });
 
+            modelBuilder.Entity("PetPal.Api.Entities.AdventureRunState", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AppliedActionKeys")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("CheckpointAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CheckpointChapterId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("CheckpointNodeId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid>("ChildProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Clues")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CompletedChapterIds")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CurrentChapterId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("EndingScores")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ExperienceRunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Inventory")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastPlayedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NpcStates")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Objectives")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PausedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RetryCounts")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SelectedChoiceIds")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TotalPlaySeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Variant")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("VisitedNodeIds")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("WorldFlags")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExperienceRunId")
+                        .IsUnique();
+
+                    b.HasIndex("ChildProfileId", "LastPlayedAt");
+
+                    b.ToTable("AdventureRunStates");
+                });
+
             modelBuilder.Entity("PetPal.Api.Entities.ApplicationRole", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1242,6 +1343,9 @@ namespace PetPal.Api.Migrations
 
                     b.Property<Guid>("ChildProfileId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("CompletedWithAssist")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("ContentSignature")
                         .IsRequired()
@@ -2333,6 +2437,17 @@ namespace PetPal.Api.Migrations
                     b.Navigation("ChildProfile");
                 });
 
+            modelBuilder.Entity("PetPal.Api.Entities.AdventureRunState", b =>
+                {
+                    b.HasOne("PetPal.Api.Entities.ExperienceRun", "ExperienceRun")
+                        .WithOne("State")
+                        .HasForeignKey("PetPal.Api.Entities.AdventureRunState", "ExperienceRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ExperienceRun");
+                });
+
             modelBuilder.Entity("PetPal.Api.Entities.BehaviorEvent", b =>
                 {
                     b.HasOne("PetPal.Api.Entities.ChildProfile", "ChildProfile")
@@ -2847,6 +2962,8 @@ namespace PetPal.Api.Migrations
                     b.Navigation("Puzzles");
 
                     b.Navigation("StageOutcomes");
+
+                    b.Navigation("State");
                 });
 
             modelBuilder.Entity("PetPal.Api.Entities.LearningSession", b =>

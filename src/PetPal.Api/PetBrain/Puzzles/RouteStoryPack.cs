@@ -103,6 +103,33 @@ public static class RouteStoryPacks
         AltTextEn: "A map of the Moon surface: the lander, the glow pool, the mirror field and a shining crystal.");
 
     /// <summary>
+    /// Ay bazasında enerjini seçilmiş sistemə çatdırmaq.
+    ///
+    /// <para>Məcburi düyün paylayıcı qutudur: enerji ondan keçməsə sistemə
+    /// çatsa da işləmir — tələ yolu «qısa, amma qutusuz» köhnə kabeldir.</para>
+    /// </summary>
+    public static RouteStoryPack MoonBase { get; } = new(
+        PuzzleBlueprintCatalog.MoonBasePowerKey,
+        StartAz: "Enerji paneli", StartEn: "Power panel", StartIcon: "🔋",
+        RidgeAz: "Dəhliz", RidgeEn: "Corridor", RidgeIcon: "🚪",
+        DuneAz: "Anbar", DuneEn: "Storeroom", DuneIcon: "📦",
+        RechargeAz: "Günəş paneli", RechargeEn: "Solar panel", RechargeIcon: "🔆",
+        RequiredAz: "Paylayıcı qutu", RequiredEn: "Relay box", RequiredIcon: "🔌",
+        DecoyAz: "Köhnə kabel", DecoyEn: "Old cable", DecoyIcon: "🪢",
+        GoalAz: "Seçilmiş sistem", GoalEn: "Chosen system", GoalIcon: "🖥️",
+        ShelfAz: "Hava borusu", ShelfEn: "Air duct", ShelfIcon: "🌀",
+        TitleAz: "Enerjini xəttə çək",
+        TitleEn: "Route the energy",
+        StoryAz: "Xana doludur, amma kabellər qopub. Enerjini düzgün yolla apar.",
+        StoryEn: "The cell is full, but the cables are torn. Take the energy the right way.",
+        InstructionAz: "Enerjini günəş panelindən, sonra paylayıcı qutudan keçirib sistemə çatdır.",
+        InstructionEn: "Pass the energy through the solar panel, then the relay box, then to the system.",
+        HintAz: "Paylayıcı qutudan keçməyən enerji sistemə çatsa da onu oyatmır.",
+        HintEn: "Energy that skips the relay box reaches the system but cannot wake it.",
+        AltTextAz: "Ay bazasının sxemi: enerji paneli, günəş paneli, paylayıcı qutu və seçilmiş sistem.",
+        AltTextEn: "A plan of the Moon base: the power panel, the solar panel, the relay box and the chosen system.");
+
+    /// <summary>
     /// Şablona uyğun paket. Naməlum açar üçün <c>null</c> — çağıran onda
     /// marşrut mexanikasını ÜMUMİYYƏTLƏ işlətmir.
     /// </summary>
@@ -110,6 +137,7 @@ public static class RouteStoryPacks
     {
         PuzzleBlueprintCatalog.MarsSignalRouteKey => Mars,
         PuzzleBlueprintCatalog.MoonCrystalRouteKey => Moon,
+        PuzzleBlueprintCatalog.MoonBasePowerKey => MoonBase,
         _ => null
     };
 }

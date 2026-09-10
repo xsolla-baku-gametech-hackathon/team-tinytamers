@@ -19,6 +19,21 @@
         <p class="pbx-puzzle__story">@Puzzle.StoryPrompt</p>
     }
 
+    @if (!string.IsNullOrWhiteSpace(JournalNote))
+    {
+        <div class="pbx-puzzle__journal" aria-live="polite">
+            <span class="pbx-puzzle__journal-tag">
+                <span aria-hidden="true">📓</span>
+                @Loc.T("Jurnalında yazılıb", "From your journal")
+                @if (!string.IsNullOrWhiteSpace(JournalNoteTitle))
+                {
+                    <strong>@JournalNoteTitle</strong>
+                }
+            </span>
+            <span class="pbx-puzzle__journal-text">@JournalNote</span>
+        </div>
+    }
+
     @switch (Puzzle.Mechanic)
     {
         case PetBrainPuzzleMechanic.OrderedRoute:
@@ -40,6 +55,18 @@
                                   SceneImage="@SceneImage" SceneAwakening="@SceneAwakening"
                                   OnToggle="Toggle" />
             break;
+
+        case PetBrainPuzzleMechanic.SignalPattern:
+            <SignalPatternPuzzle Puzzle="Puzzle" Selected="_selected" Busy="Busy" OnToggle="Toggle" />
+            break;
+
+        case PetBrainPuzzleMechanic.ObservationRecall:
+            <ObservationRecallPuzzle Puzzle="Puzzle" Selected="_selected" Busy="Busy" OnToggle="Toggle" />
+            break;
+
+        case PetBrainPuzzleMechanic.MatchingPairs:
+            <MatchingPairsPuzzle Puzzle="Puzzle" Selected="_selected" Busy="Busy" OnToggle="Toggle" />
+            break;
     }
 
     @* Seçimin vəziyyəti mətnlə də bildirilir — rəng tək daşıyıcı deyil. *@
@@ -58,6 +85,23 @@
             <div class="pbx__hint" aria-live="polite">
                 <span aria-hidden="true">💡</span> @Puzzle.Hint
             </div>
+
+            @if (RevealedLabels.Count > 0)
+            {
+                <ul class="pbx-puzzle__revealed" aria-label="@Loc.T("Artıq açılmış addımlar", "Steps already shown")">
+                    @foreach (var label in RevealedLabels)
+                    {
+                        <li class="pbx-puzzle__revealed-step"><span aria-hidden="true">✓</span> @label</li>
+                    }
+                </ul>
+            }
+
+            @if (AssistAvailable)
+            {
+                <button class="btn btn--ghost btn--block pbx-puzzle__assist" disabled="@Busy" @onclick="OnAssist">
+                    🤝 @Loc.T("Gəl birlikdə bitirək", "Let us finish it together")
+                </button>
+            }
         }
         else
         {
@@ -78,6 +122,34 @@
 
 @code {
     [Parameter, EditorRequired] public PetBrainPuzzleDto Puzzle { get; set; } = new();
+
+    /// <summary>Jurnaldan bu tapmacaya aid qeyd — uşağın əvvəl tapdığı ipucu.</summary>
+    [Parameter] public string JournalNote { get; set; } = string.Empty;
+
+    [Parameter] public string JournalNoteTitle { get; set; } = string.Empty;
+
+    /// <summary>İpucunun açdığı addımlar — cavabın ən çox yarısı.</summary>
+    [Parameter] public IReadOnlyList<string> RevealIds { get; set; } = [];
+
+    /// <summary>Pet «birlikdə bitirək» təklif edir — ipucunun son pilləsi.</summary>
+    [Parameter] public bool AssistAvailable { get; set; }
+
+    [Parameter] public EventCallback OnAssist { get; set; }
+
+    /// <summary>
+    /// Açılmış addımların GÖRÜNƏN adları.
+    ///
+    /// <para>Id-lər elementlərdə və ya marşrut düyünlərində axtarılır: iki
+    /// lövhə növü eyni ipucu nərdivanını işlədir.</para>
+    /// </summary>
+    private IReadOnlyList<string> RevealedLabels =>
+    [
+        .. RevealIds
+            .Select(id => Puzzle.Items.FirstOrDefault(i => i.Id == id)?.Label
+                          ?? Puzzle.Nodes.FirstOrDefault(n => n.Id == id)?.Label)
+            .Where(label => !string.IsNullOrWhiteSpace(label))
+            .Select(label => label!)
+    ];
 
     [Parameter] public bool Busy { get; set; }
 

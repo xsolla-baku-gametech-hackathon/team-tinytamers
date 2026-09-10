@@ -95,6 +95,23 @@ public static class PuzzleBlueprintCatalog
     public const string RouteLogicKey = "route-logic";
     public const string LightFragmentsKey = "light-fragments";
 
+    /// <summary>Ay siqnalının naxışı — «Göydən gələn siqnal» chapter-i.</summary>
+    public const string MoonSignalPatternKey = "moon-signal-pattern";
+
+    /// <summary>Roverin izləri — «İtib-batmış rover» chapter-i.</summary>
+    public const string MoonTrackRecallKey = "moon-track-recall";
+
+    /// <summary>Kristal parçaları və yuvaları — rəsədxana və final.</summary>
+    public const string MoonShardMatchKey = "moon-shard-match";
+
+    /// <summary>
+    /// Ay bazasında enerjini xəttə çəkmək — «Səssiz Ay bazası» fəsli.
+    ///
+    /// <para>Mexanika Marsdakı dron marşrutu ilə eynidir, hekayə isə ayrıdır:
+    /// burada dron yox, enerji axır və məcburi düyün paylayıcı qutudur.</para>
+    /// </summary>
+    public const string MoonBasePowerKey = "moon-base-power";
+
     /// <summary>
     /// Beş şablon, dörd mexanika — hər biri AYRI qarşılıqlı təsirdir.
     ///
@@ -149,12 +166,40 @@ public static class PuzzleBlueprintCatalog
             PlayStyles: [TraitKeys.Creative],
             Interests: [TraitKeys.Fantasy, TraitKeys.Stories, TraitKeys.Animals],
             MinAge: 5, LowPressure: true,
-            SupportedExperienceKeys: [])
+            SupportedExperienceKeys: []),
+
+        new(MoonBasePowerKey, Version: 1, PetBrainPuzzleMechanic.OrderedRoute,
+            PetBrainExperienceType.Adventure, PetBrainAnswerKind.OrderedNodeIds,
+            PlayStyles: [TraitKeys.ProblemSolver, TraitKeys.Explorer],
+            Interests: [TraitKeys.Space, TraitKeys.Science, TraitKeys.Puzzles],
+            MinAge: 6, LowPressure: false,
+            SupportedExperienceKeys: [ExperienceCatalog.MoonCrystalSecret]),
+
+        new(MoonSignalPatternKey, Version: 1, PetBrainPuzzleMechanic.SignalPattern,
+            PetBrainExperienceType.Adventure, PetBrainAnswerKind.OrderIds,
+            PlayStyles: [TraitKeys.ProblemSolver, TraitKeys.Creative],
+            Interests: [TraitKeys.Space, TraitKeys.Science, TraitKeys.Puzzles],
+            MinAge: 6, LowPressure: false,
+            SupportedExperienceKeys: [ExperienceCatalog.MoonCrystalSecret]),
+
+        new(MoonTrackRecallKey, Version: 1, PetBrainPuzzleMechanic.ObservationRecall,
+            PetBrainExperienceType.Adventure, PetBrainAnswerKind.SelectIds,
+            PlayStyles: [TraitKeys.Explorer, TraitKeys.ProblemSolver],
+            Interests: [TraitKeys.Space, TraitKeys.Science],
+            MinAge: 6, LowPressure: false,
+            SupportedExperienceKeys: [ExperienceCatalog.MoonCrystalSecret]),
+
+        new(MoonShardMatchKey, Version: 1, PetBrainPuzzleMechanic.MatchingPairs,
+            PetBrainExperienceType.Adventure, PetBrainAnswerKind.OrderIds,
+            PlayStyles: [TraitKeys.ProblemSolver, TraitKeys.Caring],
+            Interests: [TraitKeys.Space, TraitKeys.Science, TraitKeys.Puzzles],
+            MinAge: 5, LowPressure: false,
+            SupportedExperienceKeys: [ExperienceCatalog.MoonCrystalSecret])
     ];
 
     /// <summary>Hekayəsi olan marşrut şablonları — mətn paketi ayrıca seçilir.</summary>
     public static bool IsRouteStory(string? key) =>
-        key is MarsSignalRouteKey or MoonCrystalRouteKey;
+        key is MarsSignalRouteKey or MoonCrystalRouteKey or MoonBasePowerKey;
 
     public static PuzzleBlueprint? Find(string? key) =>
         string.IsNullOrWhiteSpace(key)
