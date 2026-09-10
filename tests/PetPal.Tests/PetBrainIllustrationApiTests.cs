@@ -212,6 +212,9 @@ public class PetBrainIllustrationApiTests
             Assert.NotEmpty(puzzle.Edges);
             Assert.NotEmpty(puzzle.Scene.AltText);
 
+            var drawing = await client.Http.GetAsync($"/api/pet-brain/puzzles/{puzzle.PuzzleId}/illustration");
+            Assert.Equal(HttpStatusCode.NotFound, drawing.StatusCode);
+
             var solved = await SolveRouteAsync(client, run).WaitAsync(TimeSpan.FromSeconds(10));
 
             Assert.True(solved.CurrentStage > run.Stage.Index);
@@ -420,6 +423,9 @@ public class PetBrainIllustrationApiTests
 
             Assert.Equal(PetBrainIllustrationStatus.Fallback, run.Stage!.Puzzle!.Scene.IllustrationStatus);
             Assert.Empty(run.Stage.Puzzle.Scene.AssetUrl);
+
+            var gone = await client.Http.GetAsync($"/api/pet-brain/puzzles/{run.Stage.Puzzle.PuzzleId}/illustration");
+            Assert.Equal(HttpStatusCode.Gone, gone.StatusCode);
 
             // Ən vacib bənd: cavab hələ də DOĞRU qiymətləndirilir.
             var solved = await SolveRouteAsync(client, run);

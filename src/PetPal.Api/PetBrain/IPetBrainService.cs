@@ -35,13 +35,15 @@ public interface IPetBrainService
     Task<ServiceResult<PetBrainRunDto>> AbandonRunAsync(Guid childId, Guid runId, CancellationToken ct = default);
 
     /// <summary>
-    /// Uşağın ÖZ tapmacasının hazır rəsminin saxlanc açarı.
+    /// Uşağın ÖZ tapmacasının rəsm vəziyyəti və hazırdırsa saxlanc açarı.
     ///
-    /// <para>Yad tapmaca, hazır olmayan rəsm və naməlum id üçün <c>null</c>
-    /// qaytarır — endpoint bunların hamısına <c>404</c> cavab verir, çünki
-    /// "var, amma sənin deyil" cavabı da məlumat sızmasıdır.</para>
+    /// <para>Yad və naməlum tapmaca üçün <c>null</c> qaytarır — endpoint ona
+    /// <c>404</c> cavab verir, çünki "var, amma sənin deyil" cavabı da məlumat
+    /// sızmasıdır. Sahibinə isə üç hal ayrılır: hazır rəsm, hələ çəkilən rəsm
+    /// və heç vaxt gəlməyəcək rəsm — sonuncu klientə gözləməni dayandırmağa
+    /// imkan verir.</para>
     /// </summary>
-    Task<string?> GetIllustrationKeyAsync(Guid childId, Guid puzzleId, CancellationToken ct = default);
+    Task<PuzzleIllustrationLookup?> GetIllustrationAsync(Guid childId, Guid puzzleId, CancellationToken ct = default);
 
     /// <summary>
     /// Uşağın ÖZ macərasının recap videosunun saxlanc açarı.

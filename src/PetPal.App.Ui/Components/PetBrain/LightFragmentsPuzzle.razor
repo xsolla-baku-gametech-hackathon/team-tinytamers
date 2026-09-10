@@ -12,9 +12,12 @@
 <div class="pbx-fragments">
 
     <div class="pbx-fragments__wing">
+        <SceneDust Active="@SceneAwakening" />
+
         @if (!string.IsNullOrEmpty(SceneImage))
         {
             <img class="pbx-fragments__art" src="@SceneImage" alt="" aria-hidden="true" />
+            <span class="pbx-art-scrim" aria-hidden="true"></span>
         }
 
         @foreach (var (slot, index) in Puzzle.Slots.Select((s, i) => (s, i)))
@@ -68,6 +71,9 @@
 
     /// <summary>Hazır hekayə rəsmi (data URI) — yoxdursa deterministik fon qalır.</summary>
     [Parameter] public string? SceneImage { get; set; }
+
+    /// <summary>AI rəsmi yoldadır — qanadın fonunda sehrli toz parıldayır.</summary>
+    [Parameter] public bool SceneAwakening { get; set; }
 
     [Parameter] public EventCallback<string> OnToggle { get; set; }
 

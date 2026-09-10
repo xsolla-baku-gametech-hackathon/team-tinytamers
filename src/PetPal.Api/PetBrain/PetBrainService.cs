@@ -1443,37 +1443,39 @@ public class PetBrainService : IPetBrainService
     }
 
     /// <summary>
-    /// Səhnənin CARİ vəziyyətini tapmacaya yazır.
+    /// Uşağın ÖZ tapmacasının rəsm vəziyyəti.
     ///
-    /// <para>Rəsm hazır deyilsə <c>AssetUrl</c> BOŞ qalır və klient
-    /// deterministik SVG/CSS səhnəsini çəkir — eyni həndəsə ilə. Rəsm hazır
-    /// olanda yalnız fon dəyişir, toxunuş hədəfləri tərpənmir.</para>
-    ///
-    /// <para>Sətir hələ <c>Pending</c>-dirsə növbəyə YENİDƏN qoyulur: proses
-    /// yenidən başlasa növbə itir, amma bazadakı sətir qalır — uşaq tapmacanı
-    /// açan kimi iş bərpa olunur.</para>
+    /// <para>Sahiblik SORĞUNUN İÇİNDƏDİR: yad uşağın tapmacası ümumiyyətlə
+    /// tapılmır, yəni "var, amma sənin deyil" fərqi görünmür. Səhnəsi olmayan
+    /// tapmaca və itmiş sətir <c>Fallback</c> sayılır — rəsm heç vaxt
+    /// gəlməyəcək.</para>
     /// </summary>
-    public async Task<string?> GetIllustrationKeyAsync(
+    public async Task<PuzzleIllustrationLookup?> GetIllustrationAsync(
         Guid childId, Guid puzzleId, CancellationToken ct = default)
     {
-        // Sahiblik SORĞUNUN İÇİNDƏDİR: yad uşağın tapmacası ümumiyyətlə
-        // tapılmır, yəni "var, amma sənin deyil" fərqi görünmür.
-        var hash = await _db.IssuedPuzzles
+        var puzzle = await _db.IssuedPuzzles
             .AsNoTracking()
             .Where(p => p.Id == puzzleId && p.ChildProfileId == childId)
-            .Select(p => p.SceneSpecHash)
+            .Select(p => new { p.SceneSpecHash })
             .FirstOrDefaultAsync(ct);
 
-        if (string.IsNullOrEmpty(hash))
+        if (puzzle is null)
             return null;
 
-        var row = await _db.PuzzleIllustrations
-            .AsNoTracking()
-            .FirstOrDefaultAsync(i => i.SceneSpecHash == hash, ct);
+        var row = string.IsNullOrEmpty(puzzle.SceneSpecHash)
+            ? null
+            : await _db.PuzzleIllustrations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i => i.SceneSpecHash == puzzle.SceneSpecHash, ct);
 
-        return row is { Status: PetBrainIllustrationStatus.Ready } && !string.IsNullOrEmpty(row.AssetKey)
-            ? row.AssetKey
-            : null;
+        if (row is null)
+            return new PuzzleIllustrationLookup(PetBrainIllustrationStatus.Fallback, null);
+
+        return new PuzzleIllustrationLookup(
+            row.Status,
+            row.Status == PetBrainIllustrationStatus.Ready && !string.IsNullOrEmpty(row.AssetKey)
+                ? row.AssetKey
+                : null);
     }
 
     private async Task ApplySceneAsync(

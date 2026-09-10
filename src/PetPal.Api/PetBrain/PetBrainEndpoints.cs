@@ -83,10 +83,13 @@ public static class PetBrainEndpoints
                 IPuzzleIllustrationStore store,
                 CancellationToken ct) =>
             {
-                var key = await service.GetIllustrationKeyAsync(http.User.ChildIdOrThrow(), puzzleId, ct);
+                var illustration = await service.GetIllustrationAsync(http.User.ChildIdOrThrow(), puzzleId, ct);
 
-                if (key is null || await store.OpenAsync(key, ct) is not { } file)
+                if (illustration is null || illustration.StillDrawing)
                     return Results.NotFound();
+
+                if (illustration.AssetKey is null || await store.OpenAsync(illustration.AssetKey, ct) is not { } file)
+                    return Results.StatusCode(StatusCodes.Status410Gone);
 
                 // Fayl dəyişməzdir (açar səhnə hash-ıdır), ona görə uzun keş
                 // təhlükəsizdir; "private" isə paylaşılan proxy-ni kənarda saxlayır.
@@ -94,7 +97,7 @@ public static class PetBrainEndpoints
 
                 return Results.File(file.AbsolutePath, file.ContentType, enableRangeProcessing: true);
             })
-            .WithSummary("Uşağın ÖZ tapmacasının hekayə rəsmi (hazırdırsa).");
+            .WithSummary("Uşağın ÖZ tapmacasının hekayə rəsmi: hazırdırsa fayl, hələ çəkilirsə 404, gəlməyəcəksə 410.");
 
         // ---- Recap videosu ----
         // Range dəstəyi AÇIQDIR: video oynadıcısı fayla hissə-hissə müraciət

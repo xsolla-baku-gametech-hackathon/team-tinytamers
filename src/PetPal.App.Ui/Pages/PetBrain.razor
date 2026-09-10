@@ -31,7 +31,7 @@
                          OnExit="ExitRunAsync">
 
             <ExperienceScene SceneKey="@_run.SceneKey" Choices="_run.Choices" Icon="@RunIcon"
-                             SceneImage="@AdventureSceneImage" />
+                             SceneImage="@AdventureSceneImage" Awakening="@SceneAwaited" />
 
             @if (_run.Summary is not null)
             {
@@ -75,6 +75,7 @@
                                nəticə seçib. Doğru cavab burada YOXDUR — o,
                                yalnız serverdə saxlanılır. *@
                             <PuzzleBoard Puzzle="puzzle" Busy="_busy" SceneImage="@PuzzleSceneImage"
+                                         SceneAwakening="@SceneAwaited"
                                          OnSubmit="SubmitPuzzleAsync" OnHint="HintAsync" />
                         }
                         else
@@ -239,6 +240,13 @@
     private Guid _sceneOwner;
     private string? _sceneImage;
     private bool _sceneLoading;
+
+    /// <summary>
+    /// Rəsmin gəlməyəcəyi bəllidir (server <c>410</c> dedi və ya gözləmə vaxtı
+    /// bitdi): yoxlama dayanır, sehrli toz sönür.
+    /// </summary>
+    private bool _sceneGone;
+
     private readonly CancellationTokenSource _sceneLifetime = new();
 
     /// <summary>
@@ -255,6 +263,18 @@
     /// çəkilmir.
     /// </summary>
     private string? AdventureSceneImage => HasOwnScene ? null : PuzzleSceneImage;
+
+    /// <summary>
+    /// AI rəsmi yoldadır, amma hələ ekranda deyil — səhnənin üstündə sehrli toz
+    /// parıldayır ki, uşaq dünyanın indicə canlandığını hiss etsin. Rəsm
+    /// göstəriləndə, gəlməyəcəyi bəlli olanda və ya AI bağlı olanda toz
+    /// yavaşca sönür.
+    /// </summary>
+    private bool SceneAwaited =>
+        SceneTarget is { } target &&
+        target.Status != PetBrainIllustrationStatus.Fallback &&
+        !(target.PuzzleId == _sceneOwner && _sceneGone) &&
+        PuzzleSceneImage is null;
 
     /// <summary>Rəsmi yüklənməli tapmaca: cari tapmaca, yoxdursa qarşıdakı.</summary>
     private (Guid PuzzleId, PetBrainIllustrationStatus Status)? SceneTarget
@@ -393,9 +413,11 @@
             _sceneOwner = target.PuzzleId;
             _sceneImage = null;
             _sceneLoading = false;
+            _sceneGone = false;
         }
 
-        if (_sceneImage is not null || _sceneLoading || target.Status == PetBrainIllustrationStatus.Fallback)
+        if (_sceneImage is not null || _sceneLoading || _sceneGone ||
+            target.Status == PetBrainIllustrationStatus.Fallback)
             return;
 
         _sceneLoading = true;
@@ -405,6 +427,10 @@
     /// <summary>
     /// Rəsmi ayrıca yükləyir. AI hələ işləyirsə sorğular 250 ms-dən 2
     /// saniyəyə qədər seyrəlir; tapmaca bu vaxt tam işləkdir.
+    ///
+    /// <para>Server rəsmin gəlməyəcəyini deyəndə (<c>410</c>) və ya gözləmə
+    /// vaxtı bitəndə səhnə "gəlməyəcək" sayılır: yoxlama dayanır, sehrli toz
+    /// yavaşca sönür və uşaq heç bir xəta görmür.</para>
     ///
     /// <para>Tapmaca dəyişibsə köhnə rəsm ATILIR — səhv səhnə bir kadr belə
     /// göstərilməməlidir. Ekrandan çıxılanda yoxlama səssiz bitir.</para>
@@ -416,8 +442,11 @@
 
         try
         {
-            for (var attempt = 0; attempt < attempts && OwnsScene(puzzleId); attempt++)
+            for (var attempt = 0; attempt < attempts; attempt++)
             {
+                if (!OwnsScene(puzzleId))
+                    return;
+
                 var result = await Api.GetPetBrainIllustrationAsync(puzzleId, _sceneLifetime.Token);
 
                 if (!OwnsScene(puzzleId))
@@ -430,12 +459,21 @@
                     return;
                 }
 
+                if (result.StatusCode == (int)System.Net.HttpStatusCode.Gone)
+                    break;
+
+                if (!waitUntilReady)
+                    return;
+
                 if (attempt < attempts - 1)
                 {
                     await Task.Delay(delayMilliseconds, _sceneLifetime.Token);
                     delayMilliseconds = Math.Min(delayMilliseconds * 2, 2_000);
                 }
             }
+
+            _sceneGone = true;
+            await InvokeAsync(StateHasChanged);
         }
         catch (OperationCanceledException) when (_sceneLifetime.IsCancellationRequested)
         {

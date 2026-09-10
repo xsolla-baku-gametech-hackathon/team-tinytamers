@@ -23,7 +23,8 @@
     {
         case PetBrainPuzzleMechanic.OrderedRoute:
             <OrderedRoutePuzzle Puzzle="Puzzle" Route="_selected" Busy="Busy"
-                                SceneImage="@SceneImage" OnChanged="StateHasChanged" />
+                                SceneImage="@SceneImage" SceneAwakening="@SceneAwakening"
+                                OnChanged="StateHasChanged" />
             break;
 
         case PetBrainPuzzleMechanic.SequenceOrder:
@@ -36,7 +37,8 @@
 
         case PetBrainPuzzleMechanic.LightFragments:
             <LightFragmentsPuzzle Puzzle="Puzzle" Selected="_selected" Busy="Busy"
-                                  SceneImage="@SceneImage" OnToggle="Toggle" />
+                                  SceneImage="@SceneImage" SceneAwakening="@SceneAwakening"
+                                  OnToggle="Toggle" />
             break;
     }
 
@@ -76,6 +78,12 @@
     /// çəkilir. Həndəsə hər iki halda EYNİDİR: rəsm yalnız fondur.
     /// </summary>
     [Parameter] public string? SceneImage { get; set; }
+
+    /// <summary>
+    /// AI rəsmi yoldadır — öz səhnəsi olan lövhə (marşrut, qanad) sehrli toz
+    /// göstərir; qalan mexanikalarda tozu macəra səhnəsi daşıyır.
+    /// </summary>
+    [Parameter] public bool SceneAwakening { get; set; }
 
     /// <summary>Cavab serverə YALNIZ id siyahısı kimi gedir.</summary>
     [Parameter] public EventCallback<List<string>> OnSubmit { get; set; }

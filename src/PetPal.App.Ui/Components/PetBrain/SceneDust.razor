@@ -1,0 +1,39 @@
+<span class="pbx-dust @(Active ? "pbx-dust--on" : null)" aria-hidden="true">
+    @foreach (var mote in Motes)
+    {
+        <span class="pbx-dust__mote @(mote.Star ? "pbx-dust__mote--star" : null)"
+              style="left:@(mote.X)%; top:@(mote.Y)%; --pbx-dust-size:@(mote.Size)px; animation-delay:@(mote.DelayMs)ms"></span>
+    }
+</span>
+
+@code {
+    /// <summary>
+    /// Toz parıldayır. Söndürüləndə element QALIR və yavaşca solur: AI rəsmi
+    /// eyni müddətdə bəlirdiyi üçün keçid kəsilmir, çarpaz solğunluq olur.
+    /// </summary>
+    [Parameter] public bool Active { get; set; }
+
+    /// <summary>
+    /// Zərrələrin sabit düzülüşü: parlayan kürəciklər və aralarında ✦ ulduzlar.
+    /// Ölçü headless render ilə seçilib — 4–6 px-lik nöqtələr narıncı Mars
+    /// lövhəsində demək olar görünmürdü.
+    ///
+    /// <para>Dəyərlər TAM ədəddir: inline üslub cari mədəniyyətlə formatlanır
+    /// və onluq vergül CSS-i pozardı.</para>
+    /// </summary>
+    private static readonly (int X, int Y, int Size, int DelayMs, bool Star)[] Motes =
+    [
+        (8, 22, 14, 0, true),
+        (21, 64, 6, 900, false),
+        (34, 30, 10, 1800, false),
+        (47, 76, 14, 400, true),
+        (56, 16, 8, 2600, false),
+        (65, 50, 6, 1300, false),
+        (77, 32, 14, 2100, true),
+        (88, 68, 6, 700, false),
+        (13, 45, 6, 3000, false),
+        (41, 52, 14, 1600, true),
+        (71, 84, 6, 2400, false),
+        (92, 12, 8, 1100, false)
+    ];
+}

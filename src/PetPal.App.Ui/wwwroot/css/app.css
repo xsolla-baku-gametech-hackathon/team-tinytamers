@@ -9606,6 +9606,89 @@
     object-fit: cover;
 }
 
+.pbx { --pbx-art-fade: 1200ms; }
+
+@keyframes pbx-art-in {
+    from { opacity: 0; }
+}
+
+.pbx-scene__art,
+.pbx-route__art,
+.pbx-fragments__art,
+.pbx-art-scrim {
+    pointer-events: none;
+    animation: pbx-art-in var(--pbx-art-fade, 1200ms) ease-out both;
+}
+
+.pbx-art-scrim {
+    position: absolute;
+    inset: 0;
+}
+
+.pbx-scene .pbx-art-scrim {
+    background: linear-gradient(180deg,
+        rgba(24, 18, 38, 0.34) 0%,
+        rgba(24, 18, 38, 0.1) 30%,
+        rgba(24, 18, 38, 0.1) 55%,
+        rgba(24, 18, 38, 0.4) 100%);
+}
+
+.pbx-route__board .pbx-art-scrim {
+    background: radial-gradient(120% 90% at 50% 45%, rgba(24, 18, 38, 0.22) 0%, rgba(24, 18, 38, 0.42) 100%);
+}
+
+.pbx-fragments__wing .pbx-art-scrim {
+    background: rgba(44, 30, 88, 0.3);
+}
+
+.pbx-dust {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--pbx-art-fade) ease;
+}
+
+.pbx-dust--on { opacity: 1; }
+
+.pbx-dust__mote {
+    position: absolute;
+    width: var(--pbx-dust-size, 8px);
+    height: var(--pbx-dust-size, 8px);
+    border-radius: 50%;
+    background: radial-gradient(circle, #fffaf0 0%, rgba(255, 236, 179, 0.9) 40%, rgba(255, 214, 120, 0) 72%);
+    box-shadow: 0 0 10px 3px rgba(255, 214, 120, 0.6);
+    animation: pbx-dust-rise 3600ms ease-in-out infinite both;
+    animation-play-state: paused;
+}
+
+.pbx-dust__mote--star {
+    border-radius: 0;
+    background: linear-gradient(135deg, #fffdf5 0%, #ffe08a 100%);
+    clip-path: polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%);
+    box-shadow: none;
+}
+
+.pbx-dust--on .pbx-dust__mote { animation-play-state: running; }
+
+@keyframes pbx-dust-rise {
+    0% { opacity: 0; transform: translateY(6px) scale(0.4); }
+    40% { opacity: 0.9; transform: translateY(-4px) scale(1); }
+    100% { opacity: 0; transform: translateY(-18px) scale(0.5); }
+}
+
+.pbx-fragments__art ~ .pbx-slot {
+    filter: drop-shadow(0 0 2px rgba(20, 16, 30, 0.6));
+}
+
+.pbx-fragments__art ~ .pbx-slot:not(.pbx-slot--full) {
+    background: rgba(44, 30, 88, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pbx-dust__mote { animation: none; opacity: 0.55; }
+}
+
 /* ---------- Mars səhnəsi ----------
    Tünd, sərt, texniki. Əjdahanın tam əksi olsun deyə. */
 .pbx-mars { position: absolute; inset: 0; }
@@ -10507,6 +10590,10 @@
     inset: 0;
     width: 100%;
     height: 100%;
+}
+
+.pbx-route__art ~ .pbx-route__lines {
+    filter: drop-shadow(0 0 1px rgba(20, 16, 30, 0.75)) drop-shadow(0 1px 2px rgba(20, 16, 30, 0.45));
 }
 
 .pbx-route__line {

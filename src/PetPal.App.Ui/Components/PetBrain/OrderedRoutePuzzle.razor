@@ -14,11 +14,14 @@
 
     <div class="pbx-route__board" style="@BackdropStyle">
 
+        <SceneDust Active="@SceneAwakening" />
+
         @* Fon rəsmi yalnız bəzəkdir: ekran oxuyucusuna görünmür, çünki
            mənanı daşıyan məlumat aşağıdakı düyün düymələrindədir. *@
         @if (!string.IsNullOrEmpty(SceneImage))
         {
             <img class="pbx-route__art" src="@SceneImage" alt="" aria-hidden="true" />
+            <span class="pbx-art-scrim" aria-hidden="true"></span>
         }
 
         <svg class="pbx-route__lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
@@ -116,6 +119,9 @@
     /// lövhə eyni cür işləyir — toxunuş hədəfləri hər iki halda EYNİ yerdədir.
     /// </summary>
     [Parameter] public string? SceneImage { get; set; }
+
+    /// <summary>AI rəsmi yoldadır — lövhənin fonunda sehrli toz parıldayır.</summary>
+    [Parameter] public bool SceneAwakening { get; set; }
 
     /// <summary>Marşrut dəyişdi — lövhə valideyn komponentə xəbər verir.</summary>
     [Parameter] public EventCallback OnChanged { get; set; }
