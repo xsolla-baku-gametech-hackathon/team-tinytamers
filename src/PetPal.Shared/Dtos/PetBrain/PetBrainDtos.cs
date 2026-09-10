@@ -139,6 +139,12 @@ public class PetBrainRunDto
     /// <summary>Cari mərhələ; run bitibsə boş qalır.</summary>
     public PetBrainStageDto? Stage { get; set; }
 
+    /// <summary>
+    /// Qarşıdakı tapmacanın səhnəsi. Cari mərhələ tapmacadırsa və ya qarşıda
+    /// tapmaca yoxdursa boş qalır.
+    /// </summary>
+    public PetBrainUpcomingSceneDto? UpcomingScene { get; set; }
+
     /// <summary>İndiyə qədər seçilmiş variantların açarları — səhnə onlara görə dəyişir.</summary>
     public List<string> Choices { get; set; } = new();
 

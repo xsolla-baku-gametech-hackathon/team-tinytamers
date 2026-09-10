@@ -9598,6 +9598,14 @@
     pointer-events: none;
 }
 
+.pbx-scene__art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 /* ---------- Mars səhnəsi ----------
    Tünd, sərt, texniki. Əjdahanın tam əksi olsun deyə. */
 .pbx-mars { position: absolute; inset: 0; }

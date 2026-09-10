@@ -353,7 +353,7 @@ public class PetBrainService : IPetBrainService
 
             // İpucu sayğacı tapmacanın özündə də saxlanılır: yenilənmədən sonra
             // ipucu ekranda QALMALIDIR, yoxsa uşaq onu itirmiş olur.
-            var hinted = await EnsurePuzzleAsync(run, template, child, ct);
+            var hinted = await EnsurePuzzleAsync(run, template, child, run.CurrentStage, ct);
             hinted.HintsUsed++;
 
             await _tracker.TrackAsync(
@@ -444,7 +444,7 @@ public class PetBrainService : IPetBrainService
         var language = child.LanguageCode;
         var stageIndex = run.CurrentStage;
 
-        var issued = await EnsurePuzzleAsync(run, template, child, ct);
+        var issued = await EnsurePuzzleAsync(run, template, child, run.CurrentStage, ct);
 
         // Naməlum mexanika heç yerdə qəbul edilmir (fail closed).
         var blueprint = PuzzleBlueprintCatalog.Find(issued.BlueprintKey);
@@ -1183,6 +1183,11 @@ public class PetBrainService : IPetBrainService
     /// <summary>
     /// Run-un DTO-su. Cari mərhələ tapmacadırsa, tapmaca burada VERİLİR və
     /// saxlanılır — yəni yenilənmə eyni sualı qaytarır.
+    ///
+    /// <para>Cari mərhələ tapmaca deyilsə, QARŞIDAKI tapmaca da burada verilir
+    /// və rəsmi arxa fon növbəsinə düşür. Macəranın start cavabı da bu
+    /// metoddan keçir, ona görə AI rəsmi uşaq giriş və seçim mərhələlərini
+    /// oynayarkən çəkilir, tapmaca isə açılan kimi oynanır.</para>
     /// </summary>
     private async Task<PetBrainRunDto> ToDtoAsync(
         ExperienceRun run,
@@ -1227,10 +1232,11 @@ public class PetBrainService : IPetBrainService
         if (stage.Kind != PetBrainStageKind.Puzzle)
         {
             dto.Stage.Options = [.. stage.Options.Select(o => ToOptionDto(o, language))];
+            dto.UpcomingScene = await UpcomingSceneAsync(run, template, child, ct);
             return dto;
         }
 
-        var issued = await EnsurePuzzleAsync(run, template, child, ct);
+        var issued = await EnsurePuzzleAsync(run, template, child, run.CurrentStage, ct);
         var puzzle = ReadPublic(issued);
 
         // Cəhd sayı yalnız göstərmək üçündür — ruhlandırıcı mesaj ondan asılıdır.
@@ -1262,7 +1268,43 @@ public class PetBrainService : IPetBrainService
     // ==================== Tapmaca ====================
 
     /// <summary>
-    /// Bu mərhələ üçün tapmacanı gətirir; yoxdursa YARADIR və saxlayır.
+    /// Qarşıdakı tapmacanı indidən verir və səhnəsinin vəziyyətini qaytarır;
+    /// qarşıda tapmaca yoxdursa <c>null</c>.
+    ///
+    /// <para>Model burada gözlənilmir: <see cref="EnsurePuzzleAsync"/> yalnız
+    /// deterministik tapmacanı saxlayır və rəsm işini növbəyə verir. Sual
+    /// verildiyi an sabitlənir, ona görə uşaq tapmacaya çatanda EYNİ sualı və
+    /// artıq çəkilmiş (və ya çəkilməkdə olan) EYNİ səhnəni görür.</para>
+    /// </summary>
+    private async Task<PetBrainUpcomingSceneDto?> UpcomingSceneAsync(
+        ExperienceRun run, ExperienceTemplate template, ChildProfile child, CancellationToken ct)
+    {
+        if (NextPuzzleStage(template, run.CurrentStage) is not { } stageIndex)
+            return null;
+
+        var issued = await EnsurePuzzleAsync(run, template, child, stageIndex, ct);
+        var scene = await SceneOfAsync(issued, template, child, ct);
+
+        return new PetBrainUpcomingSceneDto
+        {
+            PuzzleId = issued.Id,
+            IllustrationStatus = scene?.Status ?? PetBrainIllustrationStatus.Fallback
+        };
+    }
+
+    private static int? NextPuzzleStage(ExperienceTemplate template, int fromStage)
+    {
+        for (var stageIndex = fromStage; stageIndex < template.StageCount; stageIndex++)
+        {
+            if (template.Stages[stageIndex].Kind == PetBrainStageKind.Puzzle)
+                return stageIndex;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Verilən mərhələ üçün tapmacanı gətirir; yoxdursa YARADIR və saxlayır.
     ///
     /// <para>Saxlanması üç şey üçün vacibdir: yenilənmədən sonra EYNİ sual
     /// qayıtmalıdır, doğru həll yalnız serverdə qalmalıdır, təkrar isə barmaq
@@ -1273,10 +1315,14 @@ public class PetBrainService : IPetBrainService
     /// sualın dəyişdiyini görmür.</para>
     /// </summary>
     private async Task<IssuedPuzzle> EnsurePuzzleAsync(
-        ExperienceRun run, ExperienceTemplate template, ChildProfile child, CancellationToken ct)
+        ExperienceRun run,
+        ExperienceTemplate template,
+        ChildProfile child,
+        int stageIndex,
+        CancellationToken ct)
     {
         var existing = await _db.IssuedPuzzles
-            .FirstOrDefaultAsync(p => p.ExperienceRunId == run.Id && p.StageIndex == run.CurrentStage, ct);
+            .FirstOrDefaultAsync(p => p.ExperienceRunId == run.Id && p.StageIndex == stageIndex, ct);
 
         if (existing is not null)
         {
@@ -1299,7 +1345,7 @@ public class PetBrainService : IPetBrainService
             await _db.SaveChangesAsync(ct);
         }
 
-        var context = await BuildPuzzleContextAsync(run, template, child, ct);
+        var context = await BuildPuzzleContextAsync(run, template, child, stageIndex, ct);
         var generated = _puzzles.Generate(context);
 
         var now = _clock.GetUtcNow().UtcDateTime;
@@ -1326,7 +1372,7 @@ public class PetBrainService : IPetBrainService
             Id = puzzleId,
             ChildProfileId = child.Id,
             ExperienceRunId = run.Id,
-            StageIndex = run.CurrentStage,
+            StageIndex = stageIndex,
             BlueprintKey = generated.Blueprint.Key,
             BlueprintVersion = generated.Blueprint.Version,
             GeneratorVersion = PuzzleSeed.GeneratorVersion,
@@ -1354,14 +1400,18 @@ public class PetBrainService : IPetBrainService
             _db.Entry(issued).State = EntityState.Detached;
 
             return await _db.IssuedPuzzles
-                .FirstAsync(p => p.ExperienceRunId == run.Id && p.StageIndex == run.CurrentStage, ct);
+                .FirstAsync(p => p.ExperienceRunId == run.Id && p.StageIndex == stageIndex, ct);
         }
 
         return issued;
     }
 
     private async Task<PuzzleGenerationContext> BuildPuzzleContextAsync(
-        ExperienceRun run, ExperienceTemplate template, ChildProfile child, CancellationToken ct)
+        ExperienceRun run,
+        ExperienceTemplate template,
+        ChildProfile child,
+        int stageIndex,
+        CancellationToken ct)
     {
         // Son tapmacaların barmaq izləri — eyni sual dalbadal təkrarlanmasın.
         var recent = await _db.IssuedPuzzles
@@ -1379,7 +1429,7 @@ public class PetBrainService : IPetBrainService
         return new PuzzleGenerationContext(
             ChildId: child.Id,
             RunId: run.Id,
-            StageIndex: run.CurrentStage,
+            StageIndex: stageIndex,
             Age: child.Age,
             Language: child.LanguageCode,
             ExperienceType: template.Type,
@@ -1433,14 +1483,7 @@ public class PetBrainService : IPetBrainService
         ChildProfile child,
         CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(issued.SceneSpecHash))
-            return;
-
-        var row = await _db.PuzzleIllustrations
-            .AsNoTracking()
-            .FirstOrDefaultAsync(i => i.SceneSpecHash == issued.SceneSpecHash, ct);
-
-        if (row is null)
+        if (await SceneOfAsync(issued, template, child, ct) is not { } row)
             return;
 
         puzzle.Scene.IllustrationStatus = row.Status;
@@ -1448,16 +1491,32 @@ public class PetBrainService : IPetBrainService
         puzzle.Scene.AssetUrl = row.Status == PetBrainIllustrationStatus.Ready
             ? $"/api/pet-brain/puzzles/{issued.Id}/illustration"
             : string.Empty;
+    }
 
-        if (row.Status != PetBrainIllustrationStatus.Pending)
-            return;
+    /// <summary>
+    /// Tapmacanın səhnə sətri. Sətir hələ <c>Pending</c>-dirsə növbəyə YENİDƏN
+    /// qoyulur.
+    ///
+    /// <para>Növbə prosesdaxilidir və yenidən başlatmada itir; bazadakı sətir
+    /// isə qalır. Ona görə gözləyən səhnə hər oxunuşda yenidən növbəyə düşür —
+    /// növbə özü təkrarı süzür, iş isə ikinci dəfə başlamır (sətir artıq
+    /// <c>Pending</c> deyilsə işçi dərhal qayıdır).</para>
+    /// </summary>
+    private async Task<PuzzleIllustration?> SceneOfAsync(
+        IssuedPuzzle issued, ExperienceTemplate template, ChildProfile child, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(issued.SceneSpecHash))
+            return null;
 
-        // Növbə prosesdaxilidir və yenidən başlatmada itir; bazadakı sətir isə
-        // qalır. Ona görə gözləyən səhnə hər açılışda yenidən növbəyə düşür —
-        // növbə özü təkrarı süzür, iş isə ikinci dəfə başlamır (sətir artıq
-        // Pending deyilsə işçi dərhal qayıdır).
-        if (PuzzleBlueprintCatalog.Find(issued.BlueprintKey) is { } blueprint)
+        var row = await _db.PuzzleIllustrations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(i => i.SceneSpecHash == issued.SceneSpecHash, ct);
+
+        if (row is { Status: PetBrainIllustrationStatus.Pending } &&
+            PuzzleBlueprintCatalog.Find(issued.BlueprintKey) is { } blueprint)
             _sceneQueue.Enqueue(SceneSpecFor(blueprint, template, child));
+
+        return row;
     }
 
     /// <summary>

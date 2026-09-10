@@ -1,4 +1,5 @@
 @page "/pet-brain"
+@implements IDisposable
 @inject GameApiClient Api
 @inject PetBrainState Brain
 @inject AppState State
@@ -29,7 +30,8 @@
                          IsBoard="@HasOwnScene"
                          OnExit="ExitRunAsync">
 
-            <ExperienceScene SceneKey="@_run.SceneKey" Choices="_run.Choices" Icon="@RunIcon" />
+            <ExperienceScene SceneKey="@_run.SceneKey" Choices="_run.Choices" Icon="@RunIcon"
+                             SceneImage="@AdventureSceneImage" />
 
             @if (_run.Summary is not null)
             {
@@ -72,7 +74,7 @@
                                mövzunu maraqlar, çətinliyi isə mənimsəmə və son
                                nəticə seçib. Doğru cavab burada YOXDUR — o,
                                yalnız serverdə saxlanılır. *@
-                            <PuzzleBoard Puzzle="puzzle" Busy="_busy" SceneImage="@SceneImageFor(puzzle)"
+                            <PuzzleBoard Puzzle="puzzle" Busy="_busy" SceneImage="@PuzzleSceneImage"
                                          OnSubmit="SubmitPuzzleAsync" OnHint="HintAsync" />
                         }
                         else
@@ -228,9 +230,46 @@
     /// <para>Rəsm AYRICA yüklənir və gec gələ bilər — tapmaca ondan ASILI
     /// DEYİL: ekranda onsuz da eyni həndəsəli deterministik səhnə var, rəsm
     /// hazır olanda yalnız fon dəyişir.</para>
+    ///
+    /// <para>Yükləmə macəra başlayan kimi başlayır: server qarşıdakı tapmacanı
+    /// elə o an verir (<see cref="PetBrainRunDto.UpcomingScene"/>), ona görə
+    /// rəsm uşaq giriş və seçim mərhələlərini oynayarkən yüklənir və tapmaca
+    /// açılanda artıq hazır olur.</para>
     /// </summary>
     private Guid _sceneOwner;
     private string? _sceneImage;
+    private bool _sceneLoading;
+    private readonly CancellationTokenSource _sceneLifetime = new();
+
+    /// <summary>
+    /// Cari tapmacanın AI rəsmi. Qarşıdakı tapmacanın rəsmi qabaqcadan
+    /// yüklənir, amma tapmaca açılana qədər GÖSTƏRİLMİR: seçim mərhələsinin
+    /// öz səhnəsi uşağın seçimlərini əks etdirir.
+    /// </summary>
+    private string? PuzzleSceneImage =>
+        _run?.Stage?.Puzzle?.PuzzleId == _sceneOwner ? _sceneImage : null;
+
+    /// <summary>
+    /// Macəra səhnəsinin AI fonu. Öz lövhəsi olan mexanikada rəsm lövhənin
+    /// İÇİNDƏDİR və macəra fonu gizlənir, ona görə eyni rəsm iki dəfə
+    /// çəkilmir.
+    /// </summary>
+    private string? AdventureSceneImage => HasOwnScene ? null : PuzzleSceneImage;
+
+    /// <summary>Rəsmi yüklənməli tapmaca: cari tapmaca, yoxdursa qarşıdakı.</summary>
+    private (Guid PuzzleId, PetBrainIllustrationStatus Status)? SceneTarget
+    {
+        get
+        {
+            if (_run?.Stage?.Puzzle is { } puzzle)
+                return (puzzle.PuzzleId, puzzle.Scene.IllustrationStatus);
+
+            if (_run?.UpcomingScene is { } upcoming)
+                return (upcoming.PuzzleId, upcoming.IllustrationStatus);
+
+            return null;
+        }
+    }
 
     /// <summary>
     /// Pet "düşünür" mətni. Süni gecikmə YOXDUR — sorğu nə qədər çəkirsə, o
@@ -334,43 +373,84 @@
     private bool HasOwnScene => _run?.Stage?.Puzzle?.Mechanic
         is PetBrainPuzzleMechanic.OrderedRoute or PetBrainPuzzleMechanic.LightFragments;
 
+    protected override void OnAfterRender(bool firstRender) => PrefetchScene();
+
     /// <summary>
-    /// Bu tapmaca üçün hazır rəsm. Yoxdursa <c>null</c> qaytarır və lövhə
-    /// deterministik səhnə ilə çəkilir — EYNİ həndəsə ilə.
+    /// Rəsmi yüklənməli tapmacanı izləyir və yükləməni başladır.
+    ///
+    /// <para>Yükləmə fon işidir: render dayanmır, uşaq deterministik səhnə ilə
+    /// dərhal oynayır. Rəsm hazırdırsa bir dəfə oxunur, hələ çəkilirsə seyrələn
+    /// yoxlamalarla gözlənilir. Yoxlama nəticəsiz bitibsə növbəti render onu
+    /// yenidən başladır.</para>
     /// </summary>
-    private string? SceneImageFor(PetBrainPuzzleDto puzzle)
+    private void PrefetchScene()
     {
-        if (puzzle.Scene.IllustrationStatus != PetBrainIllustrationStatus.Ready ||
-            string.IsNullOrEmpty(puzzle.Scene.AssetUrl))
-            return null;
-
-        if (_sceneOwner != puzzle.PuzzleId)
-        {
-            // Yükləmə fon işidir: render dayanmır, uşaq gözləmir.
-            _sceneOwner = puzzle.PuzzleId;
-            _sceneImage = null;
-
-            _ = LoadSceneAsync(puzzle.PuzzleId);
-        }
-
-        return _sceneImage;
-    }
-
-    private async Task LoadSceneAsync(Guid puzzleId)
-    {
-        var result = await Api.GetPetBrainIllustrationAsync(puzzleId);
-
-        // Tapmaca dəyişibsə köhnə rəsm ATILIR — səhv səhnə göstərilməməlidir.
-        if (_sceneOwner != puzzleId)
+        if (SceneTarget is not { } target)
             return;
 
-        // Uğursuzluq uşağa göstərilmir: deterministik səhnə onsuz da yerindədir.
-        if (result.Succeeded && !string.IsNullOrEmpty(result.Value))
+        if (_sceneOwner != target.PuzzleId)
         {
-            _sceneImage = result.Value;
-            StateHasChanged();
+            _sceneOwner = target.PuzzleId;
+            _sceneImage = null;
+            _sceneLoading = false;
+        }
+
+        if (_sceneImage is not null || _sceneLoading || target.Status == PetBrainIllustrationStatus.Fallback)
+            return;
+
+        _sceneLoading = true;
+        _ = LoadSceneAsync(target.PuzzleId, waitUntilReady: target.Status == PetBrainIllustrationStatus.Pending);
+    }
+
+    /// <summary>
+    /// Rəsmi ayrıca yükləyir. AI hələ işləyirsə sorğular 250 ms-dən 2
+    /// saniyəyə qədər seyrəlir; tapmaca bu vaxt tam işləkdir.
+    ///
+    /// <para>Tapmaca dəyişibsə köhnə rəsm ATILIR — səhv səhnə bir kadr belə
+    /// göstərilməməlidir. Ekrandan çıxılanda yoxlama səssiz bitir.</para>
+    /// </summary>
+    private async Task LoadSceneAsync(Guid puzzleId, bool waitUntilReady)
+    {
+        var delayMilliseconds = 250;
+        var attempts = waitUntilReady ? 40 : 1;
+
+        try
+        {
+            for (var attempt = 0; attempt < attempts && OwnsScene(puzzleId); attempt++)
+            {
+                var result = await Api.GetPetBrainIllustrationAsync(puzzleId, _sceneLifetime.Token);
+
+                if (!OwnsScene(puzzleId))
+                    return;
+
+                if (result is { Succeeded: true, Value: { Length: > 0 } image })
+                {
+                    _sceneImage = image;
+                    await InvokeAsync(StateHasChanged);
+                    return;
+                }
+
+                if (attempt < attempts - 1)
+                {
+                    await Task.Delay(delayMilliseconds, _sceneLifetime.Token);
+                    delayMilliseconds = Math.Min(delayMilliseconds * 2, 2_000);
+                }
+            }
+        }
+        catch (OperationCanceledException) when (_sceneLifetime.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            if (_sceneOwner == puzzleId)
+                _sceneLoading = false;
         }
     }
+
+    private bool OwnsScene(Guid puzzleId) =>
+        !_sceneLifetime.IsCancellationRequested &&
+        _sceneOwner == puzzleId &&
+        SceneTarget?.PuzzleId == puzzleId;
 
     private async Task SubmitPuzzleAsync(List<string> selectedIds)
     {
@@ -492,5 +572,11 @@
         Brain.Invalidate();
 
         await LoadAsync();
+    }
+
+    public void Dispose()
+    {
+        _sceneLifetime.Cancel();
+        _sceneLifetime.Dispose();
     }
 }

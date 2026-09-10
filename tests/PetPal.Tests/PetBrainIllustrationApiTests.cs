@@ -23,6 +23,10 @@ namespace PetPal.Tests;
 public sealed class FakePuzzleIllustrationProvider : IPuzzleIllustrationProvider
 {
     private int _calls;
+    private readonly TaskCompletionSource _started =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _release =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public bool IsEnabled { get; set; } = true;
 
@@ -38,6 +42,16 @@ public sealed class FakePuzzleIllustrationProvider : IPuzzleIllustrationProvider
     /// <summary>Sorğunun ləng gəlməsini təqlid edir — yarış şəraiti üçün.</summary>
     public TimeSpan Delay { get; set; } = TimeSpan.Zero;
 
+    /// <summary>
+    /// Provayderi test buraxana qədər saxlayır. Bununla HTTP cavabının
+    /// modelin tamamlanmasını gözləmədiyi divar saatına bağlanmadan yoxlanır.
+    /// </summary>
+    public bool WaitForRelease { get; set; }
+
+    public Task Started => _started.Task;
+
+    public void Release() => _release.TrySetResult();
+
     public async Task<PuzzleIllustrationResult> RenderAsync(
         PuzzleSceneSpec spec, string prompt, CancellationToken ct = default)
     {
@@ -45,6 +59,11 @@ public sealed class FakePuzzleIllustrationProvider : IPuzzleIllustrationProvider
 
         lock (Prompts)
             Prompts.Add(prompt);
+
+        _started.TrySetResult();
+
+        if (WaitForRelease)
+            await _release.Task.WaitAsync(ct);
 
         if (Delay > TimeSpan.Zero)
             await Task.Delay(Delay, ct);
@@ -130,6 +149,108 @@ public class PetBrainIllustrationApiTests
     // qalır (doğru davranışdır), ona görə paylaşılan fixture testləri
     // bir-birinin nəticəsindən asılı edərdi.
     private static PetBrainIllustrationFactory NewFactory() => new();
+
+    /// <summary>
+    /// Macəra başlayan kimi qarşıdakı tapmaca verilir və rəsmi arxa fonda
+    /// çəkilməyə başlayır. Nə start cavabı, nə də tapmaca modeli gözləyir:
+    /// provayder bloklu qalsa da uşaq tapmacanı açıb sona qədər həll edir.
+    /// </summary>
+    [Fact]
+    public async Task MaceraBaslayanda_ResmEvvelcedenBaslayirVeTapmacaGozlemir()
+    {
+        using var factory = NewFactory();
+        factory.Provider.WaitForRelease = true;
+
+        var client = await NewChildAsync(factory, "scene-prewarm@petpal.test");
+
+        try
+        {
+            var run = await StartRunAsync(client).WaitAsync(TimeSpan.FromSeconds(10));
+
+            Assert.Equal(PetBrainExperienceType.Adventure, run.ExperienceType);
+            Assert.Equal(PetBrainStageKind.Intro, run.Stage!.Kind);
+
+            await factory.Provider.Started.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.Equal(1, factory.Provider.Calls);
+
+            var upcoming = run.UpcomingScene;
+            Assert.NotNull(upcoming);
+            Assert.Equal(PetBrainIllustrationStatus.Pending, upcoming.IllustrationStatus);
+
+            var template = ExperienceCatalog.Find(run.TemplateKey);
+            Assert.NotNull(template);
+
+            var puzzleStageIndex = Enumerable.Range(0, template.Stages.Count)
+                .Single(index => template.Stages[index].Kind == PetBrainStageKind.Puzzle);
+
+            using (var scope = factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var issued = await db.IssuedPuzzles
+                    .AsNoTracking()
+                    .SingleAsync(p => p.ExperienceRunId == run.RunId);
+
+                Assert.Equal(upcoming.PuzzleId, issued.Id);
+                Assert.Equal(puzzleStageIndex, issued.StageIndex);
+                Assert.NotEqual(run.CurrentStage, issued.StageIndex);
+
+                var illustration = await db.PuzzleIllustrations
+                    .AsNoTracking()
+                    .SingleAsync(i => i.SceneSpecHash == issued.SceneSpecHash);
+
+                Assert.Equal(PetBrainIllustrationStatus.Pending, illustration.Status);
+            }
+
+            run = await AdvanceToPuzzleAsync(client, run).WaitAsync(TimeSpan.FromSeconds(10));
+
+            var puzzle = run.Stage!.Puzzle!;
+            Assert.Equal(upcoming.PuzzleId, puzzle.PuzzleId);
+            Assert.Null(run.UpcomingScene);
+            Assert.Equal(PetBrainIllustrationStatus.Pending, puzzle.Scene.IllustrationStatus);
+            Assert.Empty(puzzle.Scene.AssetUrl);
+            Assert.NotEmpty(puzzle.Nodes);
+            Assert.NotEmpty(puzzle.Edges);
+            Assert.NotEmpty(puzzle.Scene.AltText);
+
+            var solved = await SolveRouteAsync(client, run).WaitAsync(TimeSpan.FromSeconds(10));
+
+            Assert.True(solved.CurrentStage > run.Stage.Index);
+            Assert.Equal(0, solved.Mistakes);
+            Assert.Null(solved.UpcomingScene);
+            Assert.Equal(1, factory.Provider.Calls);
+        }
+        finally
+        {
+            factory.Provider.Release();
+        }
+    }
+
+    /// <summary>
+    /// Rəsm uşaq hələ girişdəykən hazır olur və qarşıdakı tapmacanın id-si ilə
+    /// oxunur. Uşaq tapmacaya çatanda EYNİ tapmaca və artıq hazır rəsm gəlir —
+    /// ikinci pullu sorğu getmir.
+    /// </summary>
+    [Fact]
+    public async Task QarsidakiTapmacaninResmi_TapmacayaCatmadanOxunur()
+    {
+        using var factory = NewFactory();
+
+        var client = await NewChildAsync(factory, "scene-early@petpal.test");
+        var run = await StartRunAsync(client);
+        var upcoming = run.UpcomingScene!;
+
+        run = await WaitForSceneAsync(client, run.RunId);
+
+        Assert.Equal(PetBrainStageKind.Intro, run.Stage!.Kind);
+        Assert.Equal(PetBrainIllustrationStatus.Ready, run.UpcomingScene!.IllustrationStatus);
+        Assert.NotNull(await ReadIllustrationAsync(client, upcoming.PuzzleId));
+
+        run = await AdvanceToPuzzleAsync(client, run);
+
+        Assert.Equal(upcoming.PuzzleId, run.Stage!.Puzzle!.PuzzleId);
+        Assert.Equal(PetBrainIllustrationStatus.Ready, run.Stage.Puzzle.Scene.IllustrationStatus);
+        Assert.Equal(1, factory.Provider.Calls);
+    }
 
     /// <summary>
     /// Bir səhnə → BİR pullu sorğu (test 32).
@@ -357,13 +478,20 @@ public class PetBrainIllustrationApiTests
         await db.SaveChangesAsync();
     }
 
-    private static async Task<PetBrainRunDto> ReachPuzzleAsync(ApiTestClient client)
+    private static async Task<PetBrainRunDto> StartRunAsync(ApiTestClient client)
     {
         var response = await client.Http.PostAsJsonAsync("/api/pet-brain/runs", new StartPetBrainRunRequest());
         response.EnsureSuccessStatusCode();
 
-        var run = (await response.Content.ReadFromJsonAsync<PetBrainRunDto>())!;
+        return (await response.Content.ReadFromJsonAsync<PetBrainRunDto>())!;
+    }
 
+    private static async Task<PetBrainRunDto> ReachPuzzleAsync(ApiTestClient client) =>
+        await AdvanceToPuzzleAsync(client, await StartRunAsync(client));
+
+    private static async Task<PetBrainRunDto> AdvanceToPuzzleAsync(
+        ApiTestClient client, PetBrainRunDto run)
+    {
         var guard = 0;
         while (run.Stage is not null && run.Stage.Kind != PetBrainStageKind.Puzzle && guard++ < 10)
         {
@@ -399,7 +527,7 @@ public class PetBrainIllustrationApiTests
         {
             run = (await client.Http.GetFromJsonAsync<PetBrainRunDto>($"/api/pet-brain/runs/{runId}"))!;
 
-            var status = run.Stage?.Puzzle?.Scene.IllustrationStatus;
+            var status = run.Stage?.Puzzle?.Scene.IllustrationStatus ?? run.UpcomingScene?.IllustrationStatus;
 
             if (status is not null && status != PetBrainIllustrationStatus.Pending)
                 return run;

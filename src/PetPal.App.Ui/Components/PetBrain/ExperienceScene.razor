@@ -103,6 +103,11 @@
             </div>
             break;
     }
+
+    @if (!string.IsNullOrEmpty(SceneImage))
+    {
+        <img class="pbx-scene__art" src="@SceneImage" alt="" />
+    }
 </div>
 
 @code {
@@ -114,6 +119,12 @@
 
     /// <summary>Ümumi səhnədə göstərilən emoji — kataloqdakı şablon ikonudur.</summary>
     [Parameter] public string Icon { get; set; } = "✨";
+
+    /// <summary>
+    /// Tapmacanın hazır AI rəsmi (data URI). Deterministik səhnənin ÜSTÜNƏ
+    /// düşür; boşdursa səhnə olduğu kimi qalır, yəni tapmaca rəsmi gözləmir.
+    /// </summary>
+    [Parameter] public string? SceneImage { get; set; }
 
     private bool Has(string key) => Choices.Contains(key);
 

@@ -178,6 +178,22 @@ public class PetBrainSceneDto
 }
 
 /// <summary>
+/// Macəranın QARŞIDAKI tapmacasının səhnəsi — uşaq hələ giriş və ya seçim
+/// mərhələsindədir.
+///
+/// <para>Tapmaca macəra başlayanda verilir və rəsmi elə o an növbəyə düşür.
+/// Klient bu id ilə rəsmi tapmacaya çatmamış yükləyir, ona görə tapmaca
+/// açılanda rəsm artıq hazır olur. Id yalnız sahiblik yoxlanan rəsm
+/// endpoint-inin açarıdır: tapmacanın məzmunu və həlli burada YOXDUR.</para>
+/// </summary>
+public class PetBrainUpcomingSceneDto
+{
+    public Guid PuzzleId { get; set; }
+
+    public PetBrainIllustrationStatus IllustrationStatus { get; set; } = PetBrainIllustrationStatus.Fallback;
+}
+
+/// <summary>
 /// Bir element. <see cref="Shape"/> qəsdən var: rəng TƏK məlumat daşıyıcısı
 /// olmamalıdır (bax docs/DESIGN_SYSTEM.md, 3-cü qayda).
 /// </summary>
