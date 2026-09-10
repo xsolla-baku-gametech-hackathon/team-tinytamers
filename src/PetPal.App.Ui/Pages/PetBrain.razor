@@ -48,6 +48,7 @@
             else if (_run.Summary is not null)
             {
                 <RunSummary Summary="_run.Summary"
+                            RunId="_run.RunId"
                             PetName="@PetName"
                             PetSpecies="@PetSpecies"
                             PetStage="PetStageValue"
@@ -867,7 +868,11 @@
     private bool HasOwnScene => _run?.Stage?.Puzzle?.Mechanic
         is PetBrainPuzzleMechanic.OrderedRoute or PetBrainPuzzleMechanic.LightFragments;
 
-    protected override void OnAfterRender(bool firstRender) => PrefetchScene();
+    protected override void OnAfterRender(bool firstRender)
+    {
+        PrefetchScene();
+        WatchRecap();
+    }
 
     /// <summary>
     /// Rəsmi yüklənməli tapmacanı izləyir və yükləməni başladır.
@@ -963,6 +968,98 @@
         !_sceneLifetime.IsCancellationRequested &&
         _sceneOwner == puzzleId &&
         SceneTarget?.PuzzleId == puzzleId;
+
+    /// <summary>
+    /// Recap videosunu gözləyən run və onun gözləmə vəziyyəti.
+    ///
+    /// <para>Gözləmə bir run üçün SƏRHƏDLİDİR: serverin generasiya həddi
+    /// keçəndən sonra da <c>Pending</c> qalan recap sonsuz soruşulmur.</para>
+    /// </summary>
+    private Guid _recapRun;
+    private bool _recapWatching;
+    private bool _recapGaveUp;
+
+    /// <summary>Recap vəziyyəti ən çox neçə dəfə soruşulur — təxminən altı dəqiqə.</summary>
+    private const int MaxRecapChecks = 70;
+
+    private static bool RecapInProgress(PetBrainRecapStatus status) =>
+        status is PetBrainRecapStatus.Pending or PetBrainRecapStatus.Generating;
+
+    /// <summary>Yekun ekranında recap videosu hazırlanırsa onu izləməyə başlayır.</summary>
+    private void WatchRecap()
+    {
+        if (_run is not { Summary.Recap: { } recap } run || !RecapInProgress(recap.Status))
+            return;
+
+        if (_recapRun != run.RunId)
+        {
+            _recapRun = run.RunId;
+            _recapWatching = false;
+            _recapGaveUp = false;
+        }
+
+        if (_recapWatching || _recapGaveUp)
+            return;
+
+        _recapWatching = true;
+        _ = WatchRecapAsync(run.RunId);
+    }
+
+    /// <summary>
+    /// Video arxa fonda hazırlanır, uşaq isə artıq mükafatını görür.
+    ///
+    /// <para>Vəziyyət 2 saniyədən 5 saniyəyə qədər seyrələn sorğularla
+    /// soruşulur; hazır olanda storyboard videoya dəyişir, gəlməyəcəyi bəlli
+    /// olanda sorğu dayanır. Uşaq heç nə gözləmir: «Əla!» düyməsi onsuz da
+    /// ekrandadır və yeri dəyişmir.</para>
+    /// </summary>
+    private async Task WatchRecapAsync(Guid runId)
+    {
+        var delayMilliseconds = 2_000;
+
+        try
+        {
+            for (var check = 0; check < MaxRecapChecks; check++)
+            {
+                await Task.Delay(delayMilliseconds, _sceneLifetime.Token);
+
+                if (!OwnsRecap(runId))
+                    return;
+
+                var result = await Api.GetPetBrainRecapAsync(runId, _sceneLifetime.Token);
+
+                if (!OwnsRecap(runId))
+                    return;
+
+                if (result is { Succeeded: true, Value: { } recap })
+                {
+                    _run!.Summary!.Recap = recap;
+                    await InvokeAsync(StateHasChanged);
+
+                    if (!RecapInProgress(recap.Status))
+                        return;
+                }
+
+                delayMilliseconds = Math.Min(delayMilliseconds * 3 / 2, 5_000);
+            }
+
+            _recapGaveUp = true;
+        }
+        catch (OperationCanceledException) when (_sceneLifetime.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            if (_recapRun == runId)
+                _recapWatching = false;
+        }
+    }
+
+    private bool OwnsRecap(Guid runId) =>
+        !_sceneLifetime.IsCancellationRequested &&
+        _recapRun == runId &&
+        _run?.RunId == runId &&
+        _run.Summary is not null;
 
     private async Task SubmitPuzzleAsync(List<string> selectedIds)
     {

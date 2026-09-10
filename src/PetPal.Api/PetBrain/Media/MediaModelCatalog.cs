@@ -22,37 +22,54 @@ public sealed record MediaModel(
 /// model heç yerdə qəbul edilmir (fail closed), yəni provayderin kataloqu
 /// dəyişəndə yeni, bahalı model avtomatik uyğun gəlmir.</para>
 ///
-/// <para><b>Qiymətlər 2026-09-10-da rəsmi sənəddən yoxlanılıb</b>
-/// (<c>docs.dev.runwayml.com/guides/pricing/</c>): 1 kredit = $0.01.
-/// Qiymət xarici faktdır — dəyişəndə burada YENİLƏNMƏLİDİR, kod isə
-/// təxmin etməməlidir.</para>
+/// <para><b>Qiymətlər və müqavilə 2026-09-11-də yoxlanılıb</b> — qiymət
+/// <c>docs.dev.runwayml.com/guides/pricing/</c>, parametrlər rəsmi SDK-dan
+/// (<c>runwayml/sdk-node</c>, <c>runwayml/sdk-python</c>): 1 kredit = $0.01.
+/// Qiymət xarici faktdır — dəyişəndə burada YENİLƏNMƏLİDİR, kod isə təxmin
+/// etməməlidir.</para>
+///
+/// <para><c>gen4_image_turbo</c> QƏSDƏN yoxdur. O, 1–3 referans şəkil TƏLƏB
+/// EDİR, hekayə səhnəsi isə yalnız mətndən çəkilir — kataloqda qalsaydı hər
+/// sorğu <c>400</c> alardı və heç bir tapmaca rəsm görməzdi.</para>
 /// </summary>
 public static class MediaModelCatalog
 {
-    public const string Gen4ImageTurbo = "gen4_image_turbo";
+    /// <summary>Mətndən şəkil: 720p şəkil 5 kredit, 1080p 8 kredit. Referans şəkil məcburi deyil.</summary>
+    public const string Gen4Image = "gen4_image";
+
+    /// <summary>Image-to-video: 5 kredit / saniyə → 10 saniyə = 50 kredit = $0.50.</summary>
     public const string Gen4Turbo = "gen4_turbo";
+
+    /// <summary>12 kredit / saniyə → 10 saniyə = 120 kredit = $1.20.</summary>
     public const string Gen45 = "gen4.5";
+
+    /// <summary>1 kredit / şəkil — YALNIZ sınaq profilində.</summary>
     public const string MuseImage = "muse_image";
 
     /// <summary>Kreditin dollar dəyəri — yalnız BÖYÜKLƏR üçün hesabatda.</summary>
     public const decimal UsdPerCredit = 0.01m;
 
-    /// <summary>Portret nisbətlər — kətan 390×690-dır, yataylıq kəsilərdi.</summary>
-    private static readonly string[] Portrait = ["720:1280", "768:1280", "832:1104"];
+    /// <summary>
+    /// <c>gen4_image</c>-in icazəli nisbətləri — YALNIZ 720p sinfi portret.
+    ///
+    /// <para>1080p nisbətlər (<c>1080:1920</c>, <c>1080:1440</c>) 8 kredit tutur.
+    /// Onların siyahıdan kənarda qalması «ən pis hal» qiymətini 5 kreditdə
+    /// saxlayır: bahalı ölçü konfiqurasiya ilə təsadüfən seçilə bilmir.</para>
+    /// </summary>
+    private static readonly string[] Gen4ImagePortrait = ["720:1280", "720:960"];
+
+    /// <summary><c>gen4_turbo</c> üçün SDK-da sadalanan portret nisbətlər.</summary>
+    private static readonly string[] Gen4TurboPortrait = ["720:1280", "832:1104"];
+
+    /// <summary>Yalnız app-in işlətdiyi nisbət — bu modellərin tam siyahısı yoxlanmayıb.</summary>
+    private static readonly string[] AppRatioOnly = ["720:1280"];
 
     private static readonly Dictionary<string, MediaModel> Models = new(StringComparer.Ordinal)
     {
-        // 2 kredit / şəkil, hər ölçüdə.
-        [Gen4ImageTurbo] = new(Gen4ImageTurbo, CreditsPerUnit: 2, IsVideo: false, Portrait),
-
-        // 1 kredit / şəkil — YALNIZ sınaq profilində.
-        [MuseImage] = new(MuseImage, CreditsPerUnit: 1, IsVideo: false, Portrait),
-
-        // 5 kredit / saniyə → 10 saniyə = 50 kredit = $0.50.
-        [Gen4Turbo] = new(Gen4Turbo, CreditsPerUnit: 5, IsVideo: true, Portrait, MaxDurationSeconds: 10),
-
-        // 12 kredit / saniyə → 10 saniyə = 120 kredit = $1.20.
-        [Gen45] = new(Gen45, CreditsPerUnit: 12, IsVideo: true, Portrait, MaxDurationSeconds: 10)
+        [Gen4Image] = new(Gen4Image, CreditsPerUnit: 5, IsVideo: false, Gen4ImagePortrait),
+        [MuseImage] = new(MuseImage, CreditsPerUnit: 1, IsVideo: false, AppRatioOnly),
+        [Gen4Turbo] = new(Gen4Turbo, CreditsPerUnit: 5, IsVideo: true, Gen4TurboPortrait, MaxDurationSeconds: 10),
+        [Gen45] = new(Gen45, CreditsPerUnit: 12, IsVideo: true, AppRatioOnly, MaxDurationSeconds: 10)
     };
 
     /// <summary>
@@ -64,9 +81,9 @@ public static class MediaModelCatalog
     /// </summary>
     public static IReadOnlyList<string> Allowed(PetBrainMediaProfile profile) => profile switch
     {
-        PetBrainMediaProfile.Budget => [Gen4ImageTurbo, Gen4Turbo],
-        PetBrainMediaProfile.QualityDemo => [Gen4ImageTurbo, Gen45],
-        PetBrainMediaProfile.ExperimentalBudget => [Gen4ImageTurbo, MuseImage, Gen4Turbo],
+        PetBrainMediaProfile.Budget => [Gen4Image, Gen4Turbo],
+        PetBrainMediaProfile.QualityDemo => [Gen4Image, Gen45],
+        PetBrainMediaProfile.ExperimentalBudget => [Gen4Image, MuseImage, Gen4Turbo],
         _ => []
     };
 

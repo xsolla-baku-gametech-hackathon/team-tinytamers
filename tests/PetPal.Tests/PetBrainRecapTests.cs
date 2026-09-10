@@ -2,6 +2,7 @@ using PetPal.Api.Entities;
 using PetPal.Api.PetBrain;
 using PetPal.Api.PetBrain.Media;
 using PetPal.Api.PetBrain.Recap;
+using PetPal.Api.PetBrain.Story;
 using PetPal.Shared.Enums;
 
 namespace PetPal.Tests;
@@ -276,17 +277,16 @@ public class PetBrainRecapTests
         var video = policy.ForVideo();
 
         Assert.True(image.Allowed, image.Reason);
-        Assert.Equal(MediaModelCatalog.Gen4ImageTurbo, image.Model);
-        Assert.Equal(2, image.Credits);
-        Assert.Equal(0.02m, image.Usd);
+        Assert.Equal(MediaModelCatalog.Gen4Image, image.Model);
+        Assert.Equal(5, image.Credits);
+        Assert.Equal(0.05m, image.Usd);
 
         Assert.True(video.Allowed, video.Reason);
         Assert.Equal(MediaModelCatalog.Gen4Turbo, video.Model);
         Assert.Equal(50, video.Credits);
         Assert.Equal(0.50m, video.Usd);
 
-        // Bir tamamlanmış run = $0.52.
-        Assert.Equal(0.52m, image.Usd + video.Usd);
+        Assert.Equal(0.55m, image.Usd + video.Usd);
     }
 
     /// <summary>
@@ -350,7 +350,7 @@ public class PetBrainRecapTests
 
         Assert.Equal(120, policy.ForVideo().Credits);
         Assert.Equal(1.20m, policy.ForVideo().Usd);
-        Assert.Equal(1.22m, policy.ForImage().Usd + policy.ForVideo().Usd);
+        Assert.Equal(1.25m, policy.ForImage().Usd + policy.ForVideo().Usd);
     }
 
     /// <summary>
@@ -398,7 +398,216 @@ public class PetBrainRecapTests
         Assert.Equal(int.MaxValue, MediaModelCatalog.WorstCaseCredits("uydurma", 10));
     }
 
+    /// <summary>
+    /// Runway <c>promptText</c>-i 1000 simvolla məhdudlaşdırır. Kataloqdakı HƏR
+    /// seçim birləşməsi bu həddə sığmalıdır — əks halda həmin seçimi edən uşaq
+    /// heç vaxt video almazdı və bunu yalnız canlı sistem göstərərdi.
+    /// </summary>
+    [Fact]
+    public void ButunRecapPromptlari_RunwayHeddineSigir()
+    {
+        var built = AllCatalogSpecs()
+            .Select(spec => (spec, prompt: SafeRecapPromptBuilder.Build(spec, RecapStoryboard.Build(spec))))
+            .ToList();
+
+        Assert.True(built.Count > 50, $"Yalnız {built.Count} birləşmə yoxlandı.");
+
+        foreach (var (spec, prompt) in built)
+            Assert.True(
+                prompt.Length <= RunwayTaskClient.MaxPromptLength,
+                $"{spec.ExperienceKey} [{string.Join(", ", spec.Beats.Select(b => $"{b.BeatKey}={b.ChoiceKey}"))}]: {prompt.Length} simvol");
+
+        var longest = built.MaxBy(x => x.prompt.Length);
+
+        Assert.True(
+            longest.prompt.Length <= SafeRecapPromptBuilder.SafeLength,
+            $"Ən uzun prompt {longest.spec.ExperienceKey} üçün {longest.prompt.Length} simvoldur — marja qalmır.");
+    }
+
+    /// <summary>
+    /// Kataloqdakı HƏR seçim öz kadrını alır. Açar storyboard-da olmasa, kadr
+    /// səssizcə standart variantı göstərərdi — yəni uşaq SEÇMƏDİYİ yeri görərdi.
+    /// </summary>
+    [Theory]
+    [InlineData(ExperienceCatalog.MarsRoverRescue, "route")]
+    [InlineData(ExperienceCatalog.MarsRoverRescue, "rescue")]
+    [InlineData(ExperienceCatalog.DragonLostColors, "palette")]
+    [InlineData(ExperienceCatalog.DragonLostColors, "habitat")]
+    public void HerKataloqSecimi_OzKadriniAlir(string templateKey, string beatKey)
+    {
+        var template = ExperienceCatalog.Find(templateKey)!;
+        var depicted = RecapStoryboard.DepictedBeats(templateKey);
+        var index = depicted.ToList().IndexOf(beatKey);
+
+        var options = template.Stages
+            .Where(s => s.Kind == PetBrainStageKind.Choice)
+            .ElementAt(index)
+            .Options;
+
+        var rendered = options
+            .Select(option => RecapStoryboard.Build(BaseSpec(templateKey) with
+            {
+                Beats = [.. depicted.Select((key, i) => new RecapBeat(key, i == index ? option.Key : "unchanged"))]
+            }))
+            .Select(shots => string.Join('|', shots.Select(s => $"{s.Motion} {s.Caption}")))
+            .ToList();
+
+        Assert.Equal(options.Count, rendered.Distinct(StringComparer.Ordinal).Count());
+    }
+
+    /// <summary>
+    /// Əjdahanın adı NƏ prompta, NƏ də keş açarına düşür: ad videoda görünmür,
+    /// ona görə model onu bilməməlidir və ad dəyişəndə eyni video yenidən
+    /// sifariş olunmamalıdır (spesifikasiya 10B).
+    /// </summary>
+    [Fact]
+    public void EjdahaninAdi_NePromptaNeHashaDusur()
+    {
+        var template = ExperienceCatalog.Find(ExperienceCatalog.DragonLostColors)!;
+
+        var names = template.Stages
+            .Where(s => s.Kind == PetBrainStageKind.Choice)
+            .Last()
+            .Options
+            .Select(o => o.Key)
+            .ToList();
+
+        Assert.True(names.Count > 1);
+
+        var specs = names
+            .Select(name => RunSpec(template, ["intro", "ocean", "solved", "crystal-cave", name]))
+            .ToList();
+
+        Assert.Single(specs.Select(s => s.Hash()).Distinct(StringComparer.Ordinal));
+
+        foreach (var (spec, name) in specs.Zip(names))
+        {
+            var prompt = SafeRecapPromptBuilder.Build(spec, RecapStoryboard.Build(spec));
+
+            Assert.DoesNotContain(name, prompt, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    /// <summary>
+    /// Budaqlanan macəranın onlarla seçimi prompta YIĞILMIR: kilid yalnız
+    /// kadrlarda görünən seçimləri daşıyır, prompt isə həddə sığır.
+    /// </summary>
+    [Fact]
+    public void CoxSecimliMacera_KilidiSisirtmir()
+    {
+        var spec = MarsSpec("canyon", "solar-panel") with
+        {
+            ExperienceKey = ExperienceCatalog.MoonCrystalSecret,
+            Beats = [.. Enumerable.Range(0, 14).Select(i => new RecapBeat("second-choice", $"long-choice-key-{i}"))]
+        };
+
+        var prompt = SafeRecapPromptBuilder.Build(spec, RecapStoryboard.Build(spec));
+
+        Assert.True(prompt.Length <= RunwayTaskClient.MaxPromptLength, $"{prompt.Length} simvol");
+        Assert.DoesNotContain("long choice key", prompt, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Şəkil videonun İLK KADRIDIR: nisbət şəkil modelinə uyğun deyilsə şəkil
+    /// işi də başlamır — yoxsa video başqa nisbətli kadrla başlayardı.
+    /// </summary>
+    [Fact]
+    public void SekilNisbeti_SekilModeliUcunDeYoxlanilir()
+    {
+        var options = Budget();
+        options.VideoRatio = "832:1104";
+
+        var policy = Policy(options);
+
+        Assert.True(policy.ForVideo().Allowed, policy.ForVideo().Reason);
+        Assert.False(policy.ForImage().Allowed);
+        Assert.Equal("ratio-not-supported", policy.ForImage().Reason);
+    }
+
+    /// <summary>
+    /// Referans şəkil TƏLƏB EDƏN <c>gen4_image_turbo</c> kataloqda yoxdur:
+    /// hekayə səhnəsi yalnız mətndən çəkilir, ona görə o model konfiqurasiyada
+    /// yazılsa belə pullu iş başlamır.
+    /// </summary>
+    [Fact]
+    public void ReferansTelebEdenModel_KataloqdaYoxdur()
+    {
+        var options = Budget();
+        options.ImageModel = "gen4_image_turbo";
+
+        Assert.Null(MediaModelCatalog.Find("gen4_image_turbo"));
+        Assert.Equal("unknown-model", Policy(options).ForImage().Reason);
+    }
+
     // ==================== Köməkçilər ====================
+
+    /// <summary>Kataloqun HƏR seçim birləşməsi — istehsal yolu ilə qurulur.</summary>
+    private static IEnumerable<AdventureRecapSpec> AllCatalogSpecs()
+    {
+        foreach (var templateKey in new[] { ExperienceCatalog.MarsRoverRescue, ExperienceCatalog.DragonLostColors })
+        {
+            var template = ExperienceCatalog.Find(templateKey)!;
+
+            foreach (var choices in Paths(template))
+            foreach (var hints in new[] { 0, 1, 3 })
+            foreach (var species in new[] { "fox", "dragon" })
+                yield return RunSpec(template, choices, hints, species);
+        }
+
+        foreach (var crater in new[] { "north-crater", "deep-crater", "bright-crater" })
+        foreach (var ending in new[]
+                 {
+                     MoonCrystalHunt.ExplorerEnding, MoonCrystalHunt.ScientistEnding, MoonCrystalHunt.CaringEnding
+                 })
+        foreach (var outcome in new[] { "no-hints", "one-hint", "several-hints" })
+            yield return MarsSpec("canyon", "solar-panel") with
+            {
+                ExperienceKey = ExperienceCatalog.MoonCrystalRescue,
+                PetCosmetic = "none",
+                PuzzleOutcome = outcome,
+                Beats = [new("first-choice", crater), new("ending", ending)]
+            };
+    }
+
+    /// <summary>Şablonun bütün mümkün seçim yolları — mərhələ sırası ilə.</summary>
+    private static IEnumerable<List<string>> Paths(ExperienceTemplate template)
+    {
+        IEnumerable<List<string>> paths = [new List<string>()];
+
+        foreach (var stage in template.Stages)
+        {
+            var keys = stage.Kind == PetBrainStageKind.Choice
+                ? stage.Options.Select(o => o.Key).ToList()
+                : ["step"];
+
+            paths = paths.SelectMany(path => keys.Select(key => new List<string>(path) { key })).ToList();
+        }
+
+        return paths;
+    }
+
+    private static AdventureRecapSpec RunSpec(
+        ExperienceTemplate template, List<string> choices, int hints = 0, string species = "fox") =>
+        AdventureRecapSpec.For(
+            new ExperienceRun
+            {
+                Id = RunId,
+                ChildProfileId = ChildId,
+                TemplateKey = template.Key,
+                Choices = choices,
+                HintsUsed = hints
+            },
+            template,
+            new Pet { Species = species },
+            "az",
+            "scene-hash",
+            nameof(PetBrainPuzzleMechanic.OrderedRoute));
+
+    private static AdventureRecapSpec BaseSpec(string templateKey) => templateKey switch
+    {
+        ExperienceCatalog.DragonLostColors => DragonSpec("ocean", "crystal-cave"),
+        _ => MarsSpec("canyon", "solar-panel")
+    };
 
     private static PetBrainMediaOptions Budget() => new()
     {

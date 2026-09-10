@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using PetPal.Api.PetBrain.Media;
+using PetPal.Api.PetBrain.Puzzles;
 
 namespace PetPal.Api.PetBrain.Recap;
 
@@ -96,13 +97,22 @@ public sealed class RunwayRecapVideoProvider : IRecapVideoProvider
         _cost.Options.PaidMediaEnabled &&
         _client.IsConfigured;
 
+    /// <summary>
+    /// Video işini başladır.
+    ///
+    /// <para>Xərc ƏVVƏLCƏ hesablanır — tapşırıq yaradılmazdan qabaq.</para>
+    ///
+    /// <para>Referans kadr olmadan image-to-video mümkün deyil; mətn-video
+    /// provayderi üçün bu qat ayrıca yazılmalıdır. Kadrın formatı BAYTLARDAN
+    /// oxunur: Runway <c>data:</c> URI-dəki tipin faylın özünə uyğun olmasını
+    /// tələb edir, saxlanmış rəsm isə PNG, JPEG və ya WebP ola bilər.</para>
+    /// </summary>
     public async Task<RecapJobStart> StartAsync(
         AdventureRecapSpec spec, string prompt, byte[]? referenceImage, CancellationToken ct = default)
     {
         if (!IsEnabled)
             return RecapJobStart.Failed("disabled");
 
-        // Xərc ƏVVƏLCƏ hesablanır — tapşırıq yaradılmazdan qabaq.
         var decision = _cost.ForVideo();
 
         if (!decision.Allowed)
@@ -111,12 +121,15 @@ public sealed class RunwayRecapVideoProvider : IRecapVideoProvider
             return RecapJobStart.Failed(decision.Reason);
         }
 
-        // Referans kadr olmadan image-to-video mümkün deyil; mətn-video
-        // provayderi üçün bu qat ayrıca yazılmalıdır.
         if (referenceImage is null || referenceImage.Length == 0)
             return RecapJobStart.Failed("no-reference-image");
 
-        var dataUri = $"data:image/png;base64,{Convert.ToBase64String(referenceImage)}";
+        var reference = PuzzleIllustrationValidator.Validate(referenceImage);
+
+        if (!reference.IsValid)
+            return RecapJobStart.Failed("invalid-reference-image");
+
+        var dataUri = $"data:{reference.ContentType};base64,{Convert.ToBase64String(referenceImage)}";
 
         var task = await _client.CreateVideoAsync(
             decision.Model, prompt, dataUri, _cost.Options.VideoRatio, _cost.Options.VideoDurationSeconds, ct);
@@ -127,6 +140,11 @@ public sealed class RunwayRecapVideoProvider : IRecapVideoProvider
         return new RecapJobStart(true, task.Id, ProviderName, decision.Model, string.Empty);
     }
 
+    /// <summary>
+    /// İşin vəziyyəti. Oxuma xətası (şəbəkə, <c>429</c>, <c>5xx</c>) işi
+    /// ÖLDÜRMÜR — tapşırıq artıq pulludur, növbəti addımda yenidən soruşulur;
+    /// ümumi vaxt həddi isə koordinatordadır.
+    /// </summary>
     public async Task<RecapJobProgress> PollAsync(string jobId, CancellationToken ct = default)
     {
         if (!IsEnabled)
@@ -138,22 +156,32 @@ public sealed class RunwayRecapVideoProvider : IRecapVideoProvider
         {
             RunwayTaskState.Pending or RunwayTaskState.Running => RecapJobProgress.Working(),
 
+            RunwayTaskState.Failed when MediaFailure.IsRetryableRead(task.FailureReason) =>
+                RecapJobProgress.Working(),
+
             RunwayTaskState.Succeeded when task.OutputUrl is { } url =>
-                await DownloadAsync(url, ct),
+                await DownloadAsync(url, task.Cost, ct),
 
             _ => RecapJobProgress.Failed(task.FailureReason)
         };
     }
 
-    private async Task<RecapJobProgress> DownloadAsync(string url, CancellationToken ct)
+    /// <summary>
+    /// Hazır videonu app-in saxlancına köçürmək üçün yükləyir — keçici xəta
+    /// ödənilmiş nəticəni atmasın deyə iki cəhdlə.
+    ///
+    /// <para>Həqiqi kredit tapşırığın özündən oxunur; provayder bildirməyəndə
+    /// razılaşdırılmış təxminlə eyni sayılır — «bilmirik» demək «pulsuz» demək
+    /// deyil.</para>
+    /// </summary>
+    private async Task<RecapJobProgress> DownloadAsync(string url, int? reportedCredits, CancellationToken ct)
     {
-        var bytes = await _client.DownloadAsync(url, RecapVideoValidator.MaxBytes, ct);
+        var bytes = await _client.DownloadAsync(url, RecapVideoValidator.MaxBytes, ct)
+                    ?? await _client.DownloadAsync(url, RecapVideoValidator.MaxBytes, ct);
 
         if (bytes is null)
             return RecapJobProgress.Failed("download-failed");
 
-        // Həqiqi kredit provayder bildirməyəndə razılaşdırılmış təxminlə eyni
-        // sayılır — «bilmirik» demək «pulsuz» demək deyil.
-        return RecapJobProgress.Ready(bytes, _cost.ForVideo().Credits);
+        return RecapJobProgress.Ready(bytes, reportedCredits ?? _cost.ForVideo().Credits);
     }
 }

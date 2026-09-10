@@ -416,7 +416,8 @@ builder.Services.AddSingleton<MediaCircuitBreaker>();
 builder.Services.AddSingleton<PetBrainMediaCostPolicy>();
 
 if (mediaOptions.Provider == PetBrainMediaProvider.Runway)
-    builder.Services.AddHttpClient<IRunwayTaskClient, RunwayTaskClient>();
+    builder.Services.AddHttpClient<IRunwayTaskClient, RunwayTaskClient>()
+        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
 
 // Rəsm ATMOSFERDİR: düyünlər, qaydalar, toxunuş hədəfləri və cavab
 // deterministik overlay-dədir. Provayder nə seçilirsə seçilsin, tapmaca

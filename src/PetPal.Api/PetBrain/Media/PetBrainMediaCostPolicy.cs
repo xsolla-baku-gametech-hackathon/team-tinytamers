@@ -34,9 +34,17 @@ public sealed class PetBrainMediaCostPolicy
 
     public PetBrainMediaOptions Options => _options;
 
-    /// <summary>Şəkil üçün icazə və ən pis hal krediti.</summary>
+    /// <summary>
+    /// Şəkil üçün icazə və ən pis hal krediti. Şəkil videonun ilk kadrıdır, ona
+    /// görə nisbəti videonunku ilə EYNİDİR və şəkil modeli üçün də yoxlanılır.
+    /// </summary>
     public MediaCostDecision ForImage() =>
-        Evaluate(_options.ImageModel, units: 1, ratio: null, cap: _options.MaxImageCreditsPerRun, video: false);
+        Evaluate(
+            _options.ImageModel,
+            units: 1,
+            ratio: _options.VideoRatio,
+            cap: _options.MaxImageCreditsPerRun,
+            video: false);
 
     /// <summary>Video üçün icazə və ən pis hal krediti.</summary>
     public MediaCostDecision ForVideo() =>
@@ -69,14 +77,11 @@ public sealed class PetBrainMediaCostPolicy
         if (model.IsVideo != video)
             return MediaCostDecision.Deny("model-modality-mismatch");
 
-        if (video)
-        {
-            if (units < 1 || units > model.MaxDurationSeconds)
-                return MediaCostDecision.Deny("duration-out-of-contract");
+        if (video && (units < 1 || units > model.MaxDurationSeconds))
+            return MediaCostDecision.Deny("duration-out-of-contract");
 
-            if (!MediaModelCatalog.SupportsRatio(modelKey, ratio))
-                return MediaCostDecision.Deny("ratio-not-supported");
-        }
+        if (!MediaModelCatalog.SupportsRatio(modelKey, ratio))
+            return MediaCostDecision.Deny("ratio-not-supported");
 
         var credits = MediaModelCatalog.WorstCaseCredits(modelKey, units);
 

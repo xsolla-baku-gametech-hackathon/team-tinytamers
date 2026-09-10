@@ -1,4 +1,5 @@
 using PetPal.Api.PetBrain;
+using PetPal.Api.PetBrain.Media;
 using PetPal.Api.PetBrain.Puzzles;
 using PetPal.Shared.Enums;
 
@@ -122,6 +123,26 @@ public class PetBrainIllustrationTests
 
         Assert.DoesNotContain("script", prompt, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("fox", spec.PetSpecies);
+    }
+
+    /// <summary>
+    /// Runway <c>promptText</c>-i 1000 simvolla məhdudlaşdırır — kataloqdakı HƏR
+    /// səhnə (hər şablon, hər macəra, hər pet növü) bu həddə sığmalıdır. Aşan
+    /// prompt göndərilmir və həmin səhnə heç vaxt AI rəsmi almazdı.
+    /// </summary>
+    [Fact]
+    public void ButunSehnePromptlari_RunwayHeddineSigir()
+    {
+        foreach (var blueprint in PuzzleBlueprintCatalog.Blueprints)
+        foreach (var template in ExperienceCatalog.Templates)
+        foreach (var species in new[] { "fox", "cat", "dragon", "owl", "bunny" })
+        {
+            var prompt = SafePuzzleIllustrationPromptBuilder.Build(
+                PuzzleSceneSpec.For(blueprint, "az", template, species));
+
+            Assert.True(prompt.Length <= RunwayTaskClient.MaxPromptLength,
+                $"{blueprint.Key} / {template.Key} / {species}: {prompt.Length} simvol");
+        }
     }
 
     // ==================== Baytların yoxlanması ====================

@@ -21,7 +21,7 @@ public enum PetBrainMediaProvider
 /// </summary>
 public enum PetBrainMediaProfile
 {
-    /// <summary>Tələb olunan standart: <c>gen4_image_turbo</c> + <c>gen4_turbo</c>.</summary>
+    /// <summary>Tələb olunan standart: <c>gen4_image</c> + <c>gen4_turbo</c>.</summary>
     Budget = 0,
 
     /// <summary>Nümayiş üçün daha keyfiyyətli video (<c>gen4.5</c>) — bahalıdır.</summary>
@@ -53,23 +53,37 @@ public class PetBrainMediaOptions
 
     public PetBrainMediaProfile Profile { get; set; } = PetBrainMediaProfile.Budget;
 
-    public string ImageModel { get; set; } = MediaModelCatalog.Gen4ImageTurbo;
+    public string ImageModel { get; set; } = MediaModelCatalog.Gen4Image;
 
     public string VideoModel { get; set; } = MediaModelCatalog.Gen4Turbo;
 
-    /// <summary>Portret — app kətanı 390×690-dır.</summary>
+    /// <summary>
+    /// Portret — app kətanı 390×690-dır. Şəkil videonun ilk kadrıdır, ona görə
+    /// bu nisbət HƏR İKİ model üçün yoxlanılır.
+    /// </summary>
     public string VideoRatio { get; set; } = "720:1280";
 
     public int VideoDurationSeconds { get; set; } = 10;
 
-    /// <summary>Bir run üçün şəkil kreditinin TAVANI.</summary>
-    public int MaxImageCreditsPerRun { get; set; } = 2;
+    /// <summary>
+    /// Bir run üçün şəkil kreditinin TAVANI — <c>gen4_image</c> 720p şəkli 5
+    /// kreditdir. Səhnə hash ilə keşlənir və uşaqlar arasında paylaşılır, ona
+    /// görə praktikada hər səhnə üçün bir dəfəlik xərcdir.
+    /// </summary>
+    public int MaxImageCreditsPerRun { get; set; } = 5;
 
     /// <summary>Bir run üçün video kreditinin TAVANI.</summary>
     public int MaxVideoCreditsPerRun { get; set; } = 50;
 
     /// <summary>Bir uşağa gündə neçə PULLU recap. Keşlənmiş təkrar sayılmır.</summary>
     public int MaxPaidRecapsPerChildPerDay { get; set; } = 3;
+
+    /// <summary>
+    /// Bütün uşaqlar üzrə gündə neçə PULLU recap. Uşaq başına hədd bir uşağın
+    /// büdcəni tutmasının, bu isə gündəlik xərcin sərhədsiz böyüməsinin
+    /// qarşısını alır: standartla gündə ən çox 100 × $0.50 = $50.
+    /// </summary>
+    public int MaxPaidRecapsPerDay { get; set; } = 100;
 
     /// <summary>Video işinin ÜMUMİ vaxt həddi (saniyə).</summary>
     public int GenerationDeadlineSeconds { get; set; } = 180;
@@ -82,6 +96,11 @@ public class PetBrainMediaOptions
     /// Aşağı hədd 50 ms-dir — sıfır dəyər sıx dövrə yaradardı.</para>
     /// </summary>
     public int RecapPollMilliseconds { get; set; } = 3000;
+
+    /// <summary>
+    /// Şəkil tapşırığının izlənmə addımı (millisaniyə). Aşağı hədd yenə 50 ms-dir.
+    /// </summary>
+    public int ImagePollMilliseconds { get; set; } = 2000;
 
     /// <summary>Pullu iş ümumiyyətlə mümkündürmü.</summary>
     public bool PaidMediaEnabled =>

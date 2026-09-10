@@ -268,6 +268,16 @@ public static class PetBrainEndpoints
             })
             .WithSummary("Uşağın ÖZ tapmacasının hekayə rəsmi: hazırdırsa fayl, hələ çəkilirsə 404, gəlməyəcəksə 410.");
 
+        group.MapGet("/runs/{runId:guid}/recap", async (
+                Guid runId,
+                HttpContext http,
+                IPetBrainService service,
+                CancellationToken ct) =>
+                await service.GetRecapAsync(http.User.ChildIdOrThrow(), runId, ct) is { } recap
+                    ? Results.Ok(recap)
+                    : Results.NotFound())
+            .WithSummary("Uşağın ÖZ tamamlanmış macərasının recap vəziyyəti — video hazırlanırsa ekran bunu seyrək soruşur.");
+
         // ---- Recap videosu ----
         // Range dəstəyi AÇIQDIR: video oynadıcısı fayla hissə-hissə müraciət
         // edir. Provayderin URL-i nə saxlanılır, nə də proxy edilir — fayl

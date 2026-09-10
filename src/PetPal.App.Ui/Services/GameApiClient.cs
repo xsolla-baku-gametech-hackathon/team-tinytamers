@@ -209,6 +209,22 @@ public class GameApiClient : ApiClientBase
     public Task<ApiResult<string>> GetPetBrainIllustrationAsync(Guid puzzleId, CancellationToken ct = default) =>
         GetDataUrlAsync($"api/pet-brain/puzzles/{puzzleId}/illustration", ct);
 
+    /// <summary>
+    /// Tamamlanmış macəranın recap vəziyyəti. Video arxa fonda hazırlanır —
+    /// ekran bunu seyrək soruşur və video hazır olanda storyboard-ı onunla
+    /// əvəz edir.
+    /// </summary>
+    public Task<ApiResult<PetBrainRecapDto>> GetPetBrainRecapAsync(Guid runId, CancellationToken ct = default) =>
+        GetAsync<PetBrainRecapDto>($"api/pet-brain/runs/{runId}/recap", ct);
+
+    /// <summary>
+    /// Hazır recap videosunun baytları — app-in ÖZ, sahiblik yoxlanan
+    /// endpoint-indən. <c>&lt;video src&gt;</c> bearer başlığı daşıya bilmir,
+    /// ona görə bayt adi sorğu ilə alınır.
+    /// </summary>
+    public Task<ApiResult<byte[]>> GetPetBrainRecapVideoAsync(Guid runId, CancellationToken ct = default) =>
+        GetBytesAsync($"api/pet-brain/runs/{runId}/recap/video", ct);
+
     // ---------- Learning ----------
     public Task<ApiResult<LearningSessionDto>> StartSessionAsync(StartSessionRequest request, CancellationToken ct = default) =>
         PostAsync<StartSessionRequest, LearningSessionDto>("api/learn/sessions", request, ct);

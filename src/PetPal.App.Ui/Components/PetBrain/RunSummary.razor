@@ -143,7 +143,7 @@
         @* Xülasə mükafatdan SONRA gəlir və heç nəyi gözlətmir: video hazır
            olmasa da deterministik storyboard oynayır, "Əla!" düyməsi isə
            həmişə yerindədir. *@
-        <RecapPlayer Recap="Summary.Recap" SceneKey="@SceneKey" ReducedMotion="ReducedMotion" />
+        <RecapPlayer Recap="Summary.Recap" RunId="RunId" SceneKey="@SceneKey" ReducedMotion="ReducedMotion" />
 
         <button class="btn btn--primary btn--block pbx-summary__done" @onclick="OnDone">
             @Loc.T("Əla!", "Great!")
@@ -153,6 +153,9 @@
 
 @code {
     [Parameter, EditorRequired] public PetBrainSummaryDto Summary { get; set; } = new();
+
+    /// <summary>Yekunun aid olduğu run — recap videosu onun endpoint-indən alınır.</summary>
+    [Parameter] public Guid RunId { get; set; }
 
     [Parameter] public string PetName { get; set; } = "Pet";
 

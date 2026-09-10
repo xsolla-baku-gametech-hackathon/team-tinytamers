@@ -91,6 +91,12 @@ public interface IPetBrainService
     Task<PuzzleIllustrationLookup?> GetIllustrationAsync(Guid childId, Guid puzzleId, CancellationToken ct = default);
 
     /// <summary>
+    /// Uşağın ÖZ tamamlanmış macərasının recap vəziyyəti — storyboard və
+    /// videonun hazır olub-olmadığı. Yad, naməlum və bitməmiş run üçün <c>null</c>.
+    /// </summary>
+    Task<PetBrainRecapDto?> GetRecapAsync(Guid childId, Guid runId, CancellationToken ct = default);
+
+    /// <summary>
     /// Uşağın ÖZ macərasının recap videosunun saxlanc açarı.
     ///
     /// <para>Yad run, hazır olmayan video və naməlum id üçün <c>null</c>.

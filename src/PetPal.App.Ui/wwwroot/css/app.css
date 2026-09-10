@@ -11057,6 +11057,10 @@
     object-fit: cover;
 }
 
+.pbx-recap__video[hidden] {
+    display: none;
+}
+
 .pbx-recap__stage {
     position: relative;
     display: flex;

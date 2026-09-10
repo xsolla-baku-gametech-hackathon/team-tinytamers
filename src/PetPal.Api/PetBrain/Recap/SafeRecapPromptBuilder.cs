@@ -17,7 +17,18 @@ namespace PetPal.Api.PetBrain.Recap;
 public static class SafeRecapPromptBuilder
 {
     /// <summary>Şablon versiyası — bəndlər dəyişəndə artır və hash-a düşür.</summary>
-    public const int TemplateVersion = 1;
+    public const int TemplateVersion = 2;
+
+    /// <summary>
+    /// Promptun ehtiyat həddi.
+    ///
+    /// <para>Runway <c>promptText</c>-i 1000 simvolla məhdudlaşdırır. Ölçülmüş
+    /// bir səhv: Marsın «krater + batareya» birləşməsi 1002 simvol idi, yəni
+    /// məhz o seçimləri edən uşaq heç vaxt video almazdı. İfadələr indi
+    /// qısadır, bu hədd isə gələcək redaktələr üçün marja saxlayır və testlə
+    /// qorunur.</para>
+    /// </summary>
+    public const int SafeLength = 960;
 
     private const string SafetyClause =
         "No children, speech, lip-sync, text, letters, numbers, subtitles, logos, UI, weapons, injury, " +
@@ -31,20 +42,20 @@ public static class SafeRecapPromptBuilder
             .Append("Create one continuous exactly ")
             .Append(spec.DurationSeconds)
             .Append("-second vertical 9:16 child-friendly 2D storybook game animation matching the supplied scene reference. ")
-            .Append("Keep the same friendly pet design in all shots. ");
+            .Append("Keep the same pet design in all shots. ");
 
         for (var i = 0; i < shots.Count; i++)
         {
             var shot = shots[i];
 
             builder
-                .Append("Shot ").Append(i + 1).Append(", ")
+                .Append("Shot ").Append(i + 1).Append(" (")
                 .Append(shot.StartSeconds.ToString("0.#")).Append('–')
-                .Append(shot.EndSeconds.ToString("0.#")).Append(" seconds: ")
+                .Append(shot.EndSeconds.ToString("0.#")).Append("s): ")
                 .Append(shot.Motion).Append(". ");
         }
 
-        builder.Append(Mood(spec.Mood)).Append(", smooth restrained motion, clear visual continuity, no peril. ");
+        builder.Append(Mood(spec.Mood)).Append(", smooth restrained motion, visual continuity, no peril. ");
 
         // İpucu sayı animasiyanı YÜNGÜLCƏ dəyişir — utandırmadan.
         if (Encouragement(spec.PuzzleOutcome) is { Length: > 0 } encouragement)
@@ -75,10 +86,19 @@ public static class SafeRecapPromptBuilder
         _ => string.Empty
     };
 
-    /// <summary>Seçimi KİLİDLƏYƏN bənd — əks variant çəkilə bilməz.</summary>
+    /// <summary>
+    /// Seçimi KİLİDLƏYƏN bənd — əks variant çəkilə bilməz.
+    ///
+    /// <para>Yalnız kadrlarda GÖRÜNƏN seçimlər kilidlənir
+    /// (<see cref="RecapStoryboard.DepictedBeats"/>): kadrda olmayan seçimi
+    /// kilidləmək modelə o hadisəni çəkməyi təklif etmək olardı.</para>
+    /// </summary>
     private static string Lock(AdventureRecapSpec spec)
     {
+        var depicted = RecapStoryboard.DepictedBeats(spec.ExperienceKey);
+
         var chosen = spec.Beats
+            .Where(b => depicted.Contains(b.BeatKey, StringComparer.Ordinal))
             .Select(b => $"{b.BeatKey.Replace('-', ' ')} {b.ChoiceKey.Replace('-', ' ')}")
             .ToList();
 

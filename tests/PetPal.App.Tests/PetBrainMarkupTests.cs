@@ -59,7 +59,8 @@ public class PetBrainMarkupTests
         foreach (var method in new[]
                  {
                      "GetPetBrainAsync", "StartPetBrainRunAsync", "SubmitPetBrainChoiceAsync",
-                     "RequestPetBrainHintAsync", "CompletePetBrainRunAsync", "AbandonPetBrainRunAsync"
+                     "RequestPetBrainHintAsync", "CompletePetBrainRunAsync", "AbandonPetBrainRunAsync",
+                     "GetPetBrainRecapAsync"
                  })
             Assert.Contains(method, page, StringComparison.Ordinal);
 
@@ -343,6 +344,28 @@ public class PetBrainMarkupTests
 
         // Hərəkət həssaslığı: kadrlar özbaşına sürüşmür.
         Assert.Contains("ReducedMotion", player, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Hazır video bearer tələb edən endpoint-dəndir: <c>&lt;video src&gt;</c>
+    /// başlıq daşımır, ona görə baytlar TİPLİ klientlə alınır və Blob ünvanı
+    /// kimi verilir. Server ünvanını birbaşa <c>src</c>-ə yazmaq videonu heç
+    /// vaxt oynatmazdı. Ekran isə video hazırlanarkən vəziyyəti SƏRHƏDLİ
+    /// sayda soruşur.
+    /// </summary>
+    [Fact]
+    public void Recap_VideoTipliKlientVeBlobIleGelir()
+    {
+        var player = StripComments(ReadComponent("RecapPlayer"));
+
+        Assert.Contains("GetPetBrainRecapVideoAsync", player, StringComparison.Ordinal);
+        Assert.Contains("js/recapVideo.js", player, StringComparison.Ordinal);
+        Assert.DoesNotContain("src=\"@Recap.VideoUrl\"", player, StringComparison.Ordinal);
+
+        var page = StripComments(ReadPage("PetBrain.razor"));
+
+        Assert.Contains("GetPetBrainRecapAsync", page, StringComparison.Ordinal);
+        Assert.Contains("MaxRecapChecks", page, StringComparison.Ordinal);
     }
 
     /// <summary>Macəranın sonunda YEKUN ekranı var — nəticəsiz bitən axın olmaz.</summary>

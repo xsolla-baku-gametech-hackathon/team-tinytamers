@@ -17,14 +17,18 @@ public enum RunwayTaskState
 /// <summary>
 /// Tapşırığın nəticəsi.
 ///
-/// <para><see cref="OutputUrl"/> QISA ÖMÜRLÜDÜR və klientə heç vaxt verilmir —
-/// bayt bizim tərəfə köçürülür.</para>
+/// <para><see cref="OutputUrl"/> QISA ÖMÜRLÜDÜR (provayderə görə 24–48 saat) və
+/// klientə heç vaxt verilmir — bayt bizim tərəfə köçürülür.</para>
+///
+/// <para><see cref="Cost"/> provayderin yekunlaşmış tapşırıqda bildirdiyi
+/// HƏQİQİ kreditdir; bildirməyibsə <c>null</c>.</para>
 /// </summary>
 public sealed record RunwayTask(
     string Id,
     RunwayTaskState State,
     string? OutputUrl,
-    string FailureReason)
+    string FailureReason,
+    int? Cost = null)
 {
     public static RunwayTask Failed(string reason) => new(string.Empty, RunwayTaskState.Failed, null, reason);
 }
@@ -52,15 +56,38 @@ public interface IRunwayTaskClient
 /// <para>Nə JavaScript, nə Python sidecar — SDK üçün ayrıca proses qaldırmaq
 /// uşaq tətbiqinin təhlükəsizlik səthini genişləndirərdi.</para>
 ///
-/// <para><b>Açar heç vaxt görünmür:</b> nə loga, nə xəta mətninə, nə də
-/// klientə. Aşağıdakı kodda <c>_options.ApiKey</c> yalnız başlığa yazılır.</para>
+/// <para><b>Müqavilə 2026-09-11-də rəsmi SDK-dan yoxlanılıb</b>
+/// (<c>runwayml/sdk-node</c>, <c>runwayml/sdk-python</c>):</para>
+/// <list type="bullet">
+///   <item>Yaratma cavabı YALNIZ <c>id</c> və <c>estimatedCost</c> daşıyır —
+///   <c>status</c> YOXDUR. Id gəlibsə tapşırıq artıq yaradılıb və PULLUDUR,
+///   ona görə o, «gözləyir» sayılır və izlənir. Bunu «uğursuz» saymaq ödənilmiş
+///   nəticəni atmaq olardı.</item>
+///   <item>Vəziyyətlər: <c>PENDING</c>, <c>THROTTLED</c>, <c>RUNNING</c>,
+///   <c>SUCCEEDED</c>, <c>FAILED</c>, <c>CANCELLED</c>. Naməlum vəziyyət
+///   uğursuz sayılır.</item>
+///   <item><c>promptText</c> ən çox 1000 UTF-16 simvoldur.</item>
+/// </list>
+///
+/// <para><b>Açar yalnız API sorğularına gedir.</b> Başlıqlar hər API sorğusuna
+/// AYRICA yazılır, klientin standart başlığı kimi YOX: hazır faylın ünvanı
+/// provayderin CDN-idir və ora nə açar, nə versiya başlığı getməməlidir.
+/// Yönləndirmə də izlənmir — klientin əsas handler-i <c>Program.cs</c>-də
+/// <c>AllowAutoRedirect = false</c> ilə qurulur. Açar nə loga, nə xəta
+/// mətninə, nə də klientə düşür.</para>
 /// </summary>
 public sealed class RunwayTaskClient : IRunwayTaskClient
 {
-    /// <summary>Sənədləşdirilmiş marşrutlar — bir yerdə saxlanılır.</summary>
+    /// <summary>Runway-in <c>promptText</c> həddi (UTF-16 simvol).</summary>
+    public const int MaxPromptLength = 1000;
+
     private const string TextToImagePath = "text_to_image";
     private const string ImageToVideoPath = "image_to_video";
     private const string TaskPath = "tasks";
+    private const string VersionHeader = "X-Runway-Version";
+
+    /// <summary>Provayderin xəta kodunun saxlanan hissəsi — səbəb sütunu 60 simvoldur.</summary>
+    private const int MaxFailureCodeLength = 48;
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
@@ -76,25 +103,18 @@ public sealed class RunwayTaskClient : IRunwayTaskClient
         _logger = logger;
 
         _http.BaseAddress = new Uri(_options.BaseUrl.TrimEnd('/') + "/");
-
-        // Versiya başlığı MƏCBURİDİR — onsuz API sorğunu rədd edir.
-        _http.DefaultRequestHeaders.Remove("X-Runway-Version");
-        _http.DefaultRequestHeaders.Add("X-Runway-Version", _options.ApiVersion);
-
-        if (!string.IsNullOrWhiteSpace(_options.ApiKey))
-            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
     }
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(_options.ApiKey);
 
     public Task<RunwayTask> CreateImageAsync(
         string model, string prompt, string ratio, CancellationToken ct = default) =>
-        CreateAsync(TextToImagePath, new { model, promptText = prompt, ratio }, ct);
+        CreateAsync(TextToImagePath, prompt, new { model, promptText = prompt, ratio }, ct);
 
     public Task<RunwayTask> CreateVideoAsync(
         string model, string prompt, string promptImageDataUri, string ratio, int durationSeconds,
         CancellationToken ct = default) =>
-        CreateAsync(ImageToVideoPath, new
+        CreateAsync(ImageToVideoPath, prompt, new
         {
             model,
             promptImage = promptImageDataUri,
@@ -103,31 +123,39 @@ public sealed class RunwayTaskClient : IRunwayTaskClient
             duration = durationSeconds
         }, ct);
 
-    private async Task<RunwayTask> CreateAsync(string path, object body, CancellationToken ct)
+    /// <summary>
+    /// Tapşırığı YARADIR.
+    ///
+    /// <para>Prompt həddi aşırsa sorğu GETMİR: provayder onu onsuz da rədd
+    /// edərdi, səbəb isə «səhnə alınmadı» kimi görünərdi.</para>
+    ///
+    /// <para>HTTP xətasının gövdəsi OXUNMUR: provayderin diaqnostikası daxili
+    /// məlumat daşıya bilər və loga düşməməlidir.</para>
+    /// </summary>
+    private async Task<RunwayTask> CreateAsync(string path, string prompt, object body, CancellationToken ct)
     {
         if (!IsConfigured)
             return RunwayTask.Failed("not-configured");
 
+        if (prompt.Length is 0 or > MaxPromptLength)
+            return RunwayTask.Failed("prompt-length");
+
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, path)
-            {
-                Content = new StringContent(JsonSerializer.Serialize(body, Json), Encoding.UTF8, "application/json")
-            };
+            using var request = ApiRequest(HttpMethod.Post, path);
+            request.Content = new StringContent(JsonSerializer.Serialize(body, Json), Encoding.UTF8, "application/json");
 
             using var response = await _http.SendAsync(request, ct);
 
             if (!response.IsSuccessStatusCode)
             {
-                // Gövdə OXUNMUR: provayderin diaqnostikası açar və ya daxili
-                // məlumat daşıya bilər, o isə loga düşməməlidir.
                 _logger.LogWarning("Runway: {Path} sorğusu {Status} qaytardı.", path, (int)response.StatusCode);
                 return RunwayTask.Failed($"http-{(int)response.StatusCode}");
             }
 
-            return Parse(await response.Content.ReadAsStringAsync(ct));
+            return ParseCreated(await response.Content.ReadAsStringAsync(ct));
         }
-        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
+        catch (Exception ex) when (IsTransport(ex, ct))
         {
             _logger.LogWarning("Runway: {Path} sorğusu alınmadı ({Kind}).", path, ex.GetType().Name);
             return RunwayTask.Failed("transport");
@@ -141,35 +169,41 @@ public sealed class RunwayTaskClient : IRunwayTaskClient
 
         try
         {
-            using var response = await _http.GetAsync($"{TaskPath}/{Uri.EscapeDataString(taskId)}", ct);
+            using var request = ApiRequest(HttpMethod.Get, $"{TaskPath}/{Uri.EscapeDataString(taskId)}");
+            using var response = await _http.SendAsync(request, ct);
 
             if (!response.IsSuccessStatusCode)
                 return RunwayTask.Failed($"http-{(int)response.StatusCode}");
 
-            return Parse(await response.Content.ReadAsStringAsync(ct));
+            return ParseTask(await response.Content.ReadAsStringAsync(ct));
         }
-        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
+        catch (Exception ex) when (IsTransport(ex, ct))
         {
             return RunwayTask.Failed("transport");
         }
     }
 
+    /// <summary>
+    /// Hazır faylı yükləyir.
+    ///
+    /// <para>Yalnız HTTPS. Sorğu çılpaqdır — nə açar, nə versiya başlığı.
+    /// Elan olunmuş uzunluq həddi aşırsa fayl heç yüklənmir; elan olunmayan,
+    /// amma böyük fayl isə axın zamanı KƏSİLİR.</para>
+    /// </summary>
     public async Task<byte[]?> DownloadAsync(string url, int maxBytes, CancellationToken ct = default)
     {
-        // Yalnız HTTPS və yalnız provayderin öz hostu. Yönləndirmə İZLƏNMİR:
-        // gözlənilməz host uşağın faylı kimi saxlanmamalıdır.
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
             uri.Scheme != Uri.UriSchemeHttps)
             return null;
 
         try
         {
-            using var response = await _http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct);
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
 
             if (!response.IsSuccessStatusCode)
                 return null;
 
-            // Elan olunmuş uzunluq artıq həddi aşırsa, heç yükləmirik.
             if (response.Content.Headers.ContentLength is { } declared && declared > maxBytes)
                 return null;
 
@@ -183,60 +217,122 @@ public sealed class RunwayTaskClient : IRunwayTaskClient
             {
                 buffer.Write(chunk, 0, read);
 
-                // Elan olunmamış, amma böyük fayl — axını KƏSİRİK.
                 if (buffer.Length > maxBytes)
                     return null;
             }
 
             return buffer.ToArray();
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException)
+        catch (Exception ex) when (IsTransport(ex, ct))
         {
             return null;
         }
     }
 
+    /// <summary>API sorğusu — açar və versiya başlığı YALNIZ burada yazılır.</summary>
+    private HttpRequestMessage ApiRequest(HttpMethod method, string path)
+    {
+        var request = new HttpRequestMessage(method, path);
+
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
+        request.Headers.Add(VersionHeader, _options.ApiVersion);
+
+        return request;
+    }
+
     /// <summary>
-    /// Cavabın oxunması. Naməlum vəziyyət <b>uğursuz</b> sayılır (fail closed) —
-    /// "bəlkə hazırdır" fərziyyəsi ilə pozuq fayl saxlamaqdansa ehtiyata düşmək
-    /// yaxşıdır.
+    /// Nəqliyyat xətasıdırmı. Çağıranın öz ləğvi BURAYA DÜŞMÜR — o, yuxarı
+    /// ötürülür ki, prosesin dayanması «provayder cavab vermədi» kimi
+    /// qeydə alınmasın və iş yenidən başlatmadan sonra davam etsin.
     /// </summary>
-    private static RunwayTask Parse(string payload)
+    private static bool IsTransport(Exception ex, CancellationToken ct) =>
+        ex is HttpRequestException or JsonException or IOException ||
+        (ex is TaskCanceledException && !ct.IsCancellationRequested);
+
+    /// <summary>Yaratma cavabı: id varsa tapşırıq «gözləyir», yoxdursa uğursuzdur.</summary>
+    private static RunwayTask ParseCreated(string payload)
+    {
+        using var document = JsonDocument.Parse(payload);
+        var id = StringOf(document.RootElement, "id");
+
+        return string.IsNullOrWhiteSpace(id)
+            ? RunwayTask.Failed("no-task-id")
+            : new RunwayTask(id, RunwayTaskState.Pending, null, string.Empty);
+    }
+
+    /// <summary>
+    /// Tapşırığın oxunması. Naməlum vəziyyət <b>uğursuz</b> sayılır (fail
+    /// closed) — "bəlkə hazırdır" fərziyyəsi ilə pozuq fayl saxlamaqdansa
+    /// ehtiyata düşmək yaxşıdır. «Uğurlu, amma fayl yoxdur» da uğur deyil.
+    /// </summary>
+    private static RunwayTask ParseTask(string payload)
     {
         using var document = JsonDocument.Parse(payload);
         var root = document.RootElement;
 
-        var id = root.TryGetProperty("id", out var idElement) && idElement.ValueKind == JsonValueKind.String
-            ? idElement.GetString() ?? string.Empty
-            : string.Empty;
+        var id = StringOf(root, "id");
+        var status = StringOf(root, "status").ToUpperInvariant();
 
-        var status = root.TryGetProperty("status", out var statusElement) && statusElement.ValueKind == JsonValueKind.String
-            ? statusElement.GetString() ?? string.Empty
-            : string.Empty;
+        int? cost = root.ValueKind == JsonValueKind.Object &&
+                    root.TryGetProperty("cost", out var costElement) &&
+                    costElement.ValueKind == JsonValueKind.Number &&
+                    costElement.TryGetInt32(out var credits)
+            ? credits
+            : null;
 
-        var state = status.ToUpperInvariant() switch
+        var state = status switch
         {
             "PENDING" or "THROTTLED" => RunwayTaskState.Pending,
-            "RUNNING" or "PROCESSING" => RunwayTaskState.Running,
-            "SUCCEEDED" or "COMPLETED" => RunwayTaskState.Succeeded,
+            "RUNNING" => RunwayTaskState.Running,
+            "SUCCEEDED" => RunwayTaskState.Succeeded,
             _ => RunwayTaskState.Failed
         };
 
-        string? output = null;
+        if (state == RunwayTaskState.Failed)
+            return new RunwayTask(id, state, null, FailureOf(root, status), cost);
 
-        if (state == RunwayTaskState.Succeeded &&
-            root.TryGetProperty("output", out var outputElement) &&
-            outputElement.ValueKind == JsonValueKind.Array &&
-            outputElement.GetArrayLength() > 0 &&
-            outputElement[0].ValueKind == JsonValueKind.String)
-        {
-            output = outputElement[0].GetString();
-        }
+        if (state != RunwayTaskState.Succeeded)
+            return new RunwayTask(id, state, null, string.Empty, cost);
 
-        // Uğurlu deyilir, amma fayl yoxdur — bu, uğur DEYİL.
-        if (state == RunwayTaskState.Succeeded && string.IsNullOrWhiteSpace(output))
-            return new RunwayTask(id, RunwayTaskState.Failed, null, "empty-output");
+        var output = root.TryGetProperty("output", out var outputElement) &&
+                     outputElement.ValueKind == JsonValueKind.Array &&
+                     outputElement.GetArrayLength() > 0 &&
+                     outputElement[0].ValueKind == JsonValueKind.String
+            ? outputElement[0].GetString()
+            : null;
 
-        return new RunwayTask(id, state, output, state == RunwayTaskState.Failed ? status : string.Empty);
+        return string.IsNullOrWhiteSpace(output)
+            ? new RunwayTask(id, RunwayTaskState.Failed, null, "empty-output", cost)
+            : new RunwayTask(id, state, output, string.Empty, cost);
     }
+
+    /// <summary>
+    /// Uğursuzluğun səbəbi — provayderin qısa KODU (məsələn moderasiya), mətni yox.
+    ///
+    /// <para>Mətn (<c>failure</c>) diaqnostika daşıya bilər və saxlanmır. Kod
+    /// icazəli simvollara endirilir və qısaldılır — o, yalnız böyüklərin
+    /// nümayiş qatına düşür.</para>
+    /// </summary>
+    private static string FailureOf(JsonElement root, string status)
+    {
+        if (status == "CANCELLED")
+            return "cancelled";
+
+        if (status != "FAILED")
+            return "unknown-status";
+
+        var code = new string(StringOf(root, "failureCode")
+            .Where(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '-')
+            .Take(MaxFailureCodeLength)
+            .ToArray());
+
+        return code.Length > 0 ? $"failed:{code}" : "failed";
+    }
+
+    private static string StringOf(JsonElement root, string name) =>
+        root.ValueKind == JsonValueKind.Object &&
+        root.TryGetProperty(name, out var element) &&
+        element.ValueKind == JsonValueKind.String
+            ? element.GetString() ?? string.Empty
+            : string.Empty;
 }

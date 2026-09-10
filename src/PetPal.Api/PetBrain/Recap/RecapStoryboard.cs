@@ -47,6 +47,21 @@ public static class RecapStoryboard
         };
     }
 
+    /// <summary>
+    /// Kadrlarda GÖRÜNƏN seçim anları — video promptu yalnız bunları kilidləyir.
+    ///
+    /// <para>Budaqlanan macərada onlarla seçim olur. Hamısını kilid bəndinə
+    /// yazmaq həm Runway-in 1000 simvolluq həddini aşardı, həm də modelə
+    /// kadrlarda olmayan hadisələri xatırladardı.</para>
+    /// </summary>
+    public static IReadOnlyList<string> DepictedBeats(string experienceKey) => experienceKey switch
+    {
+        ExperienceCatalog.MarsRoverRescue => ["route", "rescue"],
+        ExperienceCatalog.DragonLostColors => ["palette", "habitat"],
+        ExperienceCatalog.MoonCrystalRescue => ["first-choice", "ending"],
+        _ => []
+    };
+
     // ==================== Ay ====================
 
     /// <summary>
@@ -161,8 +176,8 @@ public static class RecapStoryboard
                 MarsRouteIcon(route)),
 
             new(3.0, 7.0,
-                "the drone travels onward, pauses at a solar charging station, then reaches a ridge antenna; " +
-                "the antenna lights up with a soft blue signal",
+                "the drone pauses at a solar charging station, then reaches a ridge antenna " +
+                "that lights up with a soft blue signal",
                 Localized.T(language,
                     "Dron enerji topladı və antenanı bərpa etdi.",
                     "The drone gathered energy and repaired the antenna."),
@@ -303,28 +318,28 @@ public static class RecapStoryboard
     private static string DragonHabitatMotion(string key) => key switch
     {
         "cloud-castle" => "a calm castle of soft clouds",
-        "flower-meadow" => "a wide meadow of gentle flowers",
+        "flower-valley" => "a wide valley of gentle flowers",
         _ => "a sparkling crystal cave"
     };
 
     private static string DragonHabitatAz(string key) => key switch
     {
         "cloud-castle" => "bulud qalasında",
-        "flower-meadow" => "çiçək çəmənliyində",
+        "flower-valley" => "çiçək vadisində",
         _ => "kristal mağarada"
     };
 
     private static string DragonHabitatEn(string key) => key switch
     {
         "cloud-castle" => "a cloud castle",
-        "flower-meadow" => "a flower meadow",
+        "flower-valley" => "a flower valley",
         _ => "a crystal cave"
     };
 
     private static string DragonHabitatIcon(string key) => key switch
     {
         "cloud-castle" => "☁️",
-        "flower-meadow" => "🌸",
+        "flower-valley" => "🌸",
         _ => "💎"
     };
 
@@ -345,7 +360,7 @@ public static class RecapStoryboard
     /// <summary>Kosmetik yalnız qazanılıbsa görünür — uydurma geyim yoxdur.</summary>
     private static string Cosmetic(string key) => key switch
     {
-        "helmet-mars" => ", the pet wearing a rounded Mars explorer helmet",
+        "helmet-mars" => ", the pet in a rounded Mars helmet",
         "wings-rainbow" => ", the pet wearing soft rainbow wings",
         _ => string.Empty
     };

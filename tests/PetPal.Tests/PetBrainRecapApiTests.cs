@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using PetPal.Api.Data;
 using PetPal.Api.Entities;
 using PetPal.Api.PetBrain;
+using PetPal.Api.PetBrain.Media;
 using PetPal.Api.PetBrain.Recap;
 using PetPal.Shared.Dtos.PetBrain;
 using PetPal.Shared.Enums;
@@ -507,7 +508,200 @@ public class PetBrainRecapApiTests
             Assert.True(breaker.IsOpen);
     }
 
+    /// <summary>
+    /// Recap-ın vəziyyət endpoint-i: sahibi storyboard-u və hazır videonu
+    /// görür; yad uşaq, anonim sorğu və bitməmiş run isə görmür. Ekran video
+    /// hazır olanda storyboard-ı məhz bununla dəyişir.
+    /// </summary>
+    [Fact]
+    public async Task RecapEndpointi_SahibineVeziyyetiVerir()
+    {
+        using var factory = NewFactory();
+        factory.Video.WorkingPolls = 2;
+
+        var owner = await NewChildAsync(factory, "recap-status-owner@petpal.test");
+        var stranger = await NewChildAsync(factory, "recap-status-stranger@petpal.test");
+
+        var run = await PetBrainPlaythrough.PlayToEndAsync(owner);
+        await PetBrainPlaythrough.CompleteAsync(owner, run.RunId);
+
+        var ready = await WaitForRecapEndpointAsync(owner, run.RunId);
+
+        Assert.Equal(PetBrainRecapStatus.Ready, ready.Status);
+        Assert.Equal($"/api/pet-brain/runs/{run.RunId}/recap/video", ready.VideoUrl);
+        Assert.Equal(3, ready.Shots.Count);
+
+        var url = $"/api/pet-brain/runs/{run.RunId}/recap";
+
+        Assert.Equal(HttpStatusCode.NotFound, (await stranger.Http.GetAsync(url)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().GetAsync(url)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await owner.Http.GetAsync($"/api/pet-brain/runs/{Guid.NewGuid()}/recap")).StatusCode);
+
+        var unfinished = await PetBrainPlaythrough.StartAsync(stranger);
+
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await stranger.Http.GetAsync($"/api/pet-brain/runs/{unfinished.RunId}/recap")).StatusCode);
+    }
+
+    /// <summary>
+    /// Video seçimlərin hash-ı ilə PAYLAŞILIR, sətir isə ilk sifarişçinin
+    /// adınadır. Sahiblik RUN-dan yoxlanılmalıdır: eyni seçimləri edən uşaq öz
+    /// run-u ilə videonu alır, ünvanda yad run id-si görünmür, yad uşaq isə onu
+    /// ala bilmir.
+    /// </summary>
+    [Fact]
+    public async Task PaylasilanVideo_SahiblikRundanYoxlanilir()
+    {
+        using var factory = NewFactory();
+
+        var owner = await NewChildAsync(factory, "recap-shared-owner@petpal.test");
+        var stranger = await NewChildAsync(factory, "recap-shared-stranger@petpal.test");
+
+        var run = await PetBrainPlaythrough.PlayToEndAsync(owner);
+        await PetBrainPlaythrough.CompleteAsync(owner, run.RunId);
+        await WaitForRecapAsync(owner, run.RunId);
+
+        var firstOrderer = Guid.NewGuid();
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var row = await db.AdventureRecaps.FirstAsync(r => r.ExperienceRunId == run.RunId);
+
+            row.ChildProfileId = stranger.ChildId;
+            row.ExperienceRunId = firstOrderer;
+
+            await db.SaveChangesAsync();
+        }
+
+        var recap = await WaitForRecapEndpointAsync(owner, run.RunId);
+
+        Assert.Equal(PetBrainRecapStatus.Ready, recap.Status);
+        Assert.Contains(run.RunId.ToString(), recap.VideoUrl, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(firstOrderer.ToString(), recap.VideoUrl, StringComparison.OrdinalIgnoreCase);
+
+        Assert.Equal(HttpStatusCode.OK, (await owner.Http.GetAsync(recap.VideoUrl)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await stranger.Http.GetAsync(recap.VideoUrl)).StatusCode);
+        Assert.Equal(1, factory.Video.Starts);
+    }
+
+    /// <summary>
+    /// AI bağlı ikən bitən macəra keşdə «ehtiyat» kimi qalmır: açar sonradan
+    /// qoşulanda EYNİ seçimlər video alır. Bağlı vəziyyət pul xərcləməyib, ona
+    /// görə sətir yenidən açılır.
+    /// </summary>
+    [Fact]
+    public async Task AiSonradanQosulanda_EyniSecimlerVideoAlir()
+    {
+        using var factory = NewFactory();
+        factory.Video.IsEnabled = false;
+
+        var client = await NewChildAsync(factory, "recap-later@petpal.test");
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
+        var summary = (await PetBrainPlaythrough.CompleteAsync(client, run.RunId)).Summary!;
+
+        Assert.Equal(PetBrainRecapStatus.Fallback, summary.Recap.Status);
+        Assert.Equal(0, factory.Video.Starts);
+
+        factory.Video.IsEnabled = true;
+
+        var ready = await WaitForRecapEndpointAsync(client, run.RunId);
+
+        Assert.Equal(PetBrainRecapStatus.Ready, ready.Status);
+        Assert.Equal(1, factory.Video.Starts);
+    }
+
+    /// <summary>
+    /// Provayderə çatıb rədd olunan recap yenidən AÇILMIR — o, ikinci pullu iş olardı.
+    /// </summary>
+    [Fact]
+    public async Task RedOlunanRecap_YenidenAcilmir()
+    {
+        using var factory = NewFactory();
+        factory.Video.Behaviour = "moderation";
+
+        var client = await NewChildAsync(factory, "recap-rejected@petpal.test");
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
+        await PetBrainPlaythrough.CompleteAsync(client, run.RunId);
+
+        var settled = await WaitForRecapAsync(client, run.RunId, expectReady: false);
+        Assert.Equal(PetBrainRecapStatus.Fallback, settled.Status);
+
+        factory.Video.Behaviour = "ok";
+
+        var again = await WaitForRecapEndpointAsync(client, run.RunId);
+
+        Assert.Equal(PetBrainRecapStatus.Fallback, again.Status);
+        Assert.Equal(1, factory.Video.Starts);
+    }
+
+    /// <summary>
+    /// Bütün uşaqlar üzrə gündəlik hədd dolanda YENİ pullu iş başlamır, hətta bu
+    /// uşağın öz kvotası boş olsa belə (10C: qlobal xərc həddi).
+    /// </summary>
+    [Fact]
+    public async Task QlobalGundelikHedd_YeniIsiDayandirir()
+    {
+        using var factory = NewFactory();
+
+        var client = await NewChildAsync(factory, "recap-global@petpal.test");
+        var others = await NewChildAsync(factory, "recap-global-others@petpal.test");
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var limit = new PetBrainMediaOptions().MaxPaidRecapsPerDay;
+
+            for (var i = 0; i < limit; i++)
+            {
+                db.AdventureRecaps.Add(new AdventureRecap
+                {
+                    Id = Guid.NewGuid(),
+                    RecapSpecHash = $"global-{i:D3}",
+                    ChildProfileId = others.ChildId,
+                    ExperienceRunId = Guid.NewGuid(),
+                    ExperienceKey = ExperienceCatalog.MarsRoverRescue,
+                    Status = PetBrainRecapStatus.Ready,
+                    RequestedAt = factory.Clock.GetUtcNow().UtcDateTime
+                });
+            }
+
+            await db.SaveChangesAsync();
+        }
+
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
+        var summary = (await PetBrainPlaythrough.CompleteAsync(client, run.RunId)).Summary!;
+
+        Assert.Equal(PetBrainRecapStatus.Fallback, summary.Recap.Status);
+        Assert.Equal(0, factory.Video.Starts);
+
+        using var check = factory.Services.CreateScope();
+
+        var recap = await check.ServiceProvider.GetRequiredService<AppDbContext>()
+            .AdventureRecaps.AsNoTracking().FirstAsync(r => r.ExperienceRunId == run.RunId);
+
+        Assert.Equal("global-daily-quota", recap.FailureReason);
+    }
+
     // ==================== Köməkçilər ====================
+
+    /// <summary>Recap endpoint-i yekunlaşana qədər soruşur — ekranın etdiyi kimi.</summary>
+    private static async Task<PetBrainRecapDto> WaitForRecapEndpointAsync(ApiTestClient client, Guid runId)
+    {
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            var recap = (await client.Http.GetFromJsonAsync<PetBrainRecapDto>($"/api/pet-brain/runs/{runId}/recap"))!;
+
+            if (recap.Status is not (PetBrainRecapStatus.Pending or PetBrainRecapStatus.Generating))
+                return recap;
+
+            await Task.Delay(25);
+        }
+
+        Assert.Fail("Recap endpoint-i yekunlaşmadı.");
+        return new PetBrainRecapDto();
+    }
 
     private static async Task<int> RecapCountAsync(PetBrainRecapFactory factory)
     {

@@ -71,6 +71,20 @@ public abstract class ApiClientBase
             return $"data:{contentType};base64,{Convert.ToBase64String(bytes)}";
         }, ct);
 
+    /// <summary>
+    /// İkili məzmunu BAYT kimi qaytarır — <c>data:</c> URI-yə sığmayan media üçün.
+    ///
+    /// <para>Video bir neçə meqabaytdır: onu base64 mətni kimi DOM-a yazmaq
+    /// yaddaşı artırar və iOS WebView-da oynamaya bilər. Bayt burada eyni bearer
+    /// sorğusu ilə (401 → token yeniləmə də daxil) alınır, ekran isə ondan Blob
+    /// ünvanı düzəldir.</para>
+    /// </summary>
+    protected Task<ApiResult<byte[]>> GetBytesAsync(string url, CancellationToken ct = default) =>
+        SendAsync<byte[]>(
+            () => new HttpRequestMessage(HttpMethod.Get, url),
+            async (response, token) => await response.Content.ReadAsByteArrayAsync(token),
+            ct);
+
     private Task<ApiResult<T>> SendAsync<T>(Func<HttpRequestMessage> requestFactory, CancellationToken ct) =>
         SendAsync<T>(requestFactory, async (response, token) =>
         {

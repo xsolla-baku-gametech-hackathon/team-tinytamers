@@ -64,21 +64,22 @@ public sealed class RecapCoordinator
     ///
     /// <para>Provayder çağırılmır — bu metod tamamlama cavabının içindədir və
     /// sürətli olmalıdır.</para>
+    ///
+    /// <para>Kvota sətir yaradılmazdan ƏVVƏL yoxlanılır: hədd dolubsa sətir
+    /// birbaşa "Fallback" kimi açılır və heç bir iş növbəyə düşmür.</para>
     /// </summary>
     public async Task<AdventureRecap> EnsureAsync(AdventureRecapSpec spec, CancellationToken ct)
     {
         var hash = spec.Hash();
+        var now = _clock.GetUtcNow().UtcDateTime;
 
         var existing = await _db.AdventureRecaps.FirstOrDefaultAsync(r => r.RecapSpecHash == hash, ct);
 
         if (existing is not null)
-            return existing;
+            return await ReopenIfNowAllowedAsync(existing, spec, now, ct);
 
-        var now = _clock.GetUtcNow().UtcDateTime;
-
-        // Kvota sətir yaradılmazdan ƏVVƏL yoxlanılır: hədd dolubsa sətir
-        // birbaşa "Fallback" kimi açılır və heç bir iş növbəyə düşmür.
-        var allowed = _provider.IsEnabled && await WithinQuotaAsync(spec.ChildProfileId, now, ct);
+        var denial = await DenialAsync(spec.ChildProfileId, now, ct);
+        var allowed = denial.Length == 0;
 
         var row = new AdventureRecap
         {
@@ -90,7 +91,7 @@ public sealed class RecapCoordinator
             SpecVersion = spec.SpecVersion,
             Status = allowed ? PetBrainRecapStatus.Pending : PetBrainRecapStatus.Fallback,
             PromptTemplateVersion = SafeRecapPromptBuilder.TemplateVersion,
-            FailureReason = allowed ? string.Empty : QuotaReason(),
+            FailureReason = denial,
             RequestedAt = now
         };
 
@@ -172,6 +173,12 @@ public sealed class RecapCoordinator
         row.EstimatedCredits = estimate.Allowed ? estimate.Credits : 0;
 
         var started = await _provider.StartAsync(spec, prompt, reference, ct);
+
+        if (!started.Started && ShouldRetryStart(row, started.Reason))
+        {
+            await _db.SaveChangesAsync(ct);
+            return;
+        }
 
         if (!started.Started)
         {
@@ -276,30 +283,80 @@ public sealed class RecapCoordinator
     }
 
     /// <summary>
-    /// Gündəlik PULLU recap kvotası.
+    /// Başlatma yenidən cəhd edilsinmi. Yalnız provayder sorğunu İŞLƏMƏDİYİNİ
+    /// deyəndə (<see cref="MediaFailure.IsRetryableCreate"/>) və cəhd həddi
+    /// dolmayıbsa: sətir <c>Pending</c> qalır, işçi növbəti addımda yenidən
+    /// başladır. Nəqliyyat xətası təkrarlanmır — o, ikinci pullu tapşırıq ola
+    /// bilərdi.
+    /// </summary>
+    private static bool ShouldRetryStart(AdventureRecap row, string reason) =>
+        MediaFailure.IsRetryableCreate(reason) && row.Attempts < MaxAttempts;
+
+    /// <summary>
+    /// Yeni PULLU işə nə mane olur; boş sətir — heç nə.
     ///
     /// <para>Keşlənmiş təkrar sayılmır, çünki o, xərc yaratmır — sayılan yalnız
-    /// həqiqətən provayderə gedən işlərdir.</para>
+    /// həqiqətən provayderə gedən işlərdir. Uşaq başına hədd bir uşağın bütün
+    /// büdcəni tutmasının, ümumi hədd isə gündəlik xərcin sərhədsiz böyüməsinin
+    /// qarşısını alır.</para>
     /// </summary>
-    private async Task<bool> WithinQuotaAsync(Guid childId, DateTime now, CancellationToken ct)
+    private async Task<string> DenialAsync(Guid childId, DateTime now, CancellationToken ct)
     {
+        if (!_provider.IsEnabled)
+            return "disabled";
+
         if (_breaker.IsOpen)
-            return false;
+            return "circuit-open";
 
         var since = now.Date;
 
-        var paidToday = await _db.AdventureRecaps
-            .CountAsync(r => r.ChildProfileId == childId
-                             && r.RequestedAt >= since
-                             && r.Status != PetBrainRecapStatus.Fallback, ct);
+        var paidToday = _db.AdventureRecaps
+            .Where(r => r.RequestedAt >= since && r.Status != PetBrainRecapStatus.Fallback);
 
-        return paidToday < _cost.Options.MaxPaidRecapsPerChildPerDay;
+        if (await paidToday.CountAsync(r => r.ChildProfileId == childId, ct) >= _cost.Options.MaxPaidRecapsPerChildPerDay)
+            return "daily-quota";
+
+        if (await paidToday.CountAsync(ct) >= _cost.Options.MaxPaidRecapsPerDay)
+            return "global-daily-quota";
+
+        return string.Empty;
     }
 
-    private string QuotaReason() =>
-        _breaker.IsOpen ? "circuit-open"
-        : _provider.IsEnabled ? "daily-quota"
-        : "disabled";
+    /// <summary>
+    /// Provayderə HEÇ ÇATMAMIŞ ehtiyat sətrini yenidən açır.
+    ///
+    /// <para>Belə sətir «video alınmadı» demək deyil: o an AI bağlı idi, kvota
+    /// dolu idi və ya dövrə açıq idi — pul xərclənməyib. Hash seçimlərdən
+    /// qurulur və əbədi keşlənir, ona görə sətir olduğu kimi qalsaydı, açar
+    /// sonradan qoşulanda eyni seçimlər heç vaxt video almazdı. Provayderə
+    /// çatmış, rədd olunmuş və ya hazır sətrə TOXUNULMUR.</para>
+    ///
+    /// <para>Sətir yalnız bu an HƏR ŞEY icazə verəndə açılır — provayder, xərc
+    /// siyasəti və kvota. Əks halda o, hər sorğuda açılıb-bağlanardı. Açılan
+    /// sətir sorğunu verən uşağın adına keçir: xərc onun kvotasına yazılır.</para>
+    /// </summary>
+    private async Task<AdventureRecap> ReopenIfNowAllowedAsync(
+        AdventureRecap row, AdventureRecapSpec spec, DateTime now, CancellationToken ct)
+    {
+        if (row.Status != PetBrainRecapStatus.Fallback || !MediaFailure.NeverReachedProvider(row.FailureReason))
+            return row;
+
+        if (!_cost.ForVideo().Allowed || (await DenialAsync(spec.ChildProfileId, now, ct)).Length > 0)
+            return row;
+
+        row.Status = PetBrainRecapStatus.Pending;
+        row.FailureReason = string.Empty;
+        row.ChildProfileId = spec.ChildProfileId;
+        row.ExperienceRunId = spec.RunId;
+        row.Attempts = 0;
+        row.RequestedAt = now;
+        row.StartedAt = null;
+        row.CompletedAt = null;
+
+        await _db.SaveChangesAsync(ct);
+
+        return row;
+    }
 
     private void Settle(AdventureRecap row, PetBrainRecapStatus status, string reason)
     {

@@ -59,7 +59,7 @@ public sealed record AdventureRecapSpec(
     string SceneSpecHash)
 {
     /// <summary>Müqavilə versiyası. Qaydalar dəyişəndə artır və hash-a düşür.</summary>
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     /// <summary>Sahə ayırıcısı — PuzzleSeed ilə eyni prinsip (0x1F).</summary>
     private const char Separator = (char)0x1F;
@@ -173,6 +173,15 @@ public sealed record AdventureRecapSpec(
         return Build(run, template, pet, language, sceneSpecHash, puzzleMechanic, beats);
     }
 
+    /// <summary>
+    /// Təsvirdə YALNIZ videonun göstərdiyi seçimlər qalır
+    /// (<see cref="RecapStoryboard.DepictedBeats"/>).
+    ///
+    /// <para>İki nəticəsi var. Birincisi: kadrlarda olmayan seçim modelə
+    /// getmir — əjdahanın adı buna görə prompta düşmür. İkincisi: hash da
+    /// yalnız görünəndən qurulur, yəni ad dəyişəndə EYNİ video yenidən
+    /// sifariş olunmur.</para>
+    /// </summary>
     private static AdventureRecapSpec Build(
         ExperienceRun run,
         ExperienceTemplate template,
@@ -182,6 +191,8 @@ public sealed record AdventureRecapSpec(
         string puzzleMechanic,
         IReadOnlyList<RecapBeat> beats)
     {
+        var depicted = RecapStoryboard.DepictedBeats(template.Key);
+
         return new AdventureRecapSpec(
             RunId: run.Id,
             ChildProfileId: run.ChildProfileId,
@@ -192,7 +203,7 @@ public sealed record AdventureRecapSpec(
             PetSpecies: Approved(pet.Species),
             PetColor: ColorFor(Approved(pet.Species)),
             PetCosmetic: Cosmetic(template.RewardCode),
-            Beats: beats,
+            Beats: [.. beats.Where(b => depicted.Contains(b.BeatKey, StringComparer.Ordinal))],
             PuzzleMechanic: puzzleMechanic,
             PuzzleOutcome: Outcome(run.HintsUsed),
             Environment: EnvironmentFor(template.Key),
@@ -202,11 +213,24 @@ public sealed record AdventureRecapSpec(
             SceneSpecHash: sceneSpecHash);
     }
 
-    /// <summary>Mərhələnin rolu — şablona görə sabit sıradadır.</summary>
+    /// <summary>
+    /// Mərhələnin rolu — şablona görə sabit sıradadır.
+    ///
+    /// <para>Əjdahanın ÜÇÜNCÜ seçimi addır və öz açarını alır. Əvvəl o da
+    /// «habitat» sayılırdı, yəni uşağın seçdiyi ad video promptuna düşürdü —
+    /// halbuki ad yalnız UI altyazısında ola bilər, modelin çəkdiyi kadrda yox.</para>
+    /// </summary>
     private static string BeatKeyFor(string templateKey, int order) => templateKey switch
     {
         ExperienceCatalog.MarsRoverRescue => order == 0 ? "route" : "rescue",
-        ExperienceCatalog.DragonLostColors => order == 0 ? "palette" : "habitat",
+
+        ExperienceCatalog.DragonLostColors => order switch
+        {
+            0 => "palette",
+            1 => "habitat",
+            _ => "name"
+        },
+
         _ => order == 0 ? "first-choice" : "second-choice"
     };
 

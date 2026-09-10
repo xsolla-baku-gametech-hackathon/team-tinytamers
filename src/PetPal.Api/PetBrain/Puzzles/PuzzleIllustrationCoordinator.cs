@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PetPal.Api.Data;
 using PetPal.Api.Entities;
+using PetPal.Api.PetBrain.Media;
 using PetPal.Shared.Enums;
 
 namespace PetPal.Api.PetBrain.Puzzles;
@@ -59,7 +60,7 @@ public sealed class PuzzleIllustrationCoordinator
             .FirstOrDefaultAsync(i => i.SceneSpecHash == hash, ct);
 
         if (existing is not null)
-            return existing;
+            return await ReopenIfNowEnabledAsync(existing, ct);
 
         // AI bağlıdırsa sətir dərhal "Fallback" kimi yazılır: uşaq gözləmir,
         // biz isə hər sorğuda yenidən yoxlamırıq.
@@ -156,6 +157,33 @@ public sealed class PuzzleIllustrationCoordinator
         row.CompletedAt = _clock.GetUtcNow().UtcDateTime;
 
         await _db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Provayderə HEÇ ÇATMAMIŞ ehtiyat səhnəsini yenidən açır.
+    ///
+    /// <para>Səhnə hash-ı uşaqdan asılı deyil və əbədi keşlənir. AI bağlı ikən
+    /// yazılan «Fallback» sətri olduğu kimi qalsaydı, açar sonradan qoşulanda
+    /// həmin səhnələr heç vaxt çəkilməzdi. Provayderə çatmış və ya rədd olunmuş
+    /// səhnəyə toxunulmur — o, ikinci pullu sorğu olardı.</para>
+    /// </summary>
+    private async Task<PuzzleIllustration> ReopenIfNowEnabledAsync(PuzzleIllustration row, CancellationToken ct)
+    {
+        if (!_provider.IsEnabled ||
+            row.Status != PetBrainIllustrationStatus.Fallback ||
+            !MediaFailure.NeverReachedProvider(row.FailureReason))
+            return row;
+
+        row.Status = PetBrainIllustrationStatus.Pending;
+        row.FailureReason = string.Empty;
+        row.Provider = string.Empty;
+        row.Model = string.Empty;
+        row.RequestedAt = _clock.GetUtcNow().UtcDateTime;
+        row.CompletedAt = null;
+
+        await _db.SaveChangesAsync(ct);
+
+        return row;
     }
 
     private void Reject(PuzzleIllustration row, string reason, string provider, string model)

@@ -1806,17 +1806,23 @@ public class PetBrainService : IPetBrainService
         if (row.Status is PetBrainRecapStatus.Pending or PetBrainRecapStatus.Generating)
             _recapQueue.Enqueue(spec);
 
-        return ToRecapDto(spec, row);
+        return ToRecapDto(spec, row, run.Id);
     }
 
-    /// <summary>Saxlanan vəziyyəti və deterministik storyboard-ı birləşdirir.</summary>
-    private static PetBrainRecapDto ToRecapDto(AdventureRecapSpec spec, AdventureRecap row) => new()
+    /// <summary>
+    /// Saxlanan vəziyyəti və deterministik storyboard-ı birləşdirir.
+    ///
+    /// <para>Ünvan yalnız hazır olanda verilir — provayderin URL-i heç vaxt. Run
+    /// id-si SORĞUNU VERƏN uşağındır, sətirdəki deyil: eyni seçimləri edən iki
+    /// uşaq bir videonu paylaşır, sətir isə birincinin adınadır. Onun run id-si
+    /// ikinci uşağa həm <c>404</c> verərdi, həm də yad run-u göstərərdi.</para>
+    /// </summary>
+    private static PetBrainRecapDto ToRecapDto(AdventureRecapSpec spec, AdventureRecap row, Guid runId) => new()
     {
         Status = row.Status,
 
-        // Ünvan yalnız hazır olanda verilir — provayderin URL-i heç vaxt.
         VideoUrl = row.Status == PetBrainRecapStatus.Ready
-            ? $"/api/pet-brain/runs/{row.ExperienceRunId}/recap/video"
+            ? $"/api/pet-brain/runs/{runId}/recap/video"
             : string.Empty,
 
         DurationSeconds = RecapStoryboard.TotalSeconds,
@@ -1830,16 +1836,50 @@ public class PetBrainService : IPetBrainService
     };
 
     /// <summary>
+    /// Uşağın ÖZ tamamlanmış macərasının recap vəziyyəti.
+    ///
+    /// <para>Yad, naməlum və hələ bitməmiş run üçün <c>null</c> — endpoint
+    /// hamısına <c>404</c> verir. Tamamlama cavabı ilə eyni yoldan keçir, yəni
+    /// sonradan qoşulan AI da burada öz işini başladır.</para>
+    /// </summary>
+    public async Task<PetBrainRecapDto?> GetRecapAsync(Guid childId, Guid runId, CancellationToken ct = default)
+    {
+        if (!_options.Enabled)
+            return null;
+
+        var run = await _db.ExperienceRuns
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == runId && r.ChildProfileId == childId, ct);
+
+        return run is { Status: PetBrainRunStatus.Completed }
+            ? await EnsureRecapAsync(run, ct)
+            : null;
+    }
+
+    /// <summary>
     /// Uşağın ÖZ recap videosunun saxlanc açarı.
     ///
-    /// <para>Yad run, hazır olmayan video və naməlum id üçün <c>null</c> —
-    /// endpoint hamısına <c>404</c> verir.</para>
+    /// <para>Sahiblik RUN-da yoxlanılır, recap sətrində yox: sətir seçimlərin
+    /// hash-ı ilə açılır və eyni seçimləri edən uşaqlar arasında paylaşılır.
+    /// Yad run, bitməmiş run, hazır olmayan video və naməlum id üçün
+    /// <c>null</c> — endpoint hamısına <c>404</c> verir.</para>
     /// </summary>
     public async Task<string?> GetRecapVideoKeyAsync(Guid childId, Guid runId, CancellationToken ct = default)
     {
+        var owned = await _db.ExperienceRuns
+            .AsNoTracking()
+            .AnyAsync(r => r.Id == runId
+                           && r.ChildProfileId == childId
+                           && r.Status == PetBrainRunStatus.Completed, ct);
+
+        if (!owned || await _recapSpecs.BuildAsync(runId, ct) is not { } spec)
+            return null;
+
+        var hash = spec.Hash();
+
         var row = await _db.AdventureRecaps
             .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.ExperienceRunId == runId && r.ChildProfileId == childId, ct);
+            .FirstOrDefaultAsync(r => r.RecapSpecHash == hash, ct);
 
         return row is { Status: PetBrainRecapStatus.Ready } && !string.IsNullOrEmpty(row.AssetKey)
             ? row.AssetKey
