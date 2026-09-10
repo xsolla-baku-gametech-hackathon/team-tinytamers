@@ -1,0 +1,224 @@
+/* ==================== PETPAL THEME — MOBILE FIRST ====================
+ * Uşaq app-i üçün dizayn tokenləri.
+ *
+ * Prinsiplər:
+ *  1. Böyük toxunuş sahələri (min 56px) — 6–10 yaş barmaq ölçüsü.
+ *  2. Yumşaq formalar (radius 20–32px) və dərinlik üçün rəngli kölgələr.
+ *  3. Yüksək kontrast mətn — kiçik boz mətn yoxdur.
+ *  4. Hərəkət var, amma sakit: prefers-reduced-motion tam dəstəklənir.
+ *  5. Notch/gesture bar üçün safe-area inset-ləri hər zaman nəzərə alınır.
+ * ==================================================================== */
+
+/* Nunito dəyişkən şrifti (400–900) app ilə birlikdə gəlir — CDN-dən yüklənmir,
+   çünki tətbiq oflayn da işləməlidir. İki alt çoxluq kifayətdir:
+     latin      — ı ö ü ç və ASCII
+     latin-ext  — ə ğ ş İ
+   Yol css/ qovluğuna nisbətdir: _content/PetPal.App.Ui/fonts/…
+   Lisenziya: SIL Open Font License 1.1 — bax fonts/OFL.txt */
+@font-face {
+    font-family: 'Nunito';
+    font-style: normal;
+    font-weight: 400 900;
+    font-display: swap;
+    src: url('../fonts/nunito-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: 'Nunito';
+    font-style: normal;
+    font-weight: 400 900;
+    font-display: swap;
+    src: url('../fonts/nunito-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
+body {
+    font-family: 'Nunito', ui-rounded, 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--pp-bg);
+    color: var(--pp-ink);
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+img,
+svg {
+    max-width: 100%;
+    display: block;
+}
+
+button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    border: none;
+    background: none;
+}
+
+input,
+select {
+    font: inherit;
+    color: inherit;
+}
+
+:root {
+    /* Brend */
+    --pp-primary: #6F5AD8;
+    --pp-primary-dark: #54419E;
+    --pp-primary-soft: #E9E4F7;
+
+    /* ---- Üç rəng ailəsi ----
+     * Hər ailənin bir işi var, ona görə oxumağı hələ yaxşı bacarmayan uşaq da
+     * ekranda nə baş verdiyini rəngdən anlayır:
+     *
+     *   bənövşəyi — ağıl      : brend, öyrənmə, gem, əsas düymələr
+     *   yaşıl     — canlılıq  : pet, dünya, doğru cavab, sağlam statlar
+     *   narıncı   — enerji    : ulduz, seriya, mini oyunlar, kəşf
+     *
+     * Səhv rəngi qəsdən moruğa çalır. Narıncı "qazandın" deməkdir, ona görə
+     * səhv ondan aydın seçilməlidir: köhnə mərcan (#FF7A6B) narıncıya cəmi
+     * ~14° yaxın idi, moruq isə ~45° aralıdır.
+     */
+
+    /* Yaşıl — canlılıq */
+    --pp-life: #35A57A;
+    --pp-life-deep: #156F4F;   /* ağ mətn daşıya bilən yeganə yaşıl — 6.1:1 */
+    --pp-life-soft: #DCEEE4;
+    --pp-on-life: #06301D;     /* parlaq yaşıl dolgunun üstündəki mətn */
+
+    /* Narıncı — enerji */
+    --pp-spark: #E89A3C;
+    --pp-spark-deep: #93540E;  /* açıq fonda narıncı mətn — 5.0:1 */
+    --pp-spark-soft: #FAEBD6;
+    --pp-on-spark: #3A1D00;    /* narıncının üstündə ağ mətn 2.3:1 verir — istifadə olunmur */
+
+    /* Moruq — yalnız səhv */
+    --pp-alert: #B7304C;
+    --pp-alert-soft: #F7E1E5;
+    --pp-on-alert: #FFFFFF;
+
+    /* Səthlər */
+    --pp-bg: #F0EBE0;
+    --pp-card: #FBF7EF;
+    --pp-card-soft: #F6F1E6;
+    --pp-overlay: rgba(38, 30, 18, 0.58);
+
+    /* Kompüterdə kətanın ətrafındakı sahə. App-in özündən kənardır, ona görə
+       qəsdən tünddür: telefon çərçivəsi ekranın fonu ilə qarışmasın. */
+    --pp-frame-bg: #2A2436;
+
+    /* Mətn */
+    --pp-ink: #241E38;
+    --pp-ink-soft: #5C5470;
+    --pp-ink-muted: #8A82A0;
+    --pp-on-primary: #FFFFFF;
+
+    /* Sərhəd */
+    --pp-border: #E4DCCE;
+    --pp-track: #E8E2D6;
+
+    /* Kölgə — rəngli, "oyuncaq" hissi verir */
+    --pp-shadow-sm: 0 2px 8px rgba(96, 74, 46, 0.10);
+    --pp-shadow-md: 0 8px 24px rgba(96, 74, 46, 0.13);
+    --pp-shadow-lg: 0 16px 40px rgba(96, 74, 46, 0.18);
+
+    /* ---- Səth resepti ----
+     * Mobil oyun düymələri düz dolğu deyil: yuxarısı işıqlı ("lift"), altında
+     * isə bir neçə piksellik tünd kənar ("edge") var — həmin kənar düymənin
+     * qalınlığıdır və basılanda azalır, ona görə element fiziki hiss olunur.
+     * Yeni rəng ailəsi əlavə olunmur; hər dəyər mövcud ailənin çalarıdır.
+     */
+    --pp-primary-lift: #8A78E4;
+    --pp-primary-edge: #4E3BA8;
+    --pp-life-lift: #4FBB91;
+    --pp-life-edge: #156F4F;
+    --pp-spark-lift: #F2B166;
+    --pp-spark-edge: #93540E;
+    --pp-alert-lift: #C94764;
+    --pp-alert-edge: #8A2038;
+
+    /* Neytral səthlərin (kart, kapsul, dok) kənarı — rəngsiz, sadəcə dərinlik. */
+    --pp-edge-neutral: rgba(96, 74, 46, 0.20);
+
+    /* Üst kənardakı işıq zolağı — plastik parıltı hissi. */
+    --pp-gloss: inset 0 2px 0 rgba(255, 255, 255, 0.40);
+
+    /* Forma */
+    --pp-radius-sm: 14px;
+    --pp-radius: 22px;
+    --pp-radius-lg: 30px;
+    --pp-radius-pill: 999px;
+
+    /* Ölçü */
+    --pp-tap: 56px;
+    --pp-gutter: 18px;
+
+    /* ---- Dizayn kətanı ----
+     * Bütün ekranlar 390×690 piksel üçün çəkilib və ölçülər PİKSELDİR (otaqlar,
+     * oyun lövhələri, HUD — hamısı). Ona görə app ekrana "uyğunlaşmır", ekrana
+     * SIĞIŞDIRILIR: `--pp-zoom` bütün səhnəni eyni nisbətdə böyüdüb-kiçildir
+     * (bax .app-shell və js/appFrame.js). Beləliklə 320 pikselli köhnə telefonda
+     * da, 430 pikselli böyük telefonda da nisbətlər eynidir — heç nə daşmır,
+     * heç nə üst-üstə düşmür.
+     *
+     * Standart dəyər 1-dir: JS yüklənməmişdən əvvəl də ekran doğru görünür,
+     * media query-lər isə dar ekranlarda onu təhlükəsiz həddə salır. */
+    --pp-zoom-w: 1;
+    --pp-zoom-h: 1;
+    --pp-zoom: min(var(--pp-zoom-w), var(--pp-zoom-h));
+
+    /* Cihaz safe-area.
+       Diqqət: zoom-lu qatın içində bunlar .app-shell-də yenidən hesablanır —
+       notch və jest zolağı ekran pikselindədir, miqyaslanmamalıdır. */
+    --pp-safe-top: env(safe-area-inset-top, 0px);
+    --pp-safe-bottom: env(safe-area-inset-bottom, 0px);
+
+    color-scheme: light;
+}
+
+/* ---- Miqyasın JS-siz təhlükəsizlik şəbəkəsi ----
+   Dəqiq miqyası appFrame.js hesablayır, amma o yüklənənə qədər (Blazor WASM
+   bir neçə saniyə çəkə bilər) ekran onsuz da doğru olmalıdır. Ona görə en və
+   hündürlük ayrı-ayrı dəyişənlərə yazılır, `--pp-zoom` isə onların KİÇİYİni
+   götürür — dar VƏ alçaq ekranda hər iki şərt eyni anda ödənir.
+
+   Hər pillə aralığın ƏN DAR ucuna görə seçilib (məsələn 360–389 px üçün
+   360/390 = 0.92), yəni heç bir aralıqda məzmun ekrandan daşa bilmir. */
+@media (max-width: 389px) { :root { --pp-zoom-w: 0.92; } }
+@media (max-width: 359px) { :root { --pp-zoom-w: 0.82; } }
+@media (max-width: 319px) { :root { --pp-zoom-w: 0.71; } }
+@media (max-width: 279px) { :root { --pp-zoom-w: 0.60; } }
+
+@media (max-height: 689px) { :root { --pp-zoom-h: 0.92; } }
+@media (max-height: 639px) { :root { --pp-zoom-h: 0.82; } }
+@media (max-height: 567px) { :root { --pp-zoom-h: 0.68; } }
+@media (max-height: 479px) { :root { --pp-zoom-h: 0.56; } }
+@media (max-height: 399px) { :root { --pp-zoom-h: 0.50; } }
+
+/* Hərəkətə həssas istifadəçilər üçün bütün animasiyalar dayandırılır. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+}

@@ -1,0 +1,1593 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap">
+  <style>
+    /* Otaq · Çimizdirmə — ayrıca tam ekran hamam.
+       Aşağıdakı qaydalar tətbiqin app.css/pet.css-indən OLDUĞU KİMİ köçürülüb
+       (əl ilə yazılmayıb). Tətbiqin həmin bölmələri dəyişəndə bu artboard da
+       yenidən qurulmalıdır — kanvas kodu güzgüləyir. */
+    body {
+      margin: 0;
+      font-family: 'Nunito', ui-rounded, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* theme.css-in element sıfırlamaları: onsuz düymələr brauzerin öz çərçivəsi
+       ilə çıxır (məsələn oyun avtomatının arxasında ağ qutu). */
+    *,
+    *::before,
+    *::after { box-sizing: border-box; }
+
+    button {
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      border: none;
+      background: none;
+      padding: 0;
+    }
+
+    img,
+    svg { max-width: 100%; display: block; }
+
+    :root {
+        /* Brend */
+        --pp-primary: #6F5AD8;
+        --pp-primary-dark: #54419E;
+        --pp-primary-soft: #E9E4F7;
+    
+        /* ---- Üç rəng ailəsi ----
+         * Hər ailənin bir işi var, ona görə oxumağı hələ yaxşı bacarmayan uşaq da
+         * ekranda nə baş verdiyini rəngdən anlayır:
+         *
+         *   bənövşəyi — ağıl      : brend, öyrənmə, gem, əsas düymələr
+         *   yaşıl     — canlılıq  : pet, dünya, doğru cavab, sağlam statlar
+         *   narıncı   — enerji    : ulduz, seriya, mini oyunlar, kəşf
+         *
+         * Səhv rəngi qəsdən moruğa çalır. Narıncı "qazandın" deməkdir, ona görə
+         * səhv ondan aydın seçilməlidir: köhnə mərcan (#FF7A6B) narıncıya cəmi
+         * ~14° yaxın idi, moruq isə ~45° aralıdır.
+         */
+    
+        /* Yaşıl — canlılıq */
+        --pp-life: #35A57A;
+        --pp-life-deep: #156F4F;   /* ağ mətn daşıya bilən yeganə yaşıl — 6.1:1 */
+        --pp-life-soft: #DCEEE4;
+        --pp-on-life: #06301D;     /* parlaq yaşıl dolgunun üstündəki mətn */
+    
+        /* Narıncı — enerji */
+        --pp-spark: #E89A3C;
+        --pp-spark-deep: #93540E;  /* açıq fonda narıncı mətn — 5.0:1 */
+        --pp-spark-soft: #FAEBD6;
+        --pp-on-spark: #3A1D00;    /* narıncının üstündə ağ mətn 2.3:1 verir — istifadə olunmur */
+    
+        /* Moruq — yalnız səhv */
+        --pp-alert: #B7304C;
+        --pp-alert-soft: #F7E1E5;
+        --pp-on-alert: #FFFFFF;
+    
+        /* Səthlər */
+        --pp-bg: #F0EBE0;
+        --pp-card: #FBF7EF;
+        --pp-card-soft: #F6F1E6;
+        --pp-overlay: rgba(38, 30, 18, 0.58);
+    
+        /* Mətn */
+        --pp-ink: #241E38;
+        --pp-ink-soft: #5C5470;
+        --pp-ink-muted: #8A82A0;
+        --pp-on-primary: #FFFFFF;
+    
+        /* Sərhəd */
+        --pp-border: #E4DCCE;
+        --pp-track: #E8E2D6;
+    
+        /* Kölgə — rəngli, "oyuncaq" hissi verir */
+        --pp-shadow-sm: 0 2px 8px rgba(96, 74, 46, 0.10);
+        --pp-shadow-md: 0 8px 24px rgba(96, 74, 46, 0.13);
+        --pp-shadow-lg: 0 16px 40px rgba(96, 74, 46, 0.18);
+    
+        /* ---- Səth resepti ----
+         * Mobil oyun düymələri düz dolğu deyil: yuxarısı işıqlı ("lift"), altında
+         * isə bir neçə piksellik tünd kənar ("edge") var — həmin kənar düymənin
+         * qalınlığıdır və basılanda azalır, ona görə element fiziki hiss olunur.
+         * Yeni rəng ailəsi əlavə olunmur; hər dəyər mövcud ailənin çalarıdır.
+         */
+        --pp-primary-lift: #8A78E4;
+        --pp-primary-edge: #4E3BA8;
+        --pp-life-lift: #4FBB91;
+        --pp-life-edge: #156F4F;
+        --pp-spark-lift: #F2B166;
+        --pp-spark-edge: #93540E;
+        --pp-alert-lift: #C94764;
+        --pp-alert-edge: #8A2038;
+    
+        /* Neytral səthlərin (kart, kapsul, dok) kənarı — rəngsiz, sadəcə dərinlik. */
+        --pp-edge-neutral: rgba(96, 74, 46, 0.20);
+    
+        /* Üst kənardakı işıq zolağı — plastik parıltı hissi. */
+        --pp-gloss: inset 0 2px 0 rgba(255, 255, 255, 0.40);
+    
+        /* Forma */
+        --pp-radius-sm: 14px;
+        --pp-radius: 22px;
+        --pp-radius-lg: 30px;
+        --pp-radius-pill: 999px;
+    
+        /* Ölçü */
+        --pp-tap: 56px;
+        --pp-gutter: 18px;
+    
+        /* Cihaz safe-area */
+        --pp-safe-top: env(safe-area-inset-top, 0px);
+        --pp-safe-bottom: env(safe-area-inset-bottom, 0px);
+    
+        color-scheme: light;
+    }
+    }
+
+    .pp-root {
+      --pp-safe-top: 0px;
+      --pp-safe-bottom: 0px;
+    }
+
+    /* ==================== PET AVATAR ====================
+     * Pet tamamilə inline SVG-dir — xarici asset yoxdur, ölçüdən asılı olmayaraq
+     * kəskin görünür və mərhələ/əhval dəyişəndə anında yenilənir.
+     * ==================================================== */
+    
+    .pet {
+        width: min(210px, 62vw);
+        height: auto;
+        transform-origin: 50% 92%;
+        animation: pet-breathe 3.4s ease-in-out infinite;
+        filter: drop-shadow(0 10px 14px rgba(60, 40, 20, 0.22));
+    }
+    
+    .pet--excited { animation: pet-hop 900ms cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
+    .pet--sad,
+    .pet--sleepy { animation: pet-slow-breathe 5s ease-in-out infinite; }
+    .pet--hungry { animation: pet-wobble 2.4s ease-in-out infinite; }
+    
+    /* Quyruq həmişə yüngülcə tərpənir — pet "canlı" görünsün. */
+    .pet__tail {
+        transform-origin: 68% 72%;
+        animation: pet-wag 1.9s ease-in-out infinite;
+    }
+    
+    .pet--excited .pet__tail { animation-duration: 700ms; }
+    .pet--sad .pet__tail,
+    .pet--sleepy .pet__tail { animation-duration: 4s; }
+    
+    /* Göz qırpma — nadir və qısa, diqqəti yayındırmır. */
+    .pet__eyelid {
+        transform-origin: center;
+        animation: pet-blink 5.5s ease-in-out infinite;
+    }
+    
+    .pet--sleepy .pet__eyelid { animation: none; }
+    
+    .pet__zzz {
+        animation: pet-float 2.6s ease-in-out infinite;
+    }
+    
+    .pet__sparkle {
+        transform-origin: center;
+        animation: pet-sparkle 1.8s ease-in-out infinite;
+    }
+    
+    .pet-stage-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        padding: 5px 14px;
+        border-radius: var(--pp-radius-pill);
+        background: rgba(255, 255, 255, 0.85);
+        color: #3B2A66;
+        font-size: 12px;
+        font-weight: 800;
+    }
+    
+    /* Yaş nişanın içində ayrıca kapsuldur: mərhələ adı ilə rəqəm bir-birinə
+       qarışmasın deyə. */
+    .pet-stage-label__age {
+        padding: 2px 8px;
+        border-radius: var(--pp-radius-pill);
+        background: var(--pp-primary-soft);
+        color: var(--pp-primary-dark);
+        font-size: 11px;
+        font-weight: 900;
+    }
+    
+    @keyframes pet-breathe {
+        0%, 100% { transform: scaleY(1) scaleX(1); }
+        50% { transform: scaleY(1.025) scaleX(0.99); }
+    }
+    
+    @keyframes pet-slow-breathe {
+        0%, 100% { transform: scaleY(1) translateY(0); }
+        50% { transform: scaleY(0.985) translateY(3px); }
+    }
+    
+    @keyframes pet-hop {
+        0%, 100% { transform: translateY(0) scaleY(1); }
+        35% { transform: translateY(-14px) scaleY(1.04); }
+        55% { transform: translateY(0) scaleY(0.94); }
+        70% { transform: translateY(0) scaleY(1); }
+    }
+    
+    @keyframes pet-wobble {
+        0%, 100% { transform: rotate(0deg); }
+        30% { transform: rotate(-2.5deg); }
+        70% { transform: rotate(2.5deg); }
+    }
+    
+    @keyframes pet-wag {
+        0%, 100% { transform: rotate(-7deg); }
+        50% { transform: rotate(9deg); }
+    }
+    
+    @keyframes pet-blink {
+        0%, 92%, 100% { transform: scaleY(0); }
+        94%, 97% { transform: scaleY(1); }
+    }
+    
+    @keyframes pet-float {
+        0% { opacity: 0; transform: translate(0, 0) scale(0.8); }
+        40% { opacity: 1; }
+        100% { opacity: 0; transform: translate(10px, -22px) scale(1.1); }
+    }
+    
+    @keyframes pet-sparkle {
+        0%, 100% { opacity: 0.25; transform: scale(0.8) rotate(0deg); }
+        50% { opacity: 1; transform: scale(1.15) rotate(20deg); }
+    }
+    
+    /* Yumurta mərhələsi — hələ "yatır", yalnız yüngül tərpənir. */
+    .pet--egg {
+        animation: pet-egg-rock 3s ease-in-out infinite;
+    }
+    
+    @keyframes pet-egg-rock {
+        0%, 100% { transform: rotate(-3deg); }
+        50% { transform: rotate(3deg); }
+    }
+    
+    /* ---------- Bədənin rəngləri ----------
+       Rəsm bir dənədir, rəng isə növdən gəlir: PetAvatar SVG-nin üstündə
+       --pet-fur / --pet-belly / --pet-inner-ear dəyişənlərini qoyur, ona görə
+       eyni yol dörd növə (tülkü, pişik, əjdaha, dovşan) xidmət edir. */
+    .pet__fur { fill: var(--pet-fur, #F3A05A); }
+    .pet__belly { fill: var(--pet-belly, #FFF3E2); }
+    .pet__inner-ear { fill: var(--pet-inner-ear, #FFD3A8); }
+    
+    /* Kontur bütün mərhələlərdə eyni qalınlıqdadır — kiçik ölçüdə forma
+       yumşalmasın deyə. */
+    .pet__outline {
+        stroke: #2B2140;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    
+    .pet__eye,
+    .pet__nose { fill: #2B2140; }
+    
+    .pet__mouth {
+        fill: none;
+        stroke: #2B2140;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    
+    /* Yumulmuş və gülən gözlər xətdir, dolgu deyil. */
+    .pet__lash {
+        fill: none;
+        stroke: #2B2140;
+        stroke-width: 4;
+        stroke-linecap: round;
+    }
+    
+    /* Tam ekran otaqlarda pet öz qutusunu doldurur. Standart `.pet` eni
+       `min(210px, 62vw)`-dir — səhnə üçün doğrudur, amma otaqda qutunun ölçüsünü
+       səhnə özü seçir (güzgünün qarşısı, vanna, yataq) və pet həmin qutuya
+       oturmalıdır, yoxsa sola sürüşür və ya qutudan daşır. */
+    .bathroom__pet .pet,
+    .bedroom__pet .pet,
+    .closet__pet .pet {
+        width: 100%;
+        max-width: none;
+    }
+    
+    /* Növə xas detallar: tülkünün qulaq ucları, pişik və dovşanın bığları.
+       Bunlar tükün rəngindən asılı deyil — həmişə tünd, çünki siluetin oxunması
+       onlardan asılıdır. */
+    .pet__ear-tip { fill: #2B2140; }
+    
+    .pet__whisker {
+        fill: none;
+        stroke: #2B2140;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    
+    /* Yalnız konturla çəkilən formalar (əjdahanın silsiləsi, dovşanın qulaq
+       cizgiləri) və dovşanın ön dişləri. */
+    .pet__line { fill: none; }
+    
+    .pet__tooth {
+        stroke: #2B2140;
+        stroke-width: 1.4;
+        stroke-linejoin: round;
+    }
+    
+
+    .progress {
+        height: 14px;
+        border-radius: var(--pp-radius-pill);
+        background: var(--pp-track);
+        overflow: hidden;
+    }
+    
+    .progress__bar {
+        height: 100%;
+        border-radius: var(--pp-radius-pill);
+        background: linear-gradient(90deg, var(--pp-primary) 0%, var(--pp-primary-dark) 100%);
+        transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    
+    .progress__bar--water {
+        background: linear-gradient(90deg, #4FC3F7 0%, #2196C4 100%);
+    }
+    
+    .progress--goal .progress__bar {
+        background: linear-gradient(90deg, #FFB454 0%, var(--pp-spark) 100%);
+    }
+    
+    .progress__row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 8px;
+        font-weight: 800;
+        font-size: 14px;
+    }
+    
+    .overlay-close {
+        display: grid;
+        place-items: center;
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: linear-gradient(180deg, var(--pp-card) 0%, var(--pp-card-soft) 100%);
+        border: 3px solid var(--pp-border);
+        box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-md);
+        font-size: 20px;
+        font-weight: 900;
+        color: var(--pp-ink);
+        transition: transform 130ms ease, box-shadow 130ms ease;
+    }
+    
+    .overlay-close:active {
+        transform: translateY(3px);
+        box-shadow: 0 1px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);
+    }
+    
+    .bath__suds {
+        position: absolute;
+        pointer-events: none;
+        transition: opacity 600ms ease, transform 600ms ease;
+    }
+    
+    .bath__suds--rinsing { opacity: 0; transform: translateY(30px); }
+    
+    .bathroom {
+        --bt-water-pale: #BFE9FF;
+        --bt-water-mid: #7FD3F7;
+        --bt-water-bright: #4FC3F7;
+        --bt-water-deep: #2196C9;
+        --bt-foam: #FFFFFF;
+        --bt-tile: #EAF6FB;
+        --bt-tile-alt: #D8EEF8;
+        --bt-grout: #C7E3F0;
+    
+        position: absolute;
+        inset: 0;
+        z-index: 60;
+        overflow: hidden;
+        background-color: var(--bt-tile);
+        animation: pp-closet-in 220ms ease-out;
+    }
+    
+    .bathroom__room {
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        width: 390px;
+        height: 620px;
+        /* Miqyas JS-dən gəlir (petCare.js → fitRooms): otaq ekranı doldurur,
+           nisbət qorunur, artıq hissə kəsilir. Origin aşağıdadır ki, döşəmə
+           həmişə ekranın altında qalsın. */
+        transform: translateX(-50%) scale(var(--room-scale, 1));
+        transform-origin: bottom center;
+    }
+    
+    .bathroom__decor,
+    .bathroom__front {
+        position: absolute;
+        inset: 0;
+        isolation: isolate;
+        pointer-events: none;
+    }
+    
+    .bathroom__decor { z-index: 0; }
+    
+    .bathroom__front { z-index: 3; }
+    
+    .bathroom__pet {
+        position: absolute;
+        left: 50%;
+        bottom: 26%;
+        width: 260px;
+        z-index: 2;
+        transform: translateX(-50%);
+    }
+    
+    .bathroom__tools {
+        position: absolute;
+        left: var(--pp-gutter);
+        right: var(--pp-gutter);
+        bottom: calc(14px + var(--pp-safe-bottom));
+        z-index: 5;
+        display: grid;
+        justify-items: center;
+        gap: 9px;
+        /* Alət paneli vannanın üstündə üzür, ona görə öz səthi var: onsuz
+           gedişat zolağı suyun üstündə asılmış xətt kimi oxunurdu. */
+        padding: 12px 14px 14px;
+        border-radius: 28px;
+        background: rgba(251, 247, 239, 0.93);
+        box-shadow: var(--pp-shadow-md);
+    }
+    
+    .bathroom__hint {
+        padding: 9px 16px;
+        border-radius: var(--pp-radius-pill);
+        background: var(--pp-card);
+        color: var(--pp-ink);
+        font-size: 13px;
+        font-weight: 800;
+        text-align: center;
+        box-shadow: var(--pp-shadow-sm);
+    }
+    
+    .bathroom__bar {
+        position: absolute;
+        top: calc(12px + var(--pp-safe-top));
+        left: var(--pp-gutter);
+        z-index: 5;
+    }
+    
+    .bath__fx {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+    }
+    
+    .bath__fx--washed {
+        animation: bath-fx-away 420ms ease forwards;
+    }
+    
+    @keyframes bath-fx-away {
+        to { opacity: 0; transform: translate(-50%, calc(-50% + 26px)) scale(0.68); }
+    }
+    
+    .bath__ghost-stream {
+        --fx-height: 108px;
+        position: absolute;
+        left: 50%;
+        top: 74%;
+        transform: translateX(-50%);
+        pointer-events: none;
+    }
+    
+    .bath__wall {
+        position: absolute;
+        z-index: 0;
+        /* Divar otaq qutusundan 700px YUXARI uzanır: ekran hündür olanda
+           tavan yerində düz rəng qalmasın, kafel davam etsin. Artıq hissəni
+           .bathroom-un overflow-u kəsir. */
+        inset: -700px 0 174px;
+        background-color: var(--bt-tile);
+        background-image:
+            linear-gradient(to right,
+                rgba(255, 255, 255, 0) 56px,
+                var(--bt-grout) 56px,
+                var(--bt-grout) 58px,
+                rgba(255, 255, 255, 0) 58px),
+            linear-gradient(to bottom,
+                rgba(255, 255, 255, 0) 48px,
+                var(--bt-grout) 48px,
+                var(--bt-grout) 50px,
+                rgba(255, 255, 255, 0) 50px),
+            linear-gradient(135deg, var(--bt-tile), var(--bt-tile-alt));
+        background-size: 58px 50px, 58px 50px, 100% 100%;
+    }
+    
+    .bath__wall::after {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0.58),
+            rgba(255, 255, 255, 0) 38%,
+            rgba(255, 255, 255, 0.28));
+        content: "";
+    }
+    
+    .bath__baseboard {
+        position: absolute;
+        z-index: 1;
+        top: 431px;
+        left: 0;
+        width: 100%;
+        height: 17px;
+        border-top: 2px solid var(--bt-grout);
+        border-bottom: 2px solid var(--pp-border);
+        background: var(--pp-primary-soft);
+    }
+    
+    .bath__floor {
+        position: absolute;
+        z-index: 0;
+        inset: 446px 0 0;
+        background-color: var(--pp-card);
+        background-image:
+            repeating-linear-gradient(90deg,
+                rgba(255, 255, 255, 0) 0,
+                rgba(255, 255, 255, 0) 72px,
+                var(--pp-border) 72px,
+                var(--pp-border) 74px),
+            repeating-linear-gradient(0deg,
+                rgba(255, 255, 255, 0) 0,
+                rgba(255, 255, 255, 0) 54px,
+                var(--pp-border) 54px,
+                var(--pp-border) 56px),
+            linear-gradient(135deg, var(--pp-card), var(--pp-bg));
+        transform-origin: top center;
+    }
+    
+    .bath__hook {
+        position: absolute;
+        z-index: 3;
+        /* Divardakı əşyalar 60px yuxarı: otaq ekranın altına yapışdırıldığı
+           üçün onlar çox aşağıda qalırdı. */
+        top: 26px;
+        left: 39px;
+        width: 22px;
+        height: 22px;
+        border: 5px solid var(--pp-primary-soft);
+        border-radius: 50%;
+        background: var(--pp-primary);
+        box-shadow: 0 4px 10px rgba(96, 74, 46, 0.13);
+    }
+    
+    .bath__hook::after {
+        position: absolute;
+        top: 11px;
+        left: 4px;
+        width: 5px;
+        height: 20px;
+        border-radius: 5px;
+        background: var(--pp-ink-soft);
+        content: "";
+    }
+    
+    .bath__towel {
+        position: absolute;
+        z-index: 2;
+        top: 52px;
+        left: 16px;
+        width: 47px;
+        height: 124px;
+        border: 3px solid var(--pp-primary);
+        border-radius: 13px 13px 18px 18px;
+        background: var(--pp-primary-lift);
+        clip-path: polygon(0 0, 100% 0, 94% 91%, 82% 100%, 67% 94%, 50% 100%, 34% 94%, 17% 100%, 5% 91%);
+        box-shadow: 0 8px 16px rgba(96, 74, 46, 0.13);
+    }
+    
+    .bath__towel::before,
+    .bath__towel::after {
+        position: absolute;
+        top: 8px;
+        bottom: 10px;
+        width: 5px;
+        border-radius: 5px;
+        background: var(--pp-primary-soft);
+        opacity: 0.55;
+        content: "";
+    }
+    
+    .bath__towel::before {
+        left: 10px;
+    }
+    
+    .bath__towel::after {
+        right: 10px;
+    }
+    
+    .bath__hose {
+        position: absolute;
+        z-index: 2;
+        top: -25px;
+        right: -26px;
+        width: 91px;
+        height: 356px;
+        border: 5px solid var(--pp-ink-soft);
+        border-left-color: rgba(255, 255, 255, 0);
+        border-radius: 50%;
+        transform: rotate(-4deg);
+        box-shadow: 5px 2px 10px rgba(96, 74, 46, 0.10);
+    }
+    
+    .bath__hose::after {
+        position: absolute;
+        right: 25px;
+        bottom: -11px;
+        width: 14px;
+        height: 21px;
+        border: 4px solid var(--pp-ink-soft);
+        border-radius: 7px;
+        background: var(--pp-primary-soft);
+        content: "";
+    }
+    
+    .bath__shower-head {
+        position: absolute;
+        z-index: 10;
+        top: 17px;
+        right: 47px;
+        width: 59px;
+        height: 27px;
+        border: 4px solid var(--pp-ink);
+        border-radius: 20px 22px 13px 18px;
+        background: linear-gradient(180deg, var(--pp-primary-lift), var(--pp-primary));
+        transform: rotate(18deg);
+        transform-origin: right center;
+        box-shadow: 0 7px 12px rgba(96, 74, 46, 0.13);
+    }
+    
+    .bath__shower-head::before {
+        position: absolute;
+        top: 5px;
+        right: -29px;
+        width: 32px;
+        height: 9px;
+        border: 3px solid var(--pp-ink);
+        border-radius: 7px;
+        background: var(--pp-ink-soft);
+        content: "";
+    }
+    
+    .bath__shower-head::after {
+        position: absolute;
+        right: 6px;
+        bottom: -8px;
+        width: 38px;
+        height: 10px;
+        border: 3px solid var(--pp-ink);
+        border-radius: 50%;
+        background: var(--bt-water-pale);
+        content: "";
+    }
+    
+    .bath__mat {
+        position: absolute;
+        z-index: 1;
+        bottom: 13px;
+        left: 91px;
+        width: 208px;
+        height: 54px;
+        border: 3px solid var(--pp-life);
+        border-radius: 27px;
+        background:
+            radial-gradient(circle at 36% 46%, var(--pp-life-lift) 0 7px, rgba(255, 255, 255, 0) 8px),
+            radial-gradient(circle at 47% 37%, var(--pp-life-lift) 0 7px, rgba(255, 255, 255, 0) 8px),
+            radial-gradient(circle at 58% 46%, var(--pp-life-lift) 0 7px, rgba(255, 255, 255, 0) 8px),
+            radial-gradient(ellipse at 47% 67%, var(--pp-life-lift) 0 21px, rgba(255, 255, 255, 0) 22px),
+            var(--pp-life-soft);
+        box-shadow: 0 9px 15px rgba(96, 74, 46, 0.13);
+    }
+    
+    .bath__tub-back {
+        position: absolute;
+        z-index: 3;
+        top: 384px;
+        left: 17px;
+        width: 356px;
+        height: 174px;
+        border: 4px solid var(--pp-border);
+        border-radius: 48px 48px 76px 76px;
+        background: var(--bt-foam);
+        box-shadow: 0 14px 27px rgba(96, 74, 46, 0.18);
+    }
+    
+    .bath__tub-back::before {
+        position: absolute;
+        top: 8px;
+        left: 16px;
+        width: 316px;
+        height: 73px;
+        border: 3px solid var(--bt-water-deep);
+        border-radius: 50%;
+        background: linear-gradient(180deg, var(--bt-water-pale), var(--bt-water-mid));
+        content: "";
+    }
+    
+    .bath__water-surface {
+        position: absolute;
+        z-index: 5;
+        top: 401px;
+        left: 38px;
+        width: 314px;
+        height: 58px;
+        overflow: hidden;
+        border-radius: 50%;
+        background:
+            radial-gradient(ellipse at 20% 35%, rgba(255, 255, 255, 0.86) 0 8px, rgba(255, 255, 255, 0) 9px),
+            radial-gradient(ellipse at 39% 58%, rgba(255, 255, 255, 0.72) 0 11px, rgba(255, 255, 255, 0) 12px),
+            radial-gradient(ellipse at 69% 32%, rgba(255, 255, 255, 0.8) 0 9px, rgba(255, 255, 255, 0) 10px),
+            radial-gradient(ellipse at 84% 62%, rgba(255, 255, 255, 0.72) 0 12px, rgba(255, 255, 255, 0) 13px),
+            linear-gradient(180deg, var(--bt-water-pale), var(--bt-water-mid));
+        animation: bath-water-rock 3.4s ease-in-out infinite;
+    }
+    
+    .bath__water-surface::after {
+        position: absolute;
+        top: 17px;
+        left: 58px;
+        width: 190px;
+        height: 22px;
+        border: 3px solid rgba(255, 255, 255, 0.76);
+        border-right-color: rgba(255, 255, 255, 0);
+        border-left-color: rgba(255, 255, 255, 0);
+        border-radius: 50%;
+        content: "";
+    }
+    
+    .bath__tub-front {
+        position: absolute;
+        z-index: 20;
+        top: 449px;
+        left: 17px;
+        width: 356px;
+        height: 111px;
+        border: 4px solid var(--pp-border);
+        border-radius: 26px 26px 74px 74px;
+        background: linear-gradient(180deg, var(--bt-foam) 0 22px, var(--pp-card) 23px 100%);
+        box-shadow: 0 13px 24px rgba(96, 74, 46, 0.18);
+    }
+    
+    .bath__tub-front::before {
+        position: absolute;
+        top: 10px;
+        left: 21px;
+        width: 306px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--pp-primary-soft);
+        opacity: 0.62;
+        content: "";
+    }
+    
+    .bath__tub-front::after {
+        position: absolute;
+        top: 42px;
+        left: 94px;
+        width: 160px;
+        height: 39px;
+        border: 3px solid var(--pp-border);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.36);
+        content: "";
+    }
+    
+    .bath__soap-dish {
+        position: absolute;
+        z-index: 24;
+        top: 459px;
+        left: 36px;
+        width: 72px;
+        height: 24px;
+        border: 3px solid var(--pp-border);
+        border-radius: 50%;
+        background: var(--bt-foam);
+        box-shadow: 0 5px 9px rgba(96, 74, 46, 0.10);
+    }
+    
+    .bath__soap {
+        position: absolute;
+        z-index: 25;
+        top: 449px;
+        left: 48px;
+        width: 49px;
+        height: 27px;
+        border: 3px solid var(--pp-spark);
+        border-radius: 14px 16px 13px 15px;
+        background: linear-gradient(145deg, var(--pp-spark-lift), var(--pp-spark));
+        transform: rotate(-7deg);
+        box-shadow: 0 6px 10px rgba(96, 74, 46, 0.13);
+    }
+    
+    .bath__soap::before {
+        position: absolute;
+        top: 5px;
+        left: 9px;
+        width: 20px;
+        height: 6px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.62);
+        content: "";
+    }
+    
+    .bath__duck {
+        position: absolute;
+        z-index: 13;
+        top: 402px;
+        right: 16px;
+        width: 58px;
+        height: 52px;
+        animation: bath-duck-bob 2.7s ease-in-out infinite;
+    }
+    
+    .bath__duck-body {
+        position: absolute;
+        right: 1px;
+        bottom: 0;
+        width: 51px;
+        height: 31px;
+        border: 3px solid var(--pp-spark);
+        border-radius: 52% 48% 46% 49%;
+        background: var(--pp-spark-lift);
+        box-shadow: 0 5px 8px rgba(96, 74, 46, 0.10);
+    }
+    
+    .bath__duck-head {
+        position: absolute;
+        top: 1px;
+        left: 6px;
+        width: 30px;
+        height: 30px;
+        border: 3px solid var(--pp-spark);
+        border-radius: 50%;
+        background: var(--pp-spark-lift);
+    }
+    
+    .bath__duck-head::before {
+        position: absolute;
+        top: 7px;
+        right: 6px;
+        width: 5px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--pp-ink);
+        content: "";
+    }
+    
+    .bath__duck-head::after {
+        position: absolute;
+        top: 14px;
+        left: -9px;
+        width: 15px;
+        height: 8px;
+        border: 2px solid var(--pp-spark);
+        border-radius: 70% 20% 55% 30%;
+        background: var(--pp-spark);
+        content: "";
+    }
+    
+    .fx__foam {
+        --fx-size: 40px;
+        position: relative;
+        width: var(--fx-size);
+        height: var(--fx-size);
+        isolation: isolate;
+        animation: bath-foam-soften 2.8s ease-in-out infinite;
+        filter: drop-shadow(0 4px 3px rgba(96, 74, 46, 0.10));
+    }
+    
+    .fx__foam::before {
+        position: absolute;
+        z-index: 3;
+        top: 13%;
+        left: 24%;
+        width: 27%;
+        height: 11%;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.92);
+        transform: rotate(-18deg);
+        content: "";
+    }
+    
+    .fx__foam::after {
+        position: absolute;
+        z-index: 0;
+        bottom: 1%;
+        left: 10%;
+        width: 82%;
+        height: 29%;
+        border-radius: 50%;
+        background: var(--bt-tile-alt);
+        opacity: 0.86;
+        content: "";
+    }
+    
+    .fx__foam-blob {
+        position: absolute;
+        z-index: 2;
+        display: block;
+        border-radius: 50%;
+        background: var(--bt-foam);
+    }
+    
+    .fx__foam-blob--1 {
+        bottom: 13%;
+        left: 2%;
+        width: 55%;
+        height: 48%;
+    }
+    
+    .fx__foam-blob--2 {
+        right: 2%;
+        bottom: 10%;
+        width: 57%;
+        height: 54%;
+    }
+    
+    .fx__foam-blob--3 {
+        top: 5%;
+        left: 22%;
+        width: 48%;
+        height: 53%;
+    }
+    
+    .fx__foam-blob--4 {
+        top: 20%;
+        right: 5%;
+        width: 40%;
+        height: 42%;
+    }
+    
+    .fx__foam-blob--5 {
+        top: 32%;
+        left: 22%;
+        width: 54%;
+        height: 55%;
+    }
+    
+    .fx__foam-blob--6 {
+        top: 29%;
+        left: 0;
+        width: 36%;
+        height: 38%;
+    }
+    
+    .fx__bubble {
+        --fx-size: 42px;
+        --fx-height: 92px;
+        position: relative;
+        width: var(--fx-size);
+        height: var(--fx-size);
+        animation: bath-bubble-drift 5s ease-in-out infinite;
+        transform-origin: center;
+    }
+    
+    .fx__bubble-core {
+        position: absolute;
+        inset: 0;
+        border: 2px solid var(--bt-water-mid);
+        border-radius: 50%;
+        background: radial-gradient(circle at 56% 60%, rgba(255, 255, 255, 0) 48%, rgba(255, 255, 255, 0.38) 83%, rgba(255, 255, 255, 0.7) 100%);
+        animation: bath-bubble-pop 5s ease-in-out infinite;
+        box-shadow: 0 3px 8px rgba(96, 74, 46, 0.10);
+    }
+    
+    .fx__bubble-highlight {
+        position: absolute;
+        top: 14%;
+        left: 15%;
+        width: 39%;
+        height: 33%;
+        border-top: 3px solid rgba(255, 255, 255, 0.94);
+        border-left: 2px solid rgba(255, 255, 255, 0.86);
+        border-radius: 50%;
+        transform: rotate(-18deg);
+    }
+    
+    .fx__bubble-highlight::after {
+        position: absolute;
+        top: 23%;
+        left: 18%;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--bt-foam);
+        content: "";
+    }
+    
+    .fx__bubble-sheen {
+        position: absolute;
+        inset: 4%;
+        border: 2px solid var(--pp-primary-lift);
+        border-right-color: var(--pp-spark-lift);
+        border-bottom-color: var(--pp-life-lift);
+        border-radius: 50%;
+        opacity: 0.3;
+        transform: rotate(28deg);
+    }
+    
+    .fx__bubble-fragments {
+        position: absolute;
+        inset: 0;
+    }
+    
+    .fx__bubble-fragment {
+        position: absolute;
+        z-index: 4;
+        top: 47%;
+        left: 47%;
+        width: 8%;
+        height: 8%;
+        min-width: 3px;
+        min-height: 3px;
+        border: 1px solid var(--bt-water-bright);
+        border-radius: 50% 50% 48% 18%;
+        background: var(--bt-water-pale);
+        opacity: 0.28;
+        transform: translate(var(--fx-start-x), var(--fx-start-y));
+        animation: bath-bubble-fragment 5s ease-out infinite;
+    }
+    
+    .fx__bubble-fragment--1 {
+        --fx-start-x: -35%;
+        --fx-start-y: -560%;
+        --fx-end-x: -130%;
+        --fx-end-y: -980%;
+    }
+    
+    .fx__bubble-fragment--2 {
+        --fx-start-x: 470%;
+        --fx-start-y: -300%;
+        --fx-end-x: 820%;
+        --fx-end-y: -610%;
+    }
+    
+    .fx__bubble-fragment--3 {
+        --fx-start-x: 500%;
+        --fx-start-y: 190%;
+        --fx-end-x: 920%;
+        --fx-end-y: 330%;
+    }
+    
+    .fx__bubble-fragment--4 {
+        --fx-start-x: -40%;
+        --fx-start-y: 490%;
+        --fx-end-x: -50%;
+        --fx-end-y: 880%;
+    }
+    
+    .fx__bubble-fragment--5 {
+        --fx-start-x: -500%;
+        --fx-start-y: 210%;
+        --fx-end-x: -900%;
+        --fx-end-y: 410%;
+    }
+    
+    .fx__bubble-fragment--6 {
+        --fx-start-x: -470%;
+        --fx-start-y: -290%;
+        --fx-end-x: -820%;
+        --fx-end-y: -570%;
+    }
+    
+    .fx__stream {
+        --fx-size: 14px;
+        --fx-height: 160px;
+        position: relative;
+        width: var(--fx-size);
+        height: var(--fx-height);
+        overflow: hidden;
+        border-radius: 4px 4px 48% 48%;
+        background: linear-gradient(90deg, var(--bt-water-pale), var(--bt-water-mid) 48%, var(--bt-water-bright));
+        clip-path: polygon(25% 0, 76% 0, 100% 100%, 0 100%);
+        opacity: 0.92;
+        filter: drop-shadow(0 4px 3px rgba(96, 74, 46, 0.10));
+    }
+    
+    .fx__stream::before {
+        position: absolute;
+        inset: 0 31%;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.55);
+        content: "";
+    }
+    
+    .fx__stream::after {
+        position: absolute;
+        right: 4%;
+        bottom: 0;
+        left: 4%;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--bt-water-bright);
+        content: "";
+    }
+    
+    .fx__stream-streak {
+        position: absolute;
+        inset: -22px 10%;
+        background: repeating-linear-gradient(to bottom,
+            rgba(255, 255, 255, 0) 0 10px,
+            rgba(255, 255, 255, 0.85) 11px 18px,
+            rgba(255, 255, 255, 0) 19px 29px);
+        background-size: 100% 48px;
+        animation: bath-stream-flow 0.62s linear infinite;
+    }
+    
+    .fx__splash {
+        --fx-size: 74px;
+        --fx-height: 30px;
+        position: relative;
+        width: var(--fx-size);
+        height: var(--fx-height);
+    }
+    
+    .fx__splash-ring {
+        position: absolute;
+        right: 5%;
+        bottom: 0;
+        left: 5%;
+        height: 52%;
+        border: 3px solid var(--bt-water-bright);
+        border-bottom-color: var(--bt-water-pale);
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.24);
+        opacity: 0.78;
+        animation: bath-splash-ring 1.45s ease-out infinite;
+    }
+    
+    .fx__splash-ring::before {
+        position: absolute;
+        top: -5px;
+        left: 19%;
+        width: 54%;
+        height: 7px;
+        border-top: 3px solid var(--bt-water-pale);
+        border-radius: 50%;
+        content: "";
+    }
+    
+    .fx__splash-crown {
+        position: absolute;
+        right: 18%;
+        bottom: 24%;
+        left: 18%;
+        height: 39%;
+        border-top: 4px solid var(--bt-water-mid);
+        border-radius: 50% 50% 0 0;
+        opacity: 0.88;
+    }
+    
+    .fx__splash-drop {
+        position: absolute;
+        width: 10%;
+        height: 30%;
+        min-width: 5px;
+        min-height: 8px;
+        border-radius: 58% 45% 60% 40%;
+        background: linear-gradient(145deg, var(--bt-water-pale), var(--bt-water-bright));
+        opacity: 0.9;
+        animation: bath-splash-drop 1.45s ease-out infinite;
+    }
+    
+    .fx__splash-drop--1 {
+        --fx-drop-x: -280%;
+        --fx-drop-y: -170%;
+        top: 38%;
+        left: 17%;
+        transform: rotate(-42deg);
+    }
+    
+    .fx__splash-drop--2 {
+        --fx-drop-x: -75%;
+        --fx-drop-y: -280%;
+        top: 12%;
+        left: 37%;
+        transform: rotate(-12deg);
+    }
+    
+    .fx__splash-drop--3 {
+        --fx-drop-x: 95%;
+        --fx-drop-y: -270%;
+        top: 8%;
+        right: 35%;
+        transform: rotate(14deg);
+    }
+    
+    .fx__splash-drop--4 {
+        --fx-drop-x: 300%;
+        --fx-drop-y: -150%;
+        top: 40%;
+        right: 15%;
+        transform: rotate(43deg);
+    }
+    
+    .fx__drop {
+        --fx-size: 15px;
+        --fx-height: 94px;
+        position: relative;
+        width: var(--fx-size);
+        height: var(--fx-height);
+    }
+    
+    .fx__drop-bead {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: var(--fx-size);
+        height: var(--fx-size);
+        border-radius: 68% 38% 63% 42%;
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), var(--bt-water-pale) 42%, var(--bt-water-deep));
+        clip-path: polygon(50% 0, 93% 53%, 86% 80%, 66% 100%, 35% 98%, 12% 78%, 8% 53%);
+        opacity: 0.88;
+        animation: bath-drop-run 2.25s ease-in infinite;
+        filter: drop-shadow(0 3px 2px rgba(96, 74, 46, 0.10));
+    }
+    
+    .fx__drop-bead::after {
+        position: absolute;
+        top: 29%;
+        left: 27%;
+        width: 24%;
+        height: 24%;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.86);
+        content: "";
+    }
+    
+    .fx__sheen {
+        --fx-size: 104px;
+        --fx-height: 145px;
+        position: relative;
+        width: var(--fx-size);
+        height: var(--fx-height);
+        overflow: hidden;
+        border-radius: 46% 46% 40% 40%;
+        background: radial-gradient(ellipse at 64% 50%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 62%);
+    }
+    
+    .fx__sheen-band {
+        position: absolute;
+        top: -18%;
+        bottom: -18%;
+        left: -5%;
+        width: 32%;
+        background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0),
+            rgba(255, 255, 255, 0.76),
+            rgba(255, 255, 255, 0));
+        transform: rotate(-17deg) translateX(18%);
+        animation: bath-sheen-sweep 2.9s ease-in-out infinite;
+    }
+    
+    .fx__sheen-gloss {
+        position: absolute;
+        top: 12%;
+        right: 14%;
+        width: 18%;
+        height: 56%;
+        border-right: 3px solid rgba(255, 255, 255, 0.42);
+        border-radius: 50%;
+        transform: rotate(-9deg);
+    }
+    
+    .fx__steam {
+        --fx-size: 82px;
+        --fx-height: 108px;
+        position: relative;
+        width: var(--fx-size);
+        height: var(--fx-height);
+        filter: drop-shadow(0 4px 3px rgba(96, 74, 46, 0.10));
+    }
+    
+    .fx__steam-wisp {
+        position: absolute;
+        bottom: 2%;
+        width: 25%;
+        height: 76%;
+        border-left: 7px solid var(--pp-primary-soft);
+        border-top: 5px solid rgba(255, 255, 255, 0.72);
+        border-radius: 58% 34% 55% 38%;
+        opacity: 0.78;
+        animation: bath-steam-rise 4.8s ease-in-out infinite;
+    }
+    
+    .fx__steam-wisp::after {
+        position: absolute;
+        top: 33%;
+        left: -8px;
+        width: 116%;
+        height: 44%;
+        border-right: 6px solid var(--bt-tile-alt);
+        border-bottom: 4px solid rgba(255, 255, 255, 0.72);
+        border-radius: 48%;
+        opacity: 0.72;
+        content: "";
+    }
+    
+    .fx__steam-wisp--1 {
+        left: 8%;
+        height: 66%;
+        animation-delay: -1.5s;
+    }
+    
+    .fx__steam-wisp--2 {
+        left: 39%;
+        height: 86%;
+        animation-delay: -3.1s;
+    }
+    
+    .fx__steam-wisp--3 {
+        right: 4%;
+        height: 72%;
+        animation-delay: -0.7s;
+    }
+    
+    .fx__puddle {
+        --fx-size: 136px;
+        --fx-height: 38px;
+        position: relative;
+        width: var(--fx-size);
+        height: var(--fx-height);
+        border-radius: 50%;
+        background: radial-gradient(ellipse at 43% 32%, rgba(255, 255, 255, 0.9), var(--bt-water-pale) 44%, var(--bt-water-mid) 100%);
+        opacity: 0.82;
+        box-shadow: 0 7px 10px rgba(96, 74, 46, 0.10);
+    }
+    
+    .fx__puddle-water {
+        position: absolute;
+        inset: 12% 5%;
+        border-radius: 50%;
+        border-top: 3px solid rgba(255, 255, 255, 0.82);
+        border-right: 2px solid var(--bt-water-bright);
+        opacity: 0.9;
+    }
+    
+    .fx__puddle-ripple {
+        position: absolute;
+        inset: 17% 20%;
+        border: 2px solid var(--bt-water-deep);
+        border-radius: 50%;
+        opacity: 0.52;
+        animation: bath-puddle-ripple 2.3s ease-out infinite;
+    }
+    
+    .bath__steam {
+        position: absolute;
+        z-index: 4;
+        top: 18px;
+        left: 137px;
+        --fx-size: 106px;
+        --fx-height: 102px;
+    }
+    
+    @keyframes bath-water-rock {
+        0%, 100% { transform: translateX(0) scaleX(1); }
+        50% { transform: translateX(3px) scaleX(0.985); }
+    }
+    
+    @keyframes bath-duck-bob {
+        0%, 100% { transform: translateY(0) rotate(-2deg); }
+        50% { transform: translateY(-4px) rotate(3deg); }
+    }
+    
+    @keyframes bath-foam-soften {
+        0%, 100% { scale: 1; }
+        50% { scale: 1.035 0.98; }
+    }
+    
+    @keyframes bath-foam-wash {
+        0%, 100% { scale: 0.72; opacity: 0.35; }
+        18%, 52% { scale: 1; opacity: 1; }
+        68% { scale: 0.82; opacity: 0.58; }
+        80%, 88% { scale: 0.42; opacity: 0; }
+    }
+    
+    @keyframes bath-bubble-drift {
+        0% { transform: translate(0, 8px) scale(0.94); opacity: 0.88; }
+        24% { transform: translate(10%, -18%) scale(1); opacity: 0.96; }
+        48% { transform: translate(-8%, -42%) scale(1.02); opacity: 0.92; }
+        76% { transform: translate(7%, calc(0px - var(--fx-height))) scale(1); opacity: 0.9; }
+        84% { transform: translate(5%, calc(0px - var(--fx-height))) scale(1.22); opacity: 0.7; }
+        92%, 100% { transform: translate(7%, calc(0px - var(--fx-height))) scale(1.38); opacity: 0; }
+    }
+    
+    @keyframes bath-bubble-pop {
+        0%, 77% { transform: scale(1); opacity: 1; }
+        85% { transform: scale(1.22); opacity: 0.72; }
+        92%, 100% { transform: scale(1.34); opacity: 0; }
+    }
+    
+    @keyframes bath-bubble-fragment {
+        0%, 77% {
+            transform: translate(var(--fx-start-x), var(--fx-start-y)) rotate(0deg);
+            opacity: 0.28;
+        }
+        84% { opacity: 0.82; }
+        100% {
+            transform: translate(var(--fx-end-x), var(--fx-end-y)) rotate(150deg);
+            opacity: 0;
+        }
+    }
+    
+    @keyframes bath-stream-flow {
+        from { background-position: 0 -48px; }
+        to { background-position: 0 48px; }
+    }
+    
+    @keyframes bath-splash-ring {
+        0% { transform: scale(0.72); opacity: 0.82; }
+        70% { transform: scale(1.08); opacity: 0.48; }
+        100% { transform: scale(1.28); opacity: 0; }
+    }
+    
+    @keyframes bath-splash-drop {
+        0% { translate: 0 8%; scale: 0.88; opacity: 0.9; }
+        58% { translate: var(--fx-drop-x) var(--fx-drop-y); scale: 1; opacity: 0.74; }
+        100% { translate: var(--fx-drop-x) 52%; scale: 0.82; opacity: 0; }
+    }
+    
+    @keyframes bath-drop-run {
+        0% { transform: translate(0, 0); opacity: 0.86; }
+        24% { transform: translate(28%, 19px); opacity: 0.93; }
+        49% { transform: translate(-18%, 42px); opacity: 0.9; }
+        74% { transform: translate(16%, 66px); opacity: 0.78; }
+        100% { transform: translate(5%, calc(var(--fx-height) - var(--fx-size))); opacity: 0; }
+    }
+    
+    @keyframes bath-sheen-sweep {
+        0%, 12% { transform: rotate(-17deg) translateX(18%); opacity: 0.48; }
+        48% { opacity: 0.84; }
+        76%, 100% { transform: rotate(-17deg) translateX(340%); opacity: 0.34; }
+    }
+    
+    @keyframes bath-steam-rise {
+        0%, 100% { transform: translate(0, 5%) scaleX(0.92); opacity: 0.48; }
+        45% { transform: translate(22%, -17%) scaleX(1.05); opacity: 0.72; }
+        75% { transform: translate(-10%, -31%) scaleX(0.96); opacity: 0.4; }
+    }
+    
+    @keyframes bath-puddle-ripple {
+        0% { transform: scale(0.62); opacity: 0.5; }
+        72% { transform: scale(1.02); opacity: 0.26; }
+        100% { transform: scale(1.16); opacity: 0; }
+    }
+    
+    .panel__item {
+        display: grid;
+        place-items: center;
+        width: 76px;
+        height: 76px;
+        margin: 12px auto 0;
+        border-radius: 50%;
+        background: var(--pp-spark-soft);
+        border: 3px solid var(--pp-spark);
+        font-size: 36px;
+        /* Sürükləmə zamanı brauzerin öz "seç/sürüşdür" davranışı işə düşməsin. */
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    
+    .panel__item:active { transform: scale(0.94); }
+    
+    .panel__item--tool {
+        background: var(--pp-primary-soft);
+        border-color: var(--pp-primary);
+        padding: 12px;
+    }
+  </style>
+</helmet>
+<div class="pp-root" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--pp-bg); color: var(--pp-ink);">
+  <div class="bathroom" style="animation: none;">
+    <div class="bathroom__room" style="--room-scale: 1;">
+<div class="bathroom__decor" aria-hidden="true">
+        <div class="bath__wall"></div>
+        <div class="bath__baseboard"></div>
+        <div class="bath__floor"></div>
+
+        <div class="fx__steam bath__steam">
+            <span class="fx__steam-wisp fx__steam-wisp--1"></span>
+            <span class="fx__steam-wisp fx__steam-wisp--2"></span>
+            <span class="fx__steam-wisp fx__steam-wisp--3"></span>
+        </div>
+
+        <div class="bath__hook"></div>
+        <div class="bath__towel"></div>
+        <div class="bath__hose"></div>
+        <div class="bath__shower-head"></div>
+        <div class="bath__mat"></div>
+        <div class="bath__tub-back"></div>
+        <div class="bath__water-surface"></div>
+</div>
+      <div class="bathroom__pet"><div class="pet-wrap"><svg class="pet" viewBox="0 0 200 200" style="--pet-fur:#F3A05A;--pet-belly:#FFF3E2;--pet-inner-ear:#FFD3A8">
+<path class="pet__fur pet__outline pet__tail" d="M115 127 C123 102 142 84 157 90 C173 97 173 121 163 140 C153 158 133 164 118 149 C113 143 112 134 115 127 Z"/>
+<path class="pet__belly pet__outline pet__tail" d="M151 88 C161 88 170 96 172 107 C173 118 168 130 162 140 C160 123 152 108 138 99 C142 93 146 90 151 88 Z"/>
+<rect class="pet__fur pet__outline" x="74" y="131" width="20" height="28" rx="10"/>
+<rect class="pet__fur pet__outline" x="106" y="131" width="20" height="28" rx="10"/>
+<ellipse class="pet__fur pet__outline" cx="70" cy="116" rx="8" ry="21"/>
+<ellipse class="pet__fur pet__outline" cx="130" cy="116" rx="8" ry="21"/>
+<ellipse class="pet__fur pet__outline" cx="100" cy="119" rx="31" ry="33"/>
+<ellipse class="pet__belly" cx="100" cy="122" rx="18" ry="27"/>
+<ellipse class="pet__belly" cx="70" cy="130" rx="6" ry="7"/>
+<ellipse class="pet__belly" cx="130" cy="130" rx="6" ry="7"/>
+<ellipse class="pet__belly pet__outline" cx="84" cy="158" rx="12" ry="4"/>
+<ellipse class="pet__belly pet__outline" cx="116" cy="158" rx="12" ry="4"/>
+<ellipse class="pet__fur pet__outline" cx="100" cy="72" rx="40" ry="33"/>
+<path class="pet__fur pet__outline" d="M60 72 C60 66 61 62 63 58 C57 46 57 26 62 14 C75 22 80 34 81 48 C87 42 93 39 100 39 C107 39 113 42 119 48 C120 34 125 22 138 14 C143 26 143 46 137 58 C139 62 140 66 140 72 C140 82 136 91 130 96 C136 99 133 104 124 102 C117 104 109 105 100 105 C91 105 83 104 76 102 C67 104 64 99 70 96 C64 91 60 82 60 72 Z"/>
+<path class="pet__inner-ear" d="M59 50 C59 39 60 25 62 16 C69 22 75 32 77 44 C71 40 64 43 59 50 Z"/>
+<path class="pet__inner-ear" d="M141 50 C141 39 140 25 138 16 C131 22 125 32 123 44 C129 40 136 43 141 50 Z"/>
+<path class="pet__ear-tip" d="M58 28 C59 22 60 17 62 14 C67 17 71 22 74 28 C69 25 63 25 58 28 Z"/>
+<path class="pet__ear-tip" d="M142 28 C141 22 140 17 138 14 C133 17 129 22 126 28 C131 25 137 25 142 28 Z"/>
+<path class="pet__belly" d="M84 81 Q92 78 100 86 Q108 78 116 81 Q114 90 100 97 Q86 90 84 81 Z"/>
+<circle class="pet__nose" cx="100" cy="86" r="3.6"/>
+<circle class="pet__eye" cx="84" cy="71" r="8"/><circle class="pet__eye" cx="116" cy="71" r="8"/>
+<circle cx="86.4" cy="68.3" r="2.24" fill="#FFFFFF"/><circle cx="118.4" cy="68.3" r="2.24" fill="#FFFFFF"/>
+<path class="pet__mouth" d="M91 90 Q100 100 109 90"/></svg></div></div>
+<div class="bathroom__front" aria-hidden="true">
+        <div class="bath__tub-front"></div>
+        <div class="bath__soap-dish"></div>
+        <div class="bath__soap"></div>
+        <div class="bath__duck">
+            <span class="bath__duck-body"></span>
+            <span class="bath__duck-head"></span>
+        </div>
+    </div>
+      <div class="bath__suds" style="left: 65px; top: 199px; width: 260px; height: 260px; z-index: 4;">
+        <div class="bath__fx" style="left: 40%; top: 42%; --fx-size: 44px;"><div class="fx__foam"><i class="fx__foam-blob fx__foam-blob--1"></i><i class="fx__foam-blob fx__foam-blob--2"></i><i class="fx__foam-blob fx__foam-blob--3"></i><i class="fx__foam-blob fx__foam-blob--4"></i><i class="fx__foam-blob fx__foam-blob--5"></i><i class="fx__foam-blob fx__foam-blob--6"></i></div></div>
+        <div class="bath__fx" style="left: 62%; top: 56%; --fx-size: 38px;"><div class="fx__foam"><i class="fx__foam-blob fx__foam-blob--1"></i><i class="fx__foam-blob fx__foam-blob--2"></i><i class="fx__foam-blob fx__foam-blob--3"></i><i class="fx__foam-blob fx__foam-blob--4"></i><i class="fx__foam-blob fx__foam-blob--5"></i><i class="fx__foam-blob fx__foam-blob--6"></i></div></div>
+        <div class="bath__fx" style="left: 52%; top: 30%; --fx-size: 70px; --fx-height: 26px;"><div class="fx__splash"><span class="fx__splash-ring"></span><span class="fx__splash-crown"></span><span class="fx__splash-drop fx__splash-drop--1"></span><span class="fx__splash-drop fx__splash-drop--2"></span><span class="fx__splash-drop fx__splash-drop--3"></span><span class="fx__splash-drop fx__splash-drop--4"></span></div></div>
+        <div class="bath__fx" style="left: 76%; top: 24%; --fx-size: 30px;"><div class="fx__bubble"><span class="fx__bubble-core"></span><span class="fx__bubble-highlight"></span><span class="fx__bubble-sheen"></span></div></div>
+      </div>
+    </div>
+
+    <div class="bathroom__bar"><button class="overlay-close">✕</button></div>
+
+    <div class="bathroom__tools">
+      <div class="bathroom__hint">Sabunu Max-ın üstündə gəzdir</div>
+      <div class="progress" style="height: 10px; width: 74%"><div class="progress__bar" style="width: 46%"></div></div>
+      <button class="panel__item panel__item--tool"><span style="font-size: 34px">🧼</span></button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

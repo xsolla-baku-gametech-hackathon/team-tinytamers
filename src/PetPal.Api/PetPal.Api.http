@@ -1,0 +1,133 @@
+@host = http://localhost:5180
+
+### Sağlamlıq
+GET {{host}}/health
+
+### 1. Valideyn qeydiyyatı
+# @name register
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "ana@petpal.test",
+  "password": "Passw0rd!",
+  "displayName": "Aysel"
+}
+
+### 2. Valideyn girişi
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "ana@petpal.test",
+  "password": "Passw0rd!"
+}
+
+@parentToken = {{login.response.body.accessToken}}
+
+### 3. Uşaq profili yarat
+# @name createChild
+POST {{host}}/api/auth/children
+Authorization: Bearer {{parentToken}}
+Content-Type: application/json
+
+{
+  "displayName": "Ava",
+  "age": 8,
+  "avatarKey": "avatar-fox",
+  "pin": "1234",
+  "petName": "Max",
+  "petSpecies": "fox"
+}
+
+@childId = {{createChild.response.body.id}}
+
+### 4. Uşaq sessiyasına keç
+# @name childLogin
+POST {{host}}/api/auth/children/login
+Authorization: Bearer {{parentToken}}
+Content-Type: application/json
+
+{
+  "childId": "{{childId}}",
+  "pin": "1234"
+}
+
+@childToken = {{childLogin.response.body.accessToken}}
+
+### 5. Ana ekran
+GET {{host}}/api/home
+Authorization: Bearer {{childToken}}
+
+### 6. Öyrənmə sessiyası başlat
+# @name session
+POST {{host}}/api/learn/sessions
+Authorization: Bearer {{childToken}}
+Content-Type: application/json
+
+{
+  "skill": "Math",
+  "questionCount": 5
+}
+
+### 7. Cavab göndər (questionId-ni yuxarıdakı cavabdan götürün)
+POST {{host}}/api/learn/answers
+Authorization: Bearer {{childToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "{{session.response.body.sessionId}}",
+  "questionId": "{{session.response.body.questions[0].id}}",
+  "chosenIndex": 0,
+  "elapsedMs": 2400
+}
+
+### 8. Pet-ə qulluq
+POST {{host}}/api/pet/care
+Authorization: Bearer {{childToken}}
+Content-Type: application/json
+
+{ "action": "Play" }
+
+### 9. Dünya xəritəsi
+GET {{host}}/api/world
+Authorization: Bearer {{childToken}}
+
+### 10. Kəşf qeyd et
+# @name discover
+POST {{host}}/api/discoveries
+Authorization: Bearer {{childToken}}
+Content-Type: application/json
+
+{
+  "label": "Leaf",
+  "categoryKey": "nature",
+  "photoBase64": "/9j/4AAQSkZJRg=="
+}
+
+@discoveryId = {{discover.response.body.id}}
+
+### 11. Kolleksiya
+GET {{host}}/api/discoveries
+Authorization: Bearer {{childToken}}
+
+### 11b. Kəşfin şəkli
+GET {{host}}/api/discoveries/{{discoveryId}}/photo
+Authorization: Bearer {{childToken}}
+
+### 12. İnkişaf xülasəsi
+GET {{host}}/api/progress
+Authorization: Bearer {{childToken}}
+
+### 13. Valideyn paneli
+GET {{host}}/api/parent/children/{{childId}}/dashboard
+Authorization: Bearer {{parentToken}}
+
+### 14. Uşağın kəşfləri — valideyn baxışı
+GET {{host}}/api/parent/children/{{childId}}/discoveries
+Authorization: Bearer {{parentToken}}
+
+### 14b. Kəşfin şəkli — valideyn baxışı
+GET {{host}}/api/parent/children/{{childId}}/discoveries/{{discoveryId}}/photo
+Authorization: Bearer {{parentToken}}

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>PetPal.Web</RootNamespace>
+
+    <!-- Statik fayllar nginx tərəfindən verilir; .br/.gz variantları da yaradılır ki,
+         nginx onları hazır sıxılmış şəkildə göndərsin (gzip_static). -->
+    <CompressionEnabled>true</CompressionEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.9" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PetPal.App.Ui\PetPal.App.Ui.csproj" />
+  </ItemGroup>
+
+</Project>

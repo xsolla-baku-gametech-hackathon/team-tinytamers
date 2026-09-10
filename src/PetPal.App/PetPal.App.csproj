@@ -1,0 +1,83 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+    <PropertyGroup>
+        <TargetFrameworks>net10.0-android</TargetFrameworks>
+        <!-- iOS/MacCatalyst yalnız macOS-də qurulur — Windows/Linux build-i lazımsız
+             workload tələb etməsin deyə şərt daraldılıb (CI-da macOS job-u bunları qurur). -->
+        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
+        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
+
+        <OutputType>Exe</OutputType>
+        <RootNamespace>PetPal.App</RootNamespace>
+        <UseMaui>true</UseMaui>
+        <SingleProject>true</SingleProject>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <EnableDefaultCssItems>false</EnableDefaultCssItems>
+        <Nullable>enable</Nullable>
+        <MauiXamlInflator>SourceGen</MauiXamlInflator>
+
+        <ApplicationTitle>AI Pets for Kids</ApplicationTitle>
+        <ApplicationId>com.petpal.kids</ApplicationId>
+
+        <ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
+        <ApplicationVersion>1</ApplicationVersion>
+
+        <WindowsPackageType>None</WindowsPackageType>
+
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+        <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+    </PropertyGroup>
+
+    <!-- Masaüstü paketi (scripts/dev/publish-windows.ps1): app öz .NET və Windows App SDK
+         runtime-ını daşısın deyə self-contained yığılır.
+
+         Bu ayarlar əmr sətrindəki RID/self-contained bayraqları ilə verilə bilməz: `dotnet publish -f
+         net10.0-windows...` restore-u BÜTÜN TargetFrameworks üçün işlədir və qlobal
+         RuntimeIdentifier android hədəfinə də düşür — nəticədə mövcud olmayan
+         Microsoft.NETCore.App.Runtime.Mono.win-x64 paketi axtarılır (NU1102). TFM şərti ilə
+         csproj-da vermək bunun qarşısını alır. -->
+    <PropertyGroup Condition="'$(PetPalDesktopPackage)' == 'true' And $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <SelfContained>true</SelfContained>
+        <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#6C4CF1" />
+        <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#6C4CF1" BaseSize="128,128" />
+        <MauiImage Include="Resources\Images\*" />
+        <MauiFont Include="Resources\Fonts\*" />
+        <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+        <PackageReference Include="Plugin.Fingerprint" Version="2.1.5" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\PetPal.App.Ui\PetPal.App.Ui.csproj" />
+    </ItemGroup>
+
+    <!-- Debug-da şəbəkə konfiqurasiyasını əvəz edən manifest overlay-i: fiziki telefon
+         lokal API-yə HTTP ilə qoşula bilsin deyə. Release manifestə toxunulmur. -->
+    <ItemGroup Condition="'$(Configuration)' == 'Debug' And $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+        <AndroidManifestOverlay Include="Platforms\Android\AndroidManifest.Debug.xml" />
+    </ItemGroup>
+
+    <!-- Dev API ünvanını build zamanı ötürmək üçün:
+           dotnet build ... -p:PetPalDevApiUrl=http://192.168.0.103:5180/
+         Beləliklə fiziki cihazda test etmək üçün mənbə kodunu redaktə etmək lazım gəlmir. -->
+    <ItemGroup Condition="'$(PetPalDevApiUrl)' != ''">
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>PetPalDevApiUrl</_Parameter1>
+            <_Parameter2>$(PetPalDevApiUrl)</_Parameter2>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+</Project>

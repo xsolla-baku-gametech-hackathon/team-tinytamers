@@ -1,0 +1,1291 @@
+@page "/arena"
+@implements IDisposable
+@inject GameApiClient Api
+@inject LiveClient Live
+@inject AppSession Session
+@inject AppState State
+@inject NavigationManager Navigation
+@inject Loc Loc
+
+@* Bilik Arenası — Öyrən bölməsinin yarış rejimi.
+
+   Yarış SİNXRONDUR: dəst rəqibsiz BAŞLAMIR. Uşaq axtarış ekranında canlı
+   gözləyir, rəqib tapılanda hər ikisinin ekranında eyni geri sayım işə düşür
+   və suallar ikisi üçün eyni anda açılır. Qaydanı server saxlayır — duel
+   başlamayıbsa cavab qəbul edilmir.
+
+   Rəqib tapılmayanda uşaq boş ekranda saxlanılmır: bir müddət sonra ona
+   məşq rəqibi təklif olunur və axtarışı dayandırmaq düyməsi verilir.
+   Axtarışdan çıxanda duel hovuzdan ÇIXARILIR (cancel) — əks halda başqa uşaq
+   heç vaxt oynamayacaq rəqiblə üz-üzə qalardı.
+
+   Dəst bitəndən sonra qısa gözləmə ola bilər: rəqib son suallarını cavablayır.
+   O bitirən kimi nəticə real vaxt kanalı ilə ÖZÜ açılır.
+
+   Tanımadığı rəqibin ƏSL ADI göstərilmir: yalnız pet adı, avatar və səviyyə.
+   Məşq rəqibi isə açıq şəkildə "🤖 Məşq rəqibi" kimi işarələnir — süni rəqibi
+   əsl uşaq kimi göstərmək uşağa yalan danışmaqdır. Məhz buna görə məşq
+   duelində axtarış ekranı YOXDUR: axtarılası rəqib yoxdur. *@
+
+<h1 class="visually-hidden-title">@Loc.T("Bilik Arenası", "Knowledge Arena")</h1>
+
+<LoadingState IsLoading="_loading" Error="@_error" OnRetry="LoadAsync"
+              LoadingText="@Loc.T("Arena hazırlanır…", "Getting the arena ready…")">
+    @if (_status is { Enabled: false })
+    {
+        <div class="state">
+            <div class="state__icon" aria-hidden="true">🏆</div>
+            <div>@Loc.T("Yarış hələ açılmayıb. Valideynindən xahiş et ki, onu açsın.",
+                        "The arena isn't switched on yet. Ask your grown-up to turn it on.")</div>
+            <a class="btn btn--primary" href="learn">@Loc.T("Öyrənməyə qayıt", "Back to learning")</a>
+        </div>
+    }
+    else if (_search is { } phase)
+    {
+        @* ---------- Rəqib axtarışı ---------- *@
+        <div class="list-scroll">
+            <div class="card duel-search">
+                <h2 class="card__title duel-search__title">@SearchTitle</h2>
+
+                <div class="duel-search__faces">
+                    <div class="duel-search__side">
+                        <span class="duel-search__avatar" aria-hidden="true">@DisplayNames.Avatar(MyAvatarKey)</span>
+                        <span class="duel-search__name">@MyName</span>
+                    </div>
+
+                    <span class="duel-search__vs" aria-hidden="true">VS</span>
+
+                    <div class="duel-search__side">
+                        @if (phase == SearchPhase.Found && _pendingDuel?.Opponent is { } rival)
+                        {
+                            <span class="duel-search__avatar duel-search__avatar--found" aria-hidden="true">
+                                @DisplayNames.Avatar(rival.AvatarKey)
+                            </span>
+                            <span class="duel-search__name">@OpponentName(rival)</span>
+                            <span class="duel-search__level">@Loc.T($"Səviyyə {rival.Level}", $"Level {rival.Level}")</span>
+                        }
+                        else
+                        {
+                            @* Başlıq və status onsuz da "axtarılır" deyir — burada
+                               yalnız qısa etiket qalır ki, eyni cümlə üç dəfə oxunmasın. *@
+                            <span class="duel-search__radar" aria-hidden="true">?</span>
+                            <span class="duel-search__name">@Loc.T("Rəqib", "Rival")</span>
+                        }
+                    </div>
+                </div>
+
+                @* Ekran oxuyucusu üçün mərhələ dəyişikliyi səslənməlidir. *@
+                <p class="duel-search__status" role="status" aria-live="polite">@SearchStatus</p>
+
+                @if (phase == SearchPhase.Found)
+                {
+                    @* Geri sayım hər iki ekranda EYNİ anda bitir: qalıq vaxtı
+                       server verir, ona görə gec xəbər alan uşağın sayğacı daha
+                       kiçik rəqəmdən başlayır. *@
+                    <div class="duel-countdown" aria-live="assertive">
+                        @if (_countdown > 0)
+                        {
+                            <span class="duel-countdown__number" @key="_countdown">@_countdown</span>
+                        }
+                        else
+                        {
+                            <span class="duel-countdown__go">@Loc.T("BAŞLA!", "GO!")</span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="duel-search__bar" aria-hidden="true">
+                        <div class="duel-search__bar-fill duel-search__bar-fill--loop"></div>
+                    </div>
+
+                    @* Uşaq axtarışa MƏHKUM deyil: istədiyi an dayandıra bilər.
+                       Dayandırmaq duelin özünü də hovuzdan çıxarır. *@
+                    <button class="btn btn--ghost btn--block" style="margin-top:14px" @onclick="CancelSearchAsync">
+                        @Loc.T("Axtarışı dayandır", "Stop searching")
+                    </button>
+
+                    @* Gözləmə uzanırsa alternativ təklif olunur — amma ƏSL yarış
+                       yenə də rəqibsiz başlamır. Bu, başqa bir oyundur və açıq
+                       şəkildə belə işarələnib. *@
+                    @if (_searchSeconds >= PatienceSeconds)
+                    {
+                        <button class="btn btn--primary btn--block" style="margin-top:10px"
+                                disabled="@_busy" @onclick="SwitchToPracticeAsync">
+                            @Loc.T("🤖 Məşq rəqibi ilə oyna", "🤖 Play the practice rival")
+                        </button>
+                        <p class="card__subtitle" style="margin-top:8px">
+                            @Loc.T("Məşqdə ulduz və reytinq dəyişmir.", "Practice doesn't change stars or rating.")
+                        </p>
+                    }
+                }
+            </div>
+        </div>
+    }
+    else if (_result is not null)
+    {
+        @* ---------- Nəticə ---------- *@
+        <div class="list-scroll">
+            <div class="card" style="text-align:center">
+                <div style="font-size:44px" aria-hidden="true">@OutcomeIcon</div>
+
+                @* Hökm SÖZLƏ yazılır. Xüsusən sürətlə qazanılan dueldə hesab
+                   3–3 görünür və uşaq udduğunu rəqəmlərdən ANLAMIR. *@
+                <div class="duel-verdict @VerdictClass">@VerdictText</div>
+
+                <h2 class="card__title">@_result.PetMessage</h2>
+
+                <div class="duel-score">
+                    <div class="duel-score__side">
+                        <div class="duel-score__who">@Loc.T("Sən", "You")</div>
+                        <div class="duel-score__value">@_result.MyCorrectCount</div>
+                        <div class="duel-score__time @(IAmFaster ? "duel-score__time--fast" : null)">
+                            @Seconds(_result.MyTotalMilliseconds)@(IAmFaster ? " ⚡" : null)
+                        </div>
+                    </div>
+                    <div class="duel-score__vs" aria-hidden="true">VS</div>
+                    <div class="duel-score__side">
+                        <div class="duel-score__who">@OpponentName(_result.Opponent)</div>
+                        <div class="duel-score__value">@_result.OpponentCorrectCount</div>
+                        <div class="duel-score__time @(RivalIsFaster ? "duel-score__time--fast" : null)">
+                            @Seconds(_result.OpponentTotalMilliseconds)@(RivalIsFaster ? " ⚡" : null)
+                        </div>
+                    </div>
+                </div>
+
+                @* Qalibi vaxt seçibsə səbəb açıq yazılır — yoxsa bərabər rəqəmlərin
+                   yanındakı 🏆 uşaq üçün izahsız qalır. *@
+                @if (_result.DecidedBySpeed)
+                {
+                    <div class="duel-speed-note">
+                        @Loc.T(
+                            $"⚡ Cavab sayı bərabər oldu ({_result.MyCorrectCount}–{_result.OpponentCorrectCount}) — qalibi VAXT seçdi: sən {Seconds(_result.MyTotalMilliseconds)}, rəqib {Seconds(_result.OpponentTotalMilliseconds)}.",
+                            $"⚡ You matched on answers ({_result.MyCorrectCount}–{_result.OpponentCorrectCount}) — the clock decided it: you {Seconds(_result.MyTotalMilliseconds)}, your rival {Seconds(_result.OpponentTotalMilliseconds)}.")
+                    </div>
+                }
+
+                @if (_result.IsPractice)
+                {
+                    <div class="alert alert--info" style="margin-top:16px">
+                        @Loc.T("Bu məşq idi 🤖 Ulduz və reytinq dəyişmir.",
+                               "That was practice 🤖 No stars or rating change.")
+                    </div>
+                }
+                else
+                {
+                    <div class="metrics" style="margin-top:16px">
+                        <div class="metric">
+                            <div class="metric__value">+@_result.StarsEarned</div>
+                            <div class="metric__label">@Loc.T("Ulduz", "Stars")</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric__value">@_result.RatingAfter</div>
+                            <div class="metric__label">@Loc.T("Reytinq", "Rating")</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric__value">@RatingDelta</div>
+                            <div class="metric__label">@Loc.T("Dəyişim", "Change")</div>
+                        </div>
+                    </div>
+
+                    @* Sürət bonusu ulduzun İÇİNDƏDİR — uşaq niyə bu dəfə daha çox
+                       aldığını görməlidir, yoxsa qayda görünməz qalır. *@
+                    @if (_result.SpeedBonusStars > 0)
+                    {
+                        <div class="duel-bonus">
+                            @Loc.T(
+                                $"⚡ Sürət bonusu: bu {_result.StarsEarned} ulduzun {_result.SpeedBonusStars}-i rəqibi tez qabaqladığın üçündür!",
+                                $"⚡ Speed bonus: {_result.SpeedBonusStars} of those {_result.StarsEarned} stars came from beating your rival to it!")
+                        </div>
+                    }
+                }
+
+                @if (_result.NewBadges.Count > 0)
+                {
+                    <h3 class="section-title">@Loc.T("Yeni nişanlar", "New badges")</h3>
+                    <div class="badges">
+                        @foreach (var badge in _result.NewBadges)
+                        {
+                            <div class="badge-tile">
+                                <div class="badge-tile__icon" aria-hidden="true">🏅</div>
+                                <div class="badge-tile__title">@badge.Title</div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            @* Sual-sual müqayisə: uşaq rəqibin harada tez, harada səhv etdiyini görür.
+               Asenxron duelin "canlı" hissi məhz buradan gəlir. *@
+            <div class="card">
+                <h3 class="card__title">@Loc.T("Sual-sual", "Question by question")</h3>
+
+                @foreach (var row in _result.Questions)
+                {
+                    <div class="duel-row">
+                        <div class="duel-row__prompt">@(row.Order + 1). @row.Prompt</div>
+                        <div class="duel-row__marks">
+                            <span class="duel-mark @(row.MyCorrect ? "duel-mark--win" : "duel-mark--miss")">
+                                @Loc.T("Sən", "You") @(row.MyCorrect ? "✓" : "✕") · @Seconds(row.MyElapsedMs)@(FasterOn(row) == 1 ? " ⚡" : null)
+                            </span>
+                            <span class="duel-mark @(row.OpponentCorrect ? "duel-mark--win" : "duel-mark--miss")">
+                                @Loc.T("Rəqib", "Rival") @(row.OpponentCorrect ? "✓" : "✕") · @Seconds(row.OpponentElapsedMs)@(FasterOn(row) == 2 ? " ⚡" : null)
+                            </span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="card">
+                <button class="btn btn--primary btn--block" @onclick="BackToLobbyAsync">
+                    @Loc.T("Arenaya qayıt", "Back to the arena")
+                </button>
+                <a class="link-button" href="learn">@Loc.T("Öyrənməyə qayıt", "Back to learning")</a>
+            </div>
+        </div>
+    }
+    else if (_duel is not null && !_duel.Finished && CurrentQuestion is not null)
+    {
+        @* ---------- Duel ---------- *@
+        <div class="progress__row">
+            <span>@DisplayNames.SkillIcon(_duel.Skill) @DisplayNames.Skill(Loc, _duel.Skill)</span>
+            <span>@(_index + 1) / @_duel.Questions.Count</span>
+        </div>
+        <div class="progress" style="margin-bottom:14px">
+            <div class="progress__bar" style="width:@DuelPercent%"></div>
+        </div>
+
+        <div class="duel-strip">
+            <span class="duel-strip__me">@Loc.T("Sən", "You")</span>
+            <span class="duel-strip__vs" aria-hidden="true">VS</span>
+            <span class="duel-strip__rival">
+                @* Sinxron yarışda oynanan duelin rəqibi HƏMİŞƏ var — bu budaq
+                   yalnız gözlənilməz hal üçün qalır və yalan söz deməməlidir. *@
+                @if (_duel.Opponent is null)
+                {
+                    @Loc.T("Rəqib", "Rival")
+                }
+                else
+                {
+                    @($"{DisplayNames.Avatar(_duel.Opponent.AvatarKey)} {OpponentName(_duel.Opponent)}")
+
+                    @* Rəqibin gedişi CANLI gəlir (SignalR) — uşaq "o hardadır?"
+                       deyə ekranı yeniləmir. Kanal yoxdursa sadəcə görünmür. *@
+                    @if (_rivalAnswered > 0)
+                    {
+                        <text> · @_rivalAnswered/@_duel.Questions.Count</text>
+                    }
+                }
+            </span>
+        </div>
+
+        <div class="list-scroll">
+            <div class="card">
+                <div class="question">@CurrentQuestion.Prompt</div>
+
+                <div class="options">
+                    @for (var i = 0; i < CurrentQuestion.Options.Count; i++)
+                    {
+                        var index = i;
+                        <button class="option @OptionClass(index)" disabled="@(_lastAnswer is not null || _busy)"
+                                @onclick="() => AnswerAsync(index)">
+                            <span class="option__key" aria-hidden="true">@((char)('A' + index))</span>
+                            <span>@CurrentQuestion.Options[index]</span>
+                        </button>
+                    }
+                </div>
+
+                @* Yarışda "Növbəti" düyməsi YOXDUR: cavabdan sonra izah görünür və
+                   dəst özü irəliləyir. Zolaq növbəti sualın nə vaxt gələcəyini
+                   göstərir ki, uşaq ekranın donduğunu düşünməsin. *@
+                @if (_lastAnswer is not null)
+                {
+                    <div @key="_index" class="feedback @(_lastAnswer.IsCorrect ? "feedback--correct" : "feedback--wrong")">
+                        <div>@_lastAnswer.PetReaction</div>
+                        <div style="margin-top:6px;font-weight:600">@_lastAnswer.Explanation</div>
+
+                        <div class="feedback__timer" aria-hidden="true">
+                            <div class="feedback__timer-fill" style="animation-duration:@(FeedbackMs)ms"></div>
+                        </div>
+
+                        <div class="feedback__next">
+                            @(IsLastQuestion
+                                ? Loc.T("Nəticə açılır…", "Opening the result…")
+                                : Loc.T("Növbəti sual gəlir…", "Next question coming…"))
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @* İpucu QƏSDƏN yoxdur: yarışda hər iki uşaq eyni şəraitdə olmalıdır. *@
+    }
+    else if (_duel is not null && _duel.Finished)
+    {
+        @* ---------- Rəqib son suallarını cavablayır ----------
+           Sinxron yarışda bu gözləmə qısadır: rəqib elə indi oynayır. O bitirən
+           kimi nəticə ÖZÜ açılır (real vaxt kanalı), ona görə uşaq heç nəyə
+           basmamalıdır. Yenə də çıxış yolu var — gözləmək məcburi deyil. *@
+        <div class="state">
+            <div class="state__icon" aria-hidden="true">⏳</div>
+            <div>@Loc.T($"Dəstini bitirdin! {OpponentName(_duel.Opponent)} son suallarını cavablayır — nəticə özü açılacaq.",
+                        $"You finished your set! {OpponentName(_duel.Opponent)} is on the last questions — the result will open by itself.")</div>
+            <div class="spinner" aria-hidden="true"></div>
+            <button class="btn btn--ghost" @onclick="BackToLobbyAsync">@Loc.T("Arenaya qayıt", "Back to the arena")</button>
+            <a class="link-button" href="">@Loc.T("Ana ekrana qayıt", "Back to home")</a>
+        </div>
+    }
+    else if (_status is not null)
+    {
+        @* ---------- Giriş ---------- *@
+
+        @* Dostlar ekranı arenanın İÇİNDƏDİR. Səbəb: onlayn hərəkətin hamısı
+           burada baş verir, alt panel isə beş bənddə qalmalıdır — altıncı bənd
+           360 px-lik ekranda toxunma sahəsini daraldır. *@
+        <div class="tabs" role="tablist">
+            <button class="tab @(_tab == ArenaTab.Duel ? "tab--on" : null)" role="tab"
+                    aria-selected="@(_tab == ArenaTab.Duel)" @onclick="() => _tab = ArenaTab.Duel">
+                ⚔️ @Loc.T("Yarış", "Duel")
+            </button>
+            <button class="tab @(_tab == ArenaTab.Friends ? "tab--on" : null)" role="tab"
+                    aria-selected="@(_tab == ArenaTab.Friends)" @onclick="() => _tab = ArenaTab.Friends">
+                🪪 @Loc.T("Dostlar", "Friends")
+            </button>
+        </div>
+
+        @if (_tab == ArenaTab.Friends)
+        {
+            <FriendsPanel ShowChallenge="true" OnChallengeStarted="OnChallengeStartedAsync" />
+        }
+        else
+        {
+        <div class="list-scroll">
+
+            @* Dostun çağırışı hər şeydən əvvəl gəlir: o, ekran qarşısında
+               gözləyir və cavab bir dəqiqədən sonra sönür. *@
+            @foreach (var challenge in _status.IncomingChallenges)
+            {
+                <div class="card card--challenge">
+                    <h2 class="card__title">
+                        @DisplayNames.Avatar(challenge.AvatarKey)
+                        @Loc.T($"{challenge.FromName} səni yarışa çağırır!", $"{challenge.FromName} is challenging you!")
+                    </h2>
+                    <p class="card__subtitle">
+                        @Loc.T("Eyni 5 sualı eyni anda həll edəcəksiniz.", "You'll both solve the same 5 questions at the same time.")
+                    </p>
+
+                    <div class="row-actions" style="margin-top:12px">
+                        <button class="btn btn--success" disabled="@_busy"
+                                @onclick="() => AcceptChallengeAsync(challenge.DuelId)">
+                            @Loc.T("Qəbul et", "Accept")
+                        </button>
+                        <button class="btn btn--ghost" disabled="@_busy"
+                                @onclick="() => DeclineChallengeAsync(challenge.DuelId)">
+                            @Loc.T("İndi yox", "Not now")
+                        </button>
+                    </div>
+                </div>
+            }
+
+            @if (_status.PendingResultDuelIds.Count > 0)
+            {
+                <button class="card card--tappable" @onclick="() => OpenResultAsync(_status.PendingResultDuelIds[0])">
+                    <div class="card__title">🎉 @Loc.T("Duelin nəticəsi hazırdır!", "Your duel result is ready!")</div>
+                    <p class="card__subtitle">
+                        @Loc.T($"{_status.PendingResultDuelIds.Count} duel səni gözləyir.",
+                               $"{_status.PendingResultDuelIds.Count} duel is waiting for you.")
+                    </p>
+                </button>
+            }
+
+            <div class="card" style="text-align:center">
+                <div style="font-size:40px" aria-hidden="true">🏆</div>
+                <h2 class="card__title">@Loc.T("Bilik Arenası", "Knowledge Arena")</h2>
+                <p class="card__subtitle">
+                    @Loc.T("Başqa bir uşaqla EYNİ ANDA eyni 5 sualı həll edirsən. Yarış rəqib tapılmadan başlamır. Qalibi doğru cavab sayı, bərabərlikdə isə sürət müəyyən edir — rəqibi nə qədər tez qabaqlasan, bir o qədər çox ulduz qazanırsan.",
+                           "You and another child solve the same 5 questions AT THE SAME TIME. The duel doesn't start until a rival is found. The winner is decided by correct answers, and by speed when it's a tie — the further ahead of your rival you finish, the more stars you win.")
+                </p>
+
+                <div class="metrics" style="margin-top:16px">
+                    <div class="metric">
+                        <div class="metric__value">@_status.Rating</div>
+                        <div class="metric__label">@Loc.T("Reytinq", "Rating")</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric__value">@_status.Wins</div>
+                        <div class="metric__label">@Loc.T("Qalibiyyət", "Wins")</div>
+                    </div>
+                    @* Gündəlik hədd bağlıdırsa sayğac yerinə ∞ durur — uşaq
+                       "bu gün neçə qalıb?" sualını verməməlidir. *@
+                    <div class="metric">
+                        <div class="metric__value">@(HasDailyLimit ? _status.DuelsLeftToday.ToString() : "∞")</div>
+                        <div class="metric__label">@(HasDailyLimit ? Loc.T("Qalıb", "Left") : Loc.T("Duel", "Duels"))</div>
+                    </div>
+                </div>
+
+                @if (_startError is not null)
+                {
+                    <div class="alert alert--error" style="margin-top:16px">@_startError</div>
+                }
+
+                <button class="btn btn--primary btn--block" style="margin-top:18px"
+                        disabled="@(_busy || !CanStartDuel)" @onclick="StartDuelAsync">
+                    @(CanStartDuel
+                        ? Loc.T("⚔️ Yarışa başla", "⚔️ Start a duel")
+                        : Loc.T("Bu günlük bitdi — sabah davam edərik", "That's it for today — see you tomorrow"))
+                </button>
+
+                @* Məşq rejimi AÇIQ işarələnir: uşaq bilir ki, qarşısındakı əsl uşaq deyil.
+                   Rəqib süni olduğuna görə burada axtarış ekranı da yoxdur. *@
+                <button class="btn btn--ghost btn--block" style="margin-top:10px"
+                        disabled="@_busy" @onclick="StartPracticeAsync">
+                    @Loc.T("🤖 Məşq rəqibi ilə oyna", "🤖 Play the practice rival")
+                </button>
+                <p class="card__subtitle" style="margin-top:8px">
+                    @Loc.T("Məşqdə ulduz və reytinq dəyişmir.", "Practice doesn't change stars or rating.")
+                </p>
+            </div>
+
+            @* Həftəlik liqa: ümumi siyahıda uşaqlar YALNIZ pet adı ilə görünür,
+               dostlar isə əsl adı ilə — qapalı dövrə qaydası burada da işləyir. *@
+            @if (_league is not null && _league.Rows.Count > 0)
+            {
+                <div class="card">
+                    <h3 class="card__title">🥇 @Loc.T("Həftəlik liqa", "Weekly league")</h3>
+                    <p class="card__subtitle">
+                        @(_league.MyRank > 0
+                            ? Loc.T($"Sənin yerin: {_league.MyRank} · {_league.MyPoints} xal",
+                                    $"Your place: {_league.MyRank} · {_league.MyPoints} points")
+                            : Loc.T("Bu həftə hələ duel oynamamısan.", "You haven't duelled this week yet."))
+                    </p>
+
+                    @foreach (var row in _league.Rows)
+                    {
+                        <div class="league-row @(row.IsMe ? "league-row--me" : null)">
+                            <span class="league-row__rank">@row.Rank</span>
+                            <span class="league-row__avatar" aria-hidden="true">@DisplayNames.Avatar(row.AvatarKey)</span>
+                            <span class="league-row__name">@(row.DisplayName ?? row.PetName)</span>
+                            <span class="league-row__score">@row.Wins-@row.Draws-@row.Losses</span>
+                            <span class="league-row__points">@row.Points</span>
+                        </div>
+                    }
+
+                    <p class="card__subtitle" style="margin-top:10px">
+                        @Loc.T("Cədvəl hər bazar ertəsi sıfırlanır. Qalibiyyət 3 xal, bərabərlik 1 xal.",
+                               "The table resets every Monday. A win is 3 points, a draw is 1.")
+                    </p>
+                </div>
+            }
+
+            @if (_status.FriendsOnly)
+            {
+                <div class="alert alert--info">
+                    @Loc.T("Valideynin yalnız dostlarla yarışmağı seçib — rəqib tapılmaya bilər.",
+                           "Your grown-up chose friends-only duels, so a rival may take a while.")
+                </div>
+            }
+        </div>
+        }
+    }
+</LoadingState>
+
+@code {
+    /// <summary>
+    /// Bu qədər saniyədən sonra uşağa məşq rəqibi TƏKLİF olunur. Təklif əsl
+    /// yarışı əvəz etmir — axtarış davam edir, sadəcə uşaq boş ekranda ilişib
+    /// qalmır. 6–10 yaş üçün 15 saniyə onsuz da uzundur.
+    /// </summary>
+    private const int PatienceSeconds = 15;
+
+    /// <summary>
+    /// Axtarış zamanı duelin öz yoxlanma addımı. Real vaxt kanalı adətən
+    /// rəqibi daha tez gətirir, amma sorğu ondan ASILI OLMAYAN ehtiyatdır:
+    /// kanal bağlı ola bilər, yaxud xəbər duel ekrana çatmamışdan əvvəl gələ bilər.
+    /// </summary>
+    private const int PollIntervalMs = 3_000;
+
+    /// <summary>Server geri sayım vermirsə (köhnə cavab) işlədilən ehtiyat müddət.</summary>
+    private const int FallbackCountdownMs = 3_000;
+
+    /// <summary>
+    /// Cavabdan sonra izahın ekranda qaldığı vaxt. Düz və səhv cavabda EYNİDİR:
+    /// müddət serverdə əvvəlki cavabdan bəri ölçülür, yəni bu fasilə növbəti
+    /// sualın vaxtına düşür. Sabit olanda hər iki uşaq eyni "vergini" ödəyir və
+    /// sürət ədalətli qalır — səhv cavab ikinci dəfə cəzalandırılmır.
+    /// </summary>
+    private const int FeedbackMs = 1600;
+
+    /// <summary>
+    /// Axtarış ekranının mərhələləri. "Tək oyna" mərhələsi QƏSDƏN yoxdur:
+    /// yarış rəqibsiz başlamır.
+    /// </summary>
+    private enum SearchPhase
+    {
+        /// <summary>Radar dönür — uyğun rəqib axtarılır.</summary>
+        Looking,
+
+        /// <summary>Rəqib tapıldı: üzü açılır və geri sayım gedir.</summary>
+        Found
+    }
+
+    private ArenaStatusDto? _status;
+    private ArenaLeagueDto? _league;
+    private ArenaDuelDto? _duel;
+    private ArenaDuelResultDto? _result;
+    private DuelAnswerResultDto? _lastAnswer;
+
+    /// <summary>Axtarış getmirsə <c>null</c>.</summary>
+    private SearchPhase? _search;
+
+    /// <summary>Axtarış ekranı arxasında hazır duran dəst — səhnə bitəndə açılır.</summary>
+    private ArenaDuelDto? _pendingDuel;
+
+    /// <summary>
+    /// Giriş ekranının iki tabı. Dostlar arenanın İÇİNDƏDİR: onlayn hərəkət
+    /// buradadır və alt panel beş bənddə qalır.
+    /// </summary>
+    private enum ArenaTab { Duel, Friends }
+
+    private ArenaTab _tab = ArenaTab.Duel;
+
+    /// <summary>
+    /// Birbaşa çağırış göndərilibsə çağırılan dostun adı. Doludursa axtarış
+    /// ekranı "axtarıram" yox, "gözləyirəm" deyir — rəqib artıq məlumdur.
+    /// </summary>
+    private string? _challengedName;
+
+    private int _searchSeconds;
+
+    /// <summary>Geri sayımın ekranda görünən rəqəmi; 0 — "BAŞLA!".</summary>
+    private int _countdown;
+
+    private CancellationTokenSource? _searchCts;
+    private CancellationTokenSource? _feedbackCts;
+
+    private int _index;
+    private int _chosenIndex = -1;
+
+    /// <summary>Rəqibin canlı gedişi (SignalR); kanal yoxdursa 0 qalır.</summary>
+    private int _rivalAnswered;
+    private bool _loading = true;
+    private bool _busy;
+
+    /// <summary>Ekranı əvəz edən yükləmə xətası.</summary>
+    private string? _error;
+
+    /// <summary>Duel başlamadı (limit, ekran vaxtı) — giriş kartı yerində qalır.</summary>
+    private string? _startError;
+
+    private QuestionDto? CurrentQuestion =>
+        _duel is not null && _index < _duel.Questions.Count ? _duel.Questions[_index] : null;
+
+    private bool IsLastQuestion => _duel is not null && _index >= _duel.Questions.Count - 1;
+
+    /// <summary>Cavablanmış suallar da dolu sayılır: zolaq cavabla birlikdə irəliləyir.</summary>
+    private int DuelPercent => _duel is null || _duel.Questions.Count == 0
+        ? 0
+        : (_lastAnswer is null ? _index : _index + 1) * 100 / _duel.Questions.Count;
+
+    /// <summary>Gündəlik duel həddi qoşulubmu (server 0 verəndə hədd yoxdur).</summary>
+    private bool HasDailyLimit => _status is { DuelsPerDay: > 0 };
+
+    private bool CanStartDuel => _status is not null && (!HasDailyLimit || _status.DuelsLeftToday > 0);
+
+    private string MyAvatarKey => Session.ActiveChild?.AvatarKey ?? string.Empty;
+
+    private string MyName => string.IsNullOrWhiteSpace(Session.ActiveChildName)
+        ? Loc.T("Sən", "You")
+        : Session.ActiveChildName;
+
+    private string SearchTitle => _search switch
+    {
+        SearchPhase.Found => Loc.T("Rəqib tapıldı!", "Rival found!"),
+
+        // Çağırışda rəqib ARTIQ məlumdur — "axtarılır" demək yalan olardı.
+        _ when _challengedName is not null => Loc.T($"{_challengedName} gözlənilir…", $"Waiting for {_challengedName}…"),
+
+        _ => Loc.T("Rəqib axtarılır…", "Looking for a rival…")
+    };
+
+    private string SearchStatus => _search switch
+    {
+        SearchPhase.Found => Loc.T("Eyni 5 sualı hər ikiniz eyni anda həll edəcəksiniz. Hazır ol!",
+                                   "You'll both solve the same 5 questions at the same time. Get ready!"),
+
+        _ when _challengedName is not null =>
+            Loc.T($"Çağırış göndərildi. {_challengedName} qəbul edəndə yarış başlayacaq… {_searchSeconds}s",
+                  $"Challenge sent. The duel starts when {_challengedName} accepts… {_searchSeconds}s"),
+
+        // Gözləmə uzananda ton dəyişir: uşaq "səhv nəsə oldu" düşünməməlidir.
+        _ when _searchSeconds >= PatienceSeconds =>
+            Loc.T($"Hazırda boş uşaq tapılmır… {_searchSeconds}s. Gözləyə bilərsən — və ya məşq rəqibi ilə oynaya bilərsən.",
+                  $"Nobody is free right now… {_searchSeconds}s. You can wait — or play the practice rival."),
+
+        _ => Loc.T($"Sənin səviyyənə uyğun rəqib axtarıram… {_searchSeconds}s",
+                   $"Looking for a rival at your level… {_searchSeconds}s")
+    };
+
+    private string OutcomeIcon => _result?.Outcome switch
+    {
+        DuelOutcome.Win => "🏆",
+        DuelOutcome.Draw => "🤝",
+        DuelOutcome.Loss => "💪",
+        _ => "⏳"
+    };
+
+    /// <summary>Nəticənin bir sözlə hökmü — rəqəmlərə baxmadan oxunmalıdır.</summary>
+    private string VerdictText => _result?.Outcome switch
+    {
+        DuelOutcome.Win when _result.DecidedBySpeed => Loc.T("SÜRƏTLƏ QALİB GƏLDİN!", "YOU WON ON SPEED!"),
+        DuelOutcome.Win => Loc.T("QALİB GƏLDİN!", "YOU WON!"),
+        DuelOutcome.Draw => Loc.T("BƏRABƏRƏ", "IT'S A DRAW"),
+        DuelOutcome.Loss when _result.DecidedBySpeed => Loc.T("Rəqib bir az tez oldu", "Your rival was a touch faster"),
+        DuelOutcome.Loss => Loc.T("Bu dəfə rəqib qabaqladı", "Your rival edged ahead this time"),
+        DuelOutcome.Expired => Loc.T("Rəqib tapılmadı", "No rival turned up"),
+        _ => Loc.T("Rəqib gözlənilir", "Waiting for a rival")
+    };
+
+    private string VerdictClass => _result?.Outcome switch
+    {
+        DuelOutcome.Win => "duel-verdict--win",
+        DuelOutcome.Draw => "duel-verdict--draw",
+        _ => "duel-verdict--loss"
+    };
+
+    /// <summary>Vaxt müqayisəsi yalnız hər iki tərəf oynayıbsa mənalıdır.</summary>
+    private bool TimesComparable =>
+        _result is { MyTotalMilliseconds: > 0, OpponentTotalMilliseconds: > 0 };
+
+    private bool IAmFaster =>
+        TimesComparable && _result!.MyTotalMilliseconds < _result.OpponentTotalMilliseconds;
+
+    private bool RivalIsFaster =>
+        TimesComparable && _result!.OpponentTotalMilliseconds < _result.MyTotalMilliseconds;
+
+    /// <summary>Bir sualda kim tez oldu: 1 — uşaq, 2 — rəqib, 0 — bilinmir/bərabər.</summary>
+    private static int FasterOn(DuelQuestionResultDto row)
+    {
+        if (row.MyElapsedMs <= 0 || row.OpponentElapsedMs <= 0 || row.MyElapsedMs == row.OpponentElapsedMs)
+            return 0;
+
+        return row.MyElapsedMs < row.OpponentElapsedMs ? 1 : 2;
+    }
+
+    private string RatingDelta => _result is null
+        ? "0"
+        : (_result.RatingAfter - _result.RatingBefore) switch
+        {
+            > 0 and var up => $"+{up}",
+            var same => same.ToString()
+        };
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Real vaxt kanalı ekranın işləməsi üçün ŞƏRT DEYİL: açılmasa da duel
+        // eyni ilə oynanılır, sadəcə rəqibin gedişi və nəticə gec görünür.
+        Live.DuelMatched += OnDuelMatched;
+        Live.OpponentProgress += OnOpponentProgress;
+        Live.DuelCompleted += OnDuelCompleted;
+        Live.DuelChallenged += OnDuelChallenged;
+        Live.ChallengeCancelled += OnChallengeCancelled;
+
+        await LoadAsync();
+        await Live.EnsureStartedAsync();
+    }
+
+    public void Dispose()
+    {
+        Live.DuelMatched -= OnDuelMatched;
+        Live.OpponentProgress -= OnOpponentProgress;
+        Live.DuelCompleted -= OnDuelCompleted;
+        Live.DuelChallenged -= OnDuelChallenged;
+        Live.ChallengeCancelled -= OnChallengeCancelled;
+
+        // Axtarış yarımçıq qalıbsa duel hovuzdan çıxarılır: uşaq ekrandan
+        // gedibsə, onun açıq dueli başqa uşağı boş yerə gözlədərdi. Sorğunun
+        // cavabı gözlənilmir — səhifə onsuz da bağlanır; gözdən qaçarsa duel
+        // serverdə bir neçə dəqiqədən sonra özü ölür.
+        if (_search is not null && _pendingDuel is { } searching)
+            _ = Api.CancelDuelSearchAsync(searching.DuelId);
+
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
+        _feedbackCts?.Cancel();
+        _feedbackCts?.Dispose();
+    }
+
+    /// <summary>
+    /// Gözlədiyi duelə rəqib qoşuldu. Uşaq hələ axtarış ekranındadırsa rəqibin
+    /// üzü orada açılır — onlayn oyunlardakı "tapıldı" anı budur.
+    /// </summary>
+    private void OnDuelMatched(Guid duelId) => InvokeAsync(async () =>
+    {
+        if (_search == SearchPhase.Looking && _pendingDuel is { } waiting && waiting.DuelId == duelId)
+        {
+            var matched = await Api.GetDuelAsync(duelId);
+            if (matched is { Succeeded: true, Value: not null })
+                _pendingDuel = matched.Value;
+
+            await RevealFoundAsync();
+            return;
+        }
+
+        if (_duel is null || _duel.DuelId != duelId)
+            return;
+
+        var refreshed = await Api.GetDuelAsync(duelId);
+        if (refreshed is { Succeeded: true, Value: not null })
+        {
+            _duel.Opponent = refreshed.Value.Opponent;
+            StateHasChanged();
+        }
+    });
+
+    private void OnOpponentProgress(Guid duelId, int answered, int total) => InvokeAsync(() =>
+    {
+        if (_duel is null || _duel.DuelId != duelId)
+            return;
+
+        _rivalAnswered = answered;
+        StateHasChanged();
+    });
+
+    /// <summary>
+    /// Rəqib dəsti bitirdi. Uşaq həmin duelin gözləmə ekranındadırsa nəticə
+    /// ÖZÜ açılır; arena girişindədirsə "nəticə hazırdır" kartı yenilənir.
+    /// </summary>
+    private void OnDuelCompleted(Guid duelId) => InvokeAsync(async () =>
+    {
+        if (_duel is not null && _duel.DuelId == duelId)
+        {
+            await OpenResultAsync(duelId);
+            StateHasChanged();
+            return;
+        }
+
+        if (_duel is null && _result is null && _search is null)
+        {
+            await LoadAsync();
+            StateHasChanged();
+        }
+    });
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        _startError = null;
+        EndSearch();
+
+        var status = await Api.GetArenaStatusAsync();
+        if (!status.Succeeded || status.Value is null)
+        {
+            _error = status.Error;
+            _loading = false;
+            return;
+        }
+
+        _status = status.Value;
+        _result = null;
+        _duel = null;
+        _rivalAnswered = 0;
+
+        // Liqa cədvəli ekranın açılmasını BLOKLAMIR: gəlməsə bölmə sadəcə görünmür.
+        var league = await Api.GetArenaLeagueAsync();
+        _league = league.Succeeded ? league.Value : null;
+
+        // Yarımçıq duel varsa uşaq birbaşa ona qayıdır — dəst onsuz da dondurulub.
+        if (_status.ActiveDuelId is { } activeId)
+        {
+            var duel = await Api.GetDuelAsync(activeId);
+            if (duel.Succeeded && duel.Value is not null)
+                ShowDuel(duel.Value);
+        }
+
+        _loading = false;
+    }
+
+    // ---------- Rəqib axtarışı ----------
+
+    /// <summary>
+    /// Onlayn duel axtarış ekranı ilə başlayır. Ekran serverin cavabını
+    /// GÖZLƏMİR: uşaq düyməyə basan kimi radar görünür, sorğu isə arxada gedir.
+    /// </summary>
+    private async Task StartDuelAsync()
+    {
+        if (_busy || _search is not null || _status is null)
+            return;
+
+        _busy = true;
+        _startError = null;
+        _pendingDuel = null;
+        _searchSeconds = 0;
+        _search = SearchPhase.Looking;
+
+        _searchCts?.Dispose();
+        _searchCts = new CancellationTokenSource();
+        var token = _searchCts.Token;
+
+        _ = RunSearchClockAsync(token);
+
+        var result = await Api.StartDuelAsync();
+        _busy = false;
+
+        if (token.IsCancellationRequested)
+            return;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            // Limit və ekran vaxtı mesajları giriş kartında qalır: bütün ekranı
+            // xəta ilə əvəz etsək, uşaq reytinqini və qalan duel sayını itirər.
+            EndSearch();
+            _startError = result.Error;
+            StateHasChanged();
+            return;
+        }
+
+        _pendingDuel = result.Value;
+
+        // Açıq duelə qoşulduq — dəst artıq başlayıb.
+        if (_pendingDuel.Status == DuelStatus.Live)
+        {
+            await RevealFoundAsync();
+            return;
+        }
+
+        await WaitForOpponentAsync(token);
+    }
+
+    /// <summary>Radarın saniyə sayğacı. Mərhələ dəyişən kimi dayanır.</summary>
+    private async Task RunSearchClockAsync(CancellationToken token)
+    {
+        try
+        {
+            while (_search == SearchPhase.Looking)
+            {
+                await Task.Delay(1000, token);
+
+                if (_search != SearchPhase.Looking)
+                    return;
+
+                _searchSeconds++;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Ekran bağlandı və ya axtarış bitdi.
+        }
+    }
+
+    /// <summary>
+    /// Rəqibi gözləyir — VAXT HƏDDİ YOXDUR, çünki yarış rəqibsiz başlamır.
+    /// Dayanmaq uşağın qərarıdır ("Axtarışı dayandır").
+    ///
+    /// <para>Rəqib adətən real vaxt kanalı ilə gəlir (<see cref="OnDuelMatched"/>).
+    /// Kanal bağlıdırsa dueli özümüz yoxlayırıq — arena SignalR-dan ASILI
+    /// OLMAMALIDIR, sadəcə onunla daha tez işləyir.</para>
+    /// </summary>
+    private async Task WaitForOpponentAsync(CancellationToken token)
+    {
+        try
+        {
+            while (_search == SearchPhase.Looking && _pendingDuel is { } waiting)
+            {
+                await Task.Delay(PollIntervalMs, token);
+
+                if (_search != SearchPhase.Looking)
+                    return;
+
+                // Kanal açıq olsa da yoxlayırıq. Səbəb dar, amma real: rəqib
+                // duel yaradılan anla cavabın ekrana çatması arasında qoşula
+                // bilər — həmin xəbər "gözlənilən duel"dən əvvəl gəldiyinə görə
+                // itir. Sorğu 3 saniyədən bir gedir, yəni yüklə problem deyil.
+                // Siqnal DUELİN VƏZİYYƏTİDİR, rəqibin adı yox. Çağırışda ad
+                // duel yaranan andan məlumdur (ünvan var) — ada baxsaydıq,
+                // dost hələ qəbul etməmiş geri sayım başlayardı.
+                var refreshed = await Api.GetDuelAsync(waiting.DuelId);
+                if (refreshed is { Succeeded: true, Value.Status: DuelStatus.Live } && _search == SearchPhase.Looking)
+                {
+                    _pendingDuel = refreshed.Value;
+                    await RevealFoundAsync();
+                    return;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Uşaq axtarışı dayandırdı və ya ekran bağlandı.
+        }
+    }
+
+    /// <summary>
+    /// Rəqib tapıldı: üzü açılır və geri sayım gedir. Sayımın uzunluğunu SERVER
+    /// deyir (<see cref="ArenaDuelDto.StartsInMilliseconds"/>) — beləcə gec xəbər
+    /// alan uşağın sayğacı daha kiçik rəqəmdən başlayır və hər ikisi eyni anda
+    /// birinci sualı görür.
+    /// </summary>
+    private async Task RevealFoundAsync()
+    {
+        var token = _searchCts?.Token ?? CancellationToken.None;
+
+        var remaining = _pendingDuel?.StartsInMilliseconds ?? FallbackCountdownMs;
+
+        _search = SearchPhase.Found;
+        _countdown = (int)Math.Ceiling(remaining / 1000.0);
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            // Rəqəm hər saniyə deyil, qalıq vaxta görə azalır: sayğac serverin
+            // başlanğıcına "kilidlənir", klientin öz taymeri sürüşsə də.
+            var deadline = DateTime.UtcNow.AddMilliseconds(remaining);
+
+            while (true)
+            {
+                var left = (deadline - DateTime.UtcNow).TotalMilliseconds;
+                if (left <= 0)
+                    break;
+
+                await Task.Delay((int)Math.Min(250, left), token);
+
+                var shown = (int)Math.Ceiling(Math.Max(0, (deadline - DateTime.UtcNow).TotalMilliseconds) / 1000.0);
+                if (shown != _countdown)
+                {
+                    _countdown = shown;
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        await OpenPendingDuelAsync();
+    }
+
+    /// <summary>
+    /// Uşaq axtarışı dayandırdı. Duel hovuzdan da ÇIXARILIR — əks halda başqa
+    /// uşaq ekran qarşısında olmayan rəqiblə üz-üzə qalardı.
+    /// </summary>
+    private async Task CancelSearchAsync()
+    {
+        var duel = _pendingDuel;
+        EndSearch();
+        await InvokeAsync(StateHasChanged);
+
+        if (duel is not null)
+            await Api.CancelDuelSearchAsync(duel.DuelId);
+    }
+
+    /// <summary>
+    /// Gözləmək istəmirsə məşq rəqibinə keçir. Bu, ƏSL yarış deyil və ekranda
+    /// açıq şəkildə belə işarələnir — axtarılan duel isə hovuzdan çıxarılır.
+    /// </summary>
+    private async Task SwitchToPracticeAsync()
+    {
+        var duel = _pendingDuel;
+        EndSearch();
+
+        if (duel is not null)
+            await Api.CancelDuelSearchAsync(duel.DuelId);
+
+        await StartPracticeAsync();
+    }
+
+    private async Task OpenPendingDuelAsync()
+    {
+        var duel = _pendingDuel;
+        EndSearch();
+
+        if (duel is not null)
+            ShowDuel(duel);
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>Axtarışı bağlayır: dövrələr dayanır, ekran adi axına qayıdır.</summary>
+    private void EndSearch()
+    {
+        _searchCts?.Cancel();
+        _search = null;
+        _pendingDuel = null;
+        _challengedName = null;
+        _searchSeconds = 0;
+        _countdown = 0;
+    }
+
+    // ---------- Birbaşa çağırış ----------
+
+    /// <summary>
+    /// Dosta çağırış göndərildi. Ekran adi axtarışın EYNİSİNƏ keçir — fərq
+    /// yalnız mətndədir: rəqib məlum olduğuna görə "axtarıram" yox,
+    /// "gözləyirəm" deyilir. Dost qəbul edəndə "rəqib tapıldı" anı eyni
+    /// kanaldan gəlir.
+    /// </summary>
+    private async Task OnChallengeStartedAsync(Guid duelId)
+    {
+        _tab = ArenaTab.Duel;
+
+        var duel = await Api.GetDuelAsync(duelId);
+        if (duel is not { Succeeded: true, Value: not null })
+        {
+            await LoadAsync();
+            return;
+        }
+
+        _pendingDuel = duel.Value;
+        _challengedName = duel.Value.Opponent?.DisplayName;
+        _searchSeconds = 0;
+        _search = SearchPhase.Looking;
+
+        _searchCts?.Dispose();
+        _searchCts = new CancellationTokenSource();
+        var token = _searchCts.Token;
+
+        _ = RunSearchClockAsync(token);
+        await WaitForOpponentAsync(token);
+    }
+
+    private async Task AcceptChallengeAsync(Guid duelId)
+    {
+        if (_busy)
+            return;
+
+        _busy = true;
+        var result = await Api.AcceptChallengeAsync(duelId);
+        _busy = false;
+
+        if (result is { Succeeded: true, Value: not null })
+        {
+            // Qəbul edən üçün rəqib artıq hazırdır: geri sayım dərhal gedir.
+            _pendingDuel = result.Value;
+            await RevealFoundAsync();
+            return;
+        }
+
+        // Çağırış sönübsə ekran onu sadəcə siyahıdan silir — uşağa
+        // "gec qaldın" demək mənasız incikliyə səbəb olur.
+        _startError = result.Error;
+        await LoadAsync();
+    }
+
+    private async Task DeclineChallengeAsync(Guid duelId)
+    {
+        if (_busy)
+            return;
+
+        _busy = true;
+        await Api.DeclineChallengeAsync(duelId);
+        _busy = false;
+
+        await LoadAsync();
+    }
+
+    /// <summary>
+    /// Dost çağırdı. Uşaq duel oynayırsa YAYINDIRILMIR — çağırış status
+    /// sorğusunda onsuz da qalır və o, arenaya qayıdanda görünür.
+    /// </summary>
+    private void OnDuelChallenged(Guid duelId, string fromName) => InvokeAsync(async () =>
+    {
+        if (_duel is not null || _result is not null || _search is not null)
+            return;
+
+        await LoadAsync();
+        StateHasChanged();
+    });
+
+    private void OnChallengeCancelled(Guid duelId) => InvokeAsync(async () =>
+    {
+        // Göndərdiyimiz çağırışdan imtina edilib: gözləmə ekranı bağlanır.
+        if (_search is not null && _pendingDuel is { } waiting && waiting.DuelId == duelId)
+        {
+            EndSearch();
+            _startError = Loc.T("Dostun indi oynaya bilmir.", "Your friend can't play right now.");
+            StateHasChanged();
+            return;
+        }
+
+        if (_duel is null && _result is null && _search is null)
+        {
+            await LoadAsync();
+            StateHasChanged();
+        }
+    });
+
+    // ---------- Duel ----------
+
+    /// <summary>
+    /// Məşq dueli axtarış ekranı GÖRMÜR: rəqib sünidir və onu axtarmaq
+    /// uşağa yalan danışmaq olardı.
+    /// </summary>
+    private async Task StartPracticeAsync()
+    {
+        if (_busy)
+            return;
+
+        _busy = true;
+        _startError = null;
+
+        var result = await Api.StartPracticeDuelAsync();
+        _busy = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _startError = result.Error;
+            return;
+        }
+
+        ShowDuel(result.Value);
+    }
+
+    private void ShowDuel(ArenaDuelDto duel)
+    {
+        _duel = duel;
+        _result = null;
+        _lastAnswer = null;
+        _chosenIndex = -1;
+        _rivalAnswered = 0;
+
+        // Yarımçıq dueldə uşaq cavabladığı sualdan sonrakına düşür.
+        _index = Math.Min(duel.AnsweredCount, Math.Max(duel.Questions.Count - 1, 0));
+    }
+
+    private async Task AnswerAsync(int chosenIndex)
+    {
+        if (_duel is null || CurrentQuestion is null || _busy)
+            return;
+
+        _busy = true;
+        _chosenIndex = chosenIndex;
+
+        // Müddət SERVERDƏ ölçülür — klient vaxt göndərmir.
+        var result = await Api.SubmitDuelAnswerAsync(new SubmitDuelAnswerRequest
+        {
+            DuelId = _duel.DuelId,
+            QuestionId = CurrentQuestion.Id,
+            ChosenIndex = chosenIndex
+        });
+
+        _busy = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _lastAnswer = result.Value;
+
+        // Gözləmə ARXADA işləyir: burada await etsək izah yalnız fasilədən
+        // sonra görünərdi — uşaq cavabına dərhal reaksiya görməlidir.
+        _ = AdvanceAfterFeedbackAsync(result.Value);
+    }
+
+    /// <summary>
+    /// Yarışda "Növbəti" düyməsi yoxdur: izah göstərilir, sonra dəst özü
+    /// irəliləyir. Düymə axtarmaq həm saniyə yeyir, həm də sürət yarışında
+    /// barmağı ekranın başqa nöqtəsinə aparır.
+    /// </summary>
+    private async Task AdvanceAfterFeedbackAsync(DuelAnswerResultDto answer)
+    {
+        _feedbackCts?.Cancel();
+        _feedbackCts?.Dispose();
+        _feedbackCts = new CancellationTokenSource();
+        var token = _feedbackCts.Token;
+
+        try
+        {
+            await Task.Delay(FeedbackMs, token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        // Bu arada ekran dəyişibsə (nəticə gəldi, uşaq geri qayıtdı) irəliləmirik.
+        if (_duel is null || !ReferenceEquals(_lastAnswer, answer))
+            return;
+
+        _lastAnswer = null;
+        _chosenIndex = -1;
+
+        if (!answer.Finished)
+        {
+            _index++;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _duel.Finished = true;
+
+        // Rəqib artıq oynayıbsa nəticə cavabla birlikdə gəlir; gəlməyibsə
+        // "rəqib gözlənilir" ekranı görünür.
+        if (answer.Result is not null)
+            await ShowResultAsync(answer.Result);
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OpenResultAsync(Guid duelId)
+    {
+        _busy = true;
+        var result = await Api.GetDuelResultAsync(duelId);
+        _busy = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        await ShowResultAsync(result.Value);
+    }
+
+    private async Task ShowResultAsync(ArenaDuelResultDto result)
+    {
+        _feedbackCts?.Cancel();
+
+        _result = result;
+        _duel = null;
+        _lastAnswer = null;
+
+        // Ulduz qazanıldısa üst paneldəki cüzdan dərhal yenilənməlidir.
+        if (result.StarsEarned > 0)
+        {
+            var wallet = await Api.GetWalletAsync();
+            if (wallet.Succeeded && wallet.Value is not null)
+                State.ApplyWallet(wallet.Value);
+        }
+    }
+
+    private Task BackToLobbyAsync() => LoadAsync();
+
+    private string OpponentName(ArenaOpponentDto? opponent)
+    {
+        if (opponent is null)
+            return Loc.T("Rəqib", "Rival");
+
+        // Tanımadığı rəqibin əsl adı GÖSTƏRİLMİR — yalnız pet adı görünür.
+        if (!string.IsNullOrWhiteSpace(opponent.DisplayName))
+            return opponent.DisplayName!;
+
+        return string.IsNullOrWhiteSpace(opponent.PetName)
+            ? Loc.T("Rəqib", "Rival")
+            : opponent.PetName;
+    }
+
+    private static string Seconds(int milliseconds) => $"{milliseconds / 1000.0:0.0}s";
+
+    private string? OptionClass(int index)
+    {
+        if (_lastAnswer is null)
+            return null;
+
+        if (index == _lastAnswer.CorrectIndex)
+            return "option--correct";
+
+        return index == _chosenIndex ? "option--wrong" : null;
+    }
+}

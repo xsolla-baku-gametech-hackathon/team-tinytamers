@@ -1,0 +1,76 @@
+<div class="pp-root" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--sc-sky-1); color: var(--pp-ink);">
+
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, #A8CFE6 0%, var(--sc-sky-1) 30%, var(--sc-sky-2) 66%, var(--sc-sky-3) 100%);"></div>
+
+  <!-- Buludlar həm meydança, həm hədəfdir. Rəqəm buludun ÜSTÜNDƏ yazılır:
+       uşaq hara basacağını və nəyə basacağını eyni yerdə görür. -->
+  <svg viewBox="0 0 390 620" width="390" height="620" style="position: absolute; top: 214px; left: 0;" aria-hidden="true">
+
+    <!-- Növbəti doğru bulud: halqa və doymuş rəng onu özü seçdirir. -->
+    <g>
+      <rect x="196" y="150" width="150" height="46" rx="23" fill="none" stroke="var(--pp-primary)" stroke-width="3" opacity="0.45" />
+      <rect x="204" y="158" width="134" height="30" rx="15" fill="var(--pp-primary)" />
+      <ellipse cx="234" cy="158" rx="24" ry="17" fill="var(--pp-primary)" />
+      <ellipse cx="278" cy="152" rx="30" ry="21" fill="var(--pp-primary)" />
+      <ellipse cx="316" cy="160" rx="21" ry="15" fill="var(--pp-primary)" />
+      <text x="271" y="184" text-anchor="middle" font-family="Nunito, sans-serif" font-size="30" font-weight="900" fill="#FFFFFF">8</text>
+    </g>
+
+    <!-- Yanlış buludlar: eyni forma, sönük rəng — cəza yox, seçim. -->
+    <g opacity="0.9">
+      <rect x="34" y="42" width="116" height="28" rx="14" fill="var(--sc-cloud)" />
+      <ellipse cx="62" cy="42" rx="22" ry="15" fill="var(--sc-cloud)" />
+      <ellipse cx="102" cy="36" rx="27" ry="19" fill="var(--sc-cloud)" />
+      <text x="92" y="66" text-anchor="middle" font-family="Nunito, sans-serif" font-size="27" font-weight="900" fill="var(--pp-ink-soft)">5</text>
+    </g>
+
+    <g opacity="0.9">
+      <rect x="232" y="8" width="106" height="26" rx="13" fill="var(--sc-cloud)" />
+      <ellipse cx="258" cy="8" rx="20" ry="14" fill="var(--sc-cloud)" />
+      <ellipse cx="296" cy="4" rx="25" ry="17" fill="var(--sc-cloud)" />
+      <text x="285" y="30" text-anchor="middle" font-family="Nunito, sans-serif" font-size="25" font-weight="900" fill="var(--pp-ink-soft)">9</text>
+    </g>
+
+    <!-- Keçilmiş buludlar aşağıda qalır və solur: irəliləmə görünəndir. -->
+    <g opacity="0.72">
+      <rect x="46" y="290" width="128" height="30" rx="15" fill="var(--sc-cloud)" />
+      <ellipse cx="76" cy="290" rx="24" ry="16" fill="var(--sc-cloud)" />
+      <ellipse cx="120" cy="284" rx="29" ry="20" fill="var(--sc-cloud)" />
+      <text x="110" y="316" text-anchor="middle" font-family="Nunito, sans-serif" font-size="28" font-weight="900" fill="var(--pp-life-deep)">6</text>
+    </g>
+
+    <g opacity="0.5">
+      <rect x="214" y="412" width="118" height="28" rx="14" fill="var(--sc-cloud)" />
+      <ellipse cx="242" cy="412" rx="22" ry="15" fill="var(--sc-cloud)" />
+      <ellipse cx="284" cy="406" rx="26" ry="18" fill="var(--sc-cloud)" />
+      <text x="273" y="436" text-anchor="middle" font-family="Nunito, sans-serif" font-size="26" font-weight="900" fill="var(--pp-life-deep)">4</text>
+    </g>
+
+    <g opacity="0.34">
+      <rect x="52" y="520" width="112" height="26" rx="13" fill="var(--sc-cloud)" />
+      <ellipse cx="78" cy="520" rx="21" ry="14" fill="var(--sc-cloud)" />
+      <ellipse cx="118" cy="514" rx="25" ry="17" fill="var(--sc-cloud)" />
+      <text x="108" y="542" text-anchor="middle" font-family="Nunito, sans-serif" font-size="24" font-weight="900" fill="var(--pp-life-deep)">2</text>
+    </g>
+
+    <!-- Tullanışın yayı: hardan hara getdiyi qalır, ona görə səhv də oxunur. -->
+    <path d="M118 284C140 216 186 196 254 178" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-dasharray="3 13" opacity="0.85" />
+  </svg>
+
+  <!-- Pet havadadır: qərar elə İNDİ verilir. -->
+  <div style="position: absolute; left: 92px; top: 372px; z-index: 6;">
+    <!--PET:happy:180-->
+  </div>
+
+  <!-- Hündürlük ölçəri: neçə bulud qalxdığını rəqəmsiz göstərir. -->
+  <div style="position: absolute; right: 14px; top: 250px; bottom: 116px; width: 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.55); z-index: 8;">
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 46%; border-radius: 999px; background: linear-gradient(180deg, var(--pp-life-lift) 0%, var(--pp-life) 100%);"></div>
+    <div style="position: absolute; left: -7px; bottom: 44%; width: 24px; height: 24px; border-radius: 999px; background: var(--pp-card); box-shadow: 0 2px 0 var(--pp-edge-neutral);"></div>
+  </div>
+
+<!--CHROME:Bulud tullanışı,3,6,2-->
+<!--RULE:2 · 4 · 6 … növbəti buluda tullan,primary-->
+<!--TIMER:58-->
+<!--SCORE:6,bulud keçildi-->
+
+</div>

@@ -1,0 +1,309 @@
+@page "/chat"
+@implements IDisposable
+@inject GameApiClient Api
+@inject IPetSpeech Speech
+@inject ITokenStore Store
+@inject NavigationManager Navigation
+@inject Loc Loc
+
+@* Söhbət də QULLUQ OTAQLARI kimi tam ekran otaqdır: pet yuxarıda dayanır,
+   altında replikalar, ən altda yazı sahəsi. ✕ uşağındır — otaq nə cavabdan
+   sonra, nə də limit bitəndə özü bağlanmır.
+
+   Pet ilə söhbət oyun məntiqinə TƏSİR ETMİR: burada ulduz qazanılmır və stat
+   dəyişmir. Bu, qəsdəndir — mükafat modeldən asılı olsaydı, model sıradan
+   çıxanda uşaq irəliləyişini itirərdi.
+
+   Cavab gələndə pet onu DEYİR: ağzı danışıq ritmində tərpənir və cihaz
+   bacarırsa mətn ucadan oxunur. Səs kömәkçidir, şərt deyil — oxunmasa da
+   replika yazı kimi durur və ağız yenə tərpənir. Səs açarı uşağın öz
+   əlindədir (üst zolaqdakı 🔊) və cihazda yadda qalır. *@
+
+<h1 class="visually-hidden-title">@Loc.T("Söhbət", "Chat")</h1>
+
+<LoadingState IsLoading="_loading" Error="@_error" OnRetry="LoadAsync"
+              LoadingText="@Loc.T("Pet yaxınlaşır…", "Your pet is coming over…")">
+    @if (_state is { Enabled: false })
+    {
+        <div class="state">
+            <div class="state__icon" aria-hidden="true">💬</div>
+            <div>@Loc.T("Söhbət hələ açılmayıb. Valideynindən xahiş et ki, onu açsın.",
+                        "Chat isn't switched on yet. Ask your grown-up to turn it on.")</div>
+            <a class="btn btn--primary" href="">@Loc.T("Ana səhifəyə qayıt", "Back to home")</a>
+        </div>
+    }
+    else if (_state is not null)
+    {
+        <div class="chatroom" role="dialog" aria-modal="true" aria-label="@Loc.T("Söhbət otağı", "Chat room")">
+            <div class="chatroom__decor" aria-hidden="true">
+                <div class="chatroom__wall"></div>
+                <div class="chatroom__floor"></div>
+            </div>
+
+            <div class="chatroom__bar">
+                <button class="overlay-close" @onclick="Leave"
+                        aria-label="@Loc.T("Söhbətdən çıx", "Leave the chat")">✕</button>
+                <span class="chatroom__left">
+                    @Loc.T($"Bu gün {_state.MessagesLeftToday} mesaj qalıb",
+                           $"{_state.MessagesLeftToday} messages left today")
+                </span>
+
+                @* Səsi uşaq özü açıb-bağlayır və seçim cihazda qalır. *@
+                <button class="chatroom__voice @(_voiceOn ? null : "chatroom__voice--off")"
+                        @onclick="ToggleVoiceAsync"
+                        aria-pressed="@_voiceOn"
+                        aria-label="@(_voiceOn
+                            ? Loc.T("Pet-in səsini bağla", "Mute your pet")
+                            : Loc.T("Pet-in səsini aç", "Unmute your pet"))">
+                    <span aria-hidden="true">@(_voiceOn ? "🔊" : "🔇")</span>
+                </button>
+            </div>
+
+            @if (_pet is not null)
+            {
+                <div class="chatroom__pet">
+                    <PetAvatar Stage="_pet.Stage" Mood="_pet.Mood" Species="@_pet.Species"
+                               Accessories="_pet.EquippedAccessories" Name="@_pet.Name"
+                               Talking="_talking" />
+                </div>
+            }
+
+            @* column-reverse: ən yeni replika DOM-da BİRİNCİDİR, ekranda isə
+               ən altda görünür. Bunun səbəbi praktikdir — brauzer belə siyahını
+               özü aşağıda saxlayır, yəni hər mesajdan sonra JS ilə sürüşdürmək
+               lazım gəlmir. *@
+            <div class="chatroom__log">
+                @if (_sending)
+                {
+                    <div class="chatline chatline--pet">
+                        <span class="chatline__typing" aria-label="@Loc.T("yazır", "typing")">
+                            <span></span><span></span><span></span>
+                        </span>
+                    </div>
+                }
+
+                @foreach (var turn in Newest)
+                {
+                    <div class="chatline @(turn.FromChild ? "chatline--child" : "chatline--pet")">
+                        <span class="chatline__text">@turn.Text</span>
+                    </div>
+                }
+
+                @if (_state.Turns.Count == 0 && !_sending)
+                {
+                    <div class="chatroom__empty">
+                        @Loc.T($"{_pet?.Name} səni dinləyir. Nə yazmaq istəyirsən?",
+                               $"{_pet?.Name} is listening. What would you like to say?")
+                    </div>
+                }
+            </div>
+
+            @if (_sendError is not null)
+            {
+                @* Göndərmə xətası otağı BAĞLAMIR: LoadingState-in Error-u
+                   qoyulsaydı bütün söhbət xəta ekranı ilə əvəz olunardı və
+                   uşaq ekrandakı yazışmanı itirərdi. *@
+                <div class="chatroom__error">@_sendError</div>
+            }
+
+            <form class="chatroom__composer" @onsubmit="SendAsync" @onsubmit:preventDefault>
+                <input class="chatroom__input" @bind="_draft" @bind:event="oninput"
+                       maxlength="@MaxLength" disabled="@InputDisabled"
+                       placeholder="@Placeholder"
+                       aria-label="@Loc.T("Mesajın", "Your message")" />
+                <button class="chatroom__send" type="submit" disabled="@(InputDisabled || !HasDraft)"
+                        aria-label="@Loc.T("Göndər", "Send")">➤</button>
+            </form>
+        </div>
+    }
+</LoadingState>
+
+@code {
+    private const int MaxLength = 200;
+
+    private PetChatStateDto? _state;
+    private PetDto? _pet;
+    private string _draft = string.Empty;
+    private bool _loading = true;
+    private bool _sending;
+
+    /// <summary>Yükləmə xətası — bütün ekranı əvəz edir (otaq hələ açılmayıb).</summary>
+    private string? _error;
+
+    /// <summary>Göndərmə xətası — otağı bağlamır, yalnız yazı sahəsinin üstündə görünür.</summary>
+    private string? _sendError;
+
+    /// <summary>Pet hazırda replikanı deyir — ağız bu müddətdə tərpənir.</summary>
+    private bool _talking;
+
+    /// <summary>Səs açıqdır (cihazda yadda saxlanılır). Standart: açıq.</summary>
+    private bool _voiceOn = true;
+
+    /// <summary>Danışığı yarımçıq kəsmək üçün — otaqdan çıxanda və səs bağlananda.</summary>
+    private CancellationTokenSource? _speakCts;
+
+    /// <summary>Ən yeni replika birinci — bax yuxarıdakı column-reverse qeydi.</summary>
+    private IEnumerable<PetChatTurnDto> Newest =>
+        _state is null ? [] : Enumerable.Reverse(_state.Turns);
+
+    private bool HasDraft => !string.IsNullOrWhiteSpace(_draft);
+
+    private bool InputDisabled => _sending || _state is null || _state.MessagesLeftToday <= 0;
+
+    private string Placeholder => _state is { MessagesLeftToday: <= 0 }
+        ? Loc.T("Sabah davam edərik!", "Let's continue tomorrow!")
+        : Loc.T("Nəsə yaz…", "Type something…");
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Səs seçimi cihazdadır: "0" bağlıdır, qalan hər şey (ilk açılış daxil) açıq.
+        var stored = await Store.GetAsync(TokenStoreKeys.PetVoice);
+        _voiceOn = stored != "0";
+
+        await LoadAsync();
+    }
+
+    public void Dispose()
+    {
+        // Otaq bağlananda səs ARXADAN gəlməməlidir — uşaq başqa ekrandadır.
+        _speakCts?.Cancel();
+        _speakCts?.Dispose();
+        _ = Speech.StopAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        var chat = await Api.GetChatAsync();
+        if (!chat.Succeeded)
+        {
+            _error = chat.Error;
+            _loading = false;
+            return;
+        }
+
+        _state = chat.Value;
+
+        // Pet ayrıca yüklənir: söhbət vəziyyəti yalnız replikaları daşıyır,
+        // avatar üçün isə növ, mərhələ və taxılmış əşyalar lazımdır.
+        var pet = await Api.GetPetAsync();
+        if (pet.Succeeded)
+            _pet = pet.Value;
+
+        _loading = false;
+    }
+
+    private async Task SendAsync()
+    {
+        if (_state is null || _sending || !HasDraft)
+            return;
+
+        var text = _draft.Trim();
+        _sendError = null;
+        _draft = string.Empty;
+        _sending = true;
+
+        // Uşağın mesajı DƏRHAL siyahıya düşür — cavab gözlənilərkən ekran boş
+        // qalsaydı, uşaq mesajın itdiyini düşünüb təkrar yazardı.
+        _state.Turns.Add(new PetChatTurnDto
+        {
+            Id = Guid.NewGuid(),
+            FromChild = true,
+            Text = text,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        var result = await Api.SendChatAsync(text);
+        _sending = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            // Server cavab vermədi: mesaj göndərilməmiş sayılır və geri qaytarılır
+            // ki, uşaq onu yenidən yazmasın.
+            _state.Turns.RemoveAt(_state.Turns.Count - 1);
+            _draft = text;
+            _sendError = result.Error;
+            return;
+        }
+
+        _state.Turns.Add(new PetChatTurnDto
+        {
+            Id = Guid.NewGuid(),
+            FromChild = false,
+            Text = result.Value.Reply,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        _state.MessagesLeftToday = result.Value.MessagesLeftToday;
+
+        // Danışıq ARXADA gedir: burada await etsək, replika yalnız pet
+        // deyib qurtarandan sonra ekrana düşərdi.
+        _ = SayAsync(result.Value.Reply);
+    }
+
+    /// <summary>
+    /// Pet replikanı deyir: ağız danışıq boyu tərpənir, cihaz bacarırsa mətn
+    /// ucadan oxunur.
+    ///
+    /// <para>Ağız SƏSDƏN ASILI DEYİL. Cihazda danışma dəstəyi yoxdursa (və ya
+    /// uşaq səsi bağlayıbsa) ağız yenə tərpənir — sadəcə müddəti mətnin
+    /// uzunluğundan hesablanır. Beləcə "pet cavab verdi" hissi hər cihazda var.</para>
+    /// </summary>
+    private async Task SayAsync(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        // Əvvəlki replika hələ deyilirsə kəsilir: iki səs eyni anda danışmamalıdır.
+        _speakCts?.Cancel();
+        _speakCts?.Dispose();
+        _speakCts = new CancellationTokenSource();
+        var token = _speakCts.Token;
+
+        await Speech.StopAsync();
+
+        _talking = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var spoke = _voiceOn && await Speech.SpeakAsync(text, Loc.IsEnglish ? "en" : "az", token);
+
+            // Səs çıxmadısa ağzı mətnin uzunluğu qədər tərpədirik.
+            if (!spoke)
+                await Task.Delay(PetSpeechLocales.SilentDurationMs(text), token);
+
+            _talking = false;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+            // Ağzı burada SÖNDÜRMÜRÜK: kəsilmənin səbəbi ya növbəti replikadır
+            // (o, ağzı öz danışığı üçün açıq saxlayır), ya səs açarıdır, ya da
+            // otağın bağlanmasıdır — hər üçü vəziyyəti onsuz da özü qurur.
+        }
+    }
+
+    /// <summary>Səs açarı. Bağlananda davam edən danışıq DƏRHAL kəsilir.</summary>
+    private async Task ToggleVoiceAsync()
+    {
+        _voiceOn = !_voiceOn;
+        await Store.SetAsync(TokenStoreKeys.PetVoice, _voiceOn ? "1" : "0");
+
+        if (!_voiceOn)
+        {
+            _speakCts?.Cancel();
+            await Speech.StopAsync();
+            _talking = false;
+        }
+    }
+
+    private void Leave()
+    {
+        _speakCts?.Cancel();
+        _ = Speech.StopAsync();
+        Navigation.NavigateTo("");
+    }
+}

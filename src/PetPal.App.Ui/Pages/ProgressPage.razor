@@ -1,0 +1,101 @@
+@page "/progress"
+@inject GameApiClient Api
+@inject Loc Loc
+
+<h1 class="visually-hidden-title">@Loc.T("İnkişafım", "My progress")</h1>
+
+<LoadingState IsLoading="_loading" Error="@_error" OnRetry="LoadAsync">
+    @if (_summary is not null)
+    {
+        <div class="card">
+            <GoalBar Completed="_summary.DailyGoal.Completed" Target="_summary.DailyGoal.Target"
+                     StreakDays="_summary.DailyGoal.StreakDays" Title="@Loc.T("Bugünkü hədəf", "Today's goal")" />
+
+            <div class="metrics" style="margin-top:16px">
+                <div class="metric">
+                    <div class="metric__value">@_summary.Wallet.Stars</div>
+                    <div class="metric__label">@Loc.T("Ulduz", "Stars")</div>
+                </div>
+                <div class="metric">
+                    <div class="metric__value">@_summary.Wallet.Gems</div>
+                    <div class="metric__label">@Loc.T("Gem", "Gems")</div>
+                </div>
+                <div class="metric">
+                    <div class="metric__value">@_summary.AverageAccuracyPercent%</div>
+                    <div class="metric__label">@Loc.T("Dəqiqlik", "Accuracy")</div>
+                </div>
+            </div>
+        </div>
+
+        @* Bacarıq və nişanların sayı artdıqca uzanır — ekran sürüşmür,
+           yalnız bu hissə öz qutusunda sürüşür. *@
+        <div class="list-scroll">
+
+        <h2 class="section-title">@Loc.T("Bacarıqlar", "Skills")</h2>
+        <div class="card">
+            @foreach (var skill in _summary.Skills)
+            {
+                <div style="margin-bottom:14px">
+                    <div class="progress__row">
+                        <span>@DisplayNames.SkillIcon(skill.Skill) @DisplayNames.Skill(Loc, skill.Skill) @(skill.IsFocusArea ? Loc.T("· fokus", "· focus") : null)</span>
+                        <span>@skill.MasteryPercent%</span>
+                    </div>
+                    <div class="progress" style="height:11px">
+                        <div class="progress__bar" style="width:@skill.MasteryPercent%"></div>
+                    </div>
+                    <div class="mission__meta">
+                        <span>@Loc.T($"{skill.CorrectCount} / {skill.AnsweredCount} doğru", $"{skill.CorrectCount} / {skill.AnsweredCount} correct")</span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <h2 class="section-title">@Loc.T("Nişanlar", "Badges")</h2>
+        <div class="card">
+            <div class="badges">
+                @foreach (var badge in _summary.Badges)
+                {
+                    <div class="badge-tile @(badge.IsEarned ? null : "badge-tile--locked")" title="@badge.Description">
+                        <div class="badge-tile__icon" aria-hidden="true">@BadgeIcon(badge.Tier)</div>
+                        <div class="badge-tile__title">@badge.Title</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        </div>
+    }
+</LoadingState>
+
+@code {
+    private ProgressSummaryDto? _summary;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        var result = await Api.GetProgressAsync();
+
+        _loading = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _summary = result.Value;
+    }
+
+    private static string BadgeIcon(BadgeTier tier) => tier switch
+    {
+        BadgeTier.Gold => "🥇",
+        BadgeTier.Silver => "🥈",
+        _ => "🥉"
+    };
+}

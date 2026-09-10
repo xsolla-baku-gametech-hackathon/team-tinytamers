@@ -1,0 +1,241 @@
+@implements IDisposable
+@inject Loc Loc
+
+@* Rəng sırası: app ardıcıllığı göstərir, uşaq eyni sırada təkrarlayır.
+   Hər raundda sıra bir addım uzanır — işlək yaddaş məşqi.
+
+   Hər lövhənin öz NİŞANI var (dairə, üçbucaq, kvadrat, ulduz): rəng tək
+   daşıyıcı deyil, ona görə rəngləri seçməyən uşaq da sıranı izləyə bilir. *@
+
+<GameShell Title="@Loc.T("Rəng sırası", "Color Echo")"
+           Round="_correct" RoundTotal="RoundCount"
+           Lives="_lives" Hit="_hit" Over="_over"
+           Rule="@(_status ?? Loc.T("Diqqətlə bax…", "Watch carefully…"))" RuleTone="primary"
+           RuleChanged="_acceptingInput"
+           ScoreValue="@_correct.ToString()"
+           ScoreLabel="@Loc.T("sıra təkrarlandı", "sequences repeated")">
+
+    <Backdrop><div class="gsbg gsbg--table"></div></Backdrop>
+
+    <ChildContent>
+        <div class="echo">
+            @for (var i = 0; i < PadCount; i++)
+            {
+                var index = i;
+                <button class="echo__pad echo__pad--@index @(_litPad == index ? "echo__pad--lit" : null)"
+                        disabled="@(!_acceptingInput)"
+                        aria-label="@PadLabel(index)"
+                        @onclick="() => PressAsync(index)">
+                    <svg viewBox="0 0 40 40" aria-hidden="true">
+                        @switch (index)
+                        {
+                            case 0:
+                                <circle cx="20" cy="20" r="14" />
+                                break;
+                            case 1:
+                                <path d="M20 5l15 26H5z" />
+                                break;
+                            case 2:
+                                <rect x="7" y="7" width="26" height="26" rx="7" />
+                                break;
+                            default:
+                                <path d="M20 4l5 11 11 5-11 5-5 11-5-11-11-5 11-5z" />
+                                break;
+                        }
+                    </svg>
+                </button>
+            }
+        </div>
+
+        @* Sıranın uzunluğu nöqtələrlə deyilir: neçə addım verilib, neçəsi
+           təkrarlanıb. Rəqəm yazılsaydı, uşaq onu da yadda saxlamalı olardı. *@
+        <div class="echo__trail" aria-hidden="true">
+            @for (var i = 0; i < _sequence.Count; i++)
+            {
+                <span class="echo__step @(i < _inputIndex ? $"echo__step--{_sequence[i]}" : null)"></span>
+            }
+        </div>
+    </ChildContent>
+</GameShell>
+
+@code {
+    private const int RoundCount = 5;
+    private const int PadCount = 4;
+    private const int FlashMs = 480;
+
+    [Parameter] public EventCallback<(int Score, int DurationMs)> OnFinished { get; set; }
+
+    private readonly Random _random = new();
+    private readonly List<int> _sequence = [];
+
+    private int _round;
+    private int _correct;
+
+    /// <summary>Üç can: səhv sıra oyunu dərhal bitirmir, amma üçüncüsü bitirir.</summary>
+    private const int StartingLives = 3;
+
+    private int _lives = StartingLives;
+    private bool _hit;
+    private bool _over;
+    private int _inputIndex;
+    private int _litPad = -1;
+    private bool _acceptingInput;
+    private string? _status;
+
+    /// <summary>Nəticə yalnız bir dəfə göndərilir — canlar və oyunun sonu üst-üstə düşə bilər.</summary>
+    private bool _finished;
+
+    private DateTime _startedAt;
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _startedAt = DateTime.UtcNow;
+        _cts = new CancellationTokenSource();
+        await NextRoundAsync();
+    }
+
+    private string PadLabel(int index) => index switch
+    {
+        0 => Loc.T("Dairə", "Circle"),
+        1 => Loc.T("Üçbucaq", "Triangle"),
+        2 => Loc.T("Kvadrat", "Square"),
+        _ => Loc.T("Ulduz", "Star")
+    };
+
+    private async Task NextRoundAsync()
+    {
+        _round++;
+        _sequence.Add(_random.Next(PadCount));
+        _inputIndex = 0;
+
+        await PlaySequenceAsync();
+    }
+
+    private async Task PlaySequenceAsync()
+    {
+        _acceptingInput = false;
+        _status = Loc.T("Diqqətlə bax…", "Watch carefully…");
+        StateHasChanged();
+
+        var token = _cts?.Token ?? CancellationToken.None;
+
+        try
+        {
+            await Task.Delay(500, token);
+
+            foreach (var pad in _sequence)
+            {
+                _litPad = pad;
+                StateHasChanged();
+                await Task.Delay(FlashMs, token);
+
+                _litPad = -1;
+                StateHasChanged();
+                await Task.Delay(180, token);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // Komponent bağlanıb — heç nə etmirik.
+            return;
+        }
+
+        _acceptingInput = true;
+        _status = Loc.T("İndi sən təkrarla!", "Now you repeat it!");
+        StateHasChanged();
+    }
+
+    private async Task PressAsync(int pad)
+    {
+        if (!_acceptingInput)
+            return;
+
+        if (_sequence[_inputIndex] != pad)
+        {
+            _acceptingInput = false;
+            _status = Loc.T("Olmadı — bir can getdi.", "Not quite — that cost a life.");
+            StateHasChanged();
+
+            if (!await LoseLifeAsync())
+                return;
+
+            await Task.Delay(600);
+            await AdvanceAsync();
+            return;
+        }
+
+        _inputIndex++;
+
+        if (_inputIndex < _sequence.Count)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        _correct++;
+        _acceptingInput = false;
+        _status = Loc.T("Düzdür!", "That is right!");
+        StateHasChanged();
+
+        await Task.Delay(700);
+        await AdvanceAsync();
+    }
+
+    /// <summary>
+    /// Can gedir; sonuncu da bitəndə oyun bağlanır. Tamamlanan sıralar
+    /// sayılır — uşaq nə qədər yadda saxlayıbsa, o qədər bal alır.
+    /// </summary>
+    private async Task<bool> LoseLifeAsync()
+    {
+        _lives--;
+        _hit = true;
+        StateHasChanged();
+
+        await Task.Delay(420);
+        _hit = false;
+
+        if (_lives > 0)
+        {
+            StateHasChanged();
+            return true;
+        }
+
+        _over = true;
+        StateHasChanged();
+
+        await Task.Delay(900);
+        await FinishAsync();
+        return false;
+    }
+
+    private async Task AdvanceAsync()
+    {
+        if (_round >= RoundCount)
+        {
+            await FinishAsync();
+            return;
+        }
+
+        await NextRoundAsync();
+    }
+
+    private async Task FinishAsync()
+    {
+        if (_finished)
+            return;
+
+        _finished = true;
+
+        var score = Math.Clamp(_correct * 100 / RoundCount, 0, 100);
+        var duration = (int)(DateTime.UtcNow - _startedAt).TotalMilliseconds;
+
+        await OnFinished.InvokeAsync((score, duration));
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+}

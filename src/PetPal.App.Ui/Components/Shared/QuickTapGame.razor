@@ -1,0 +1,219 @@
+@implements IDisposable
+@inject Loc Loc
+
+@* Sürətli hesab: 8 sual, hər biri üçün 6 saniyə.
+   Sual bankından deyil, yerində generasiya olunur — bu, kurikulum deyil, sürət məşqidir.
+
+   Burada qayda zolağı yoxdur, çünki qayda elə SUALIN ÖZÜdür: ekranın ən böyük
+   elementi odur, cavablar isə onun altında 64px kapsullardır. *@
+
+<GameShell Title="@Loc.T("Sürətli hesab", "Quick Tap")"
+           Round="_index" RoundTotal="QuestionCount"
+           Lives="_lives" Hit="_hit" Over="_over"
+           TimerPercent="TimerPercent"
+           ScoreValue="@_correct.ToString()"
+           ScoreLabel="@Loc.T("doğru cavab", "correct")">
+
+    <Backdrop><div class="gsbg gsbg--desk"></div></Backdrop>
+
+    <ChildContent>
+        <div class="quick">
+            <div class="quick__prompt">@_prompt</div>
+
+            <div class="quick__options">
+                @for (var i = 0; i < _options.Count; i++)
+                {
+                    var index = i;
+                    <button class="quick__option @OptionClass(index)" disabled="@_locked" @onclick="() => AnswerAsync(index)">@_options[index]</button>
+                }
+            </div>
+        </div>
+    </ChildContent>
+</GameShell>
+
+@code {
+    private const int QuestionCount = 8;
+    private const int SecondsPerQuestion = 6;
+
+    private readonly List<string> _options = [];
+
+    private string _prompt = string.Empty;
+    private int _answer;
+    private int _correctIndex;
+    private int _chosenIndex = -1;
+
+    private int _index;
+    private int _correct;
+
+    /// <summary>Üç can: səhv cavab və vaxtın bitməsi eyni dərəcədə bahadır.</summary>
+    private const int StartingLives = 3;
+
+    private int _lives = StartingLives;
+    private bool _hit;
+    private bool _over;
+    private int _secondsLeft = SecondsPerQuestion;
+    private bool _locked;
+
+    /// <summary>Nəticə yalnız bir dəfə göndərilir — canlar və oyunun sonu üst-üstə düşə bilər.</summary>
+    private bool _finished;
+
+    private DateTime _startedAt;
+    private PeriodicTimer? _timer;
+    private CancellationTokenSource? _timerCts;
+
+    [Parameter] public EventCallback<(int Score, int DurationMs)> OnFinished { get; set; }
+
+    private int TimerPercent => _secondsLeft * 100 / SecondsPerQuestion;
+
+    protected override void OnInitialized()
+    {
+        _startedAt = DateTime.UtcNow;
+        NextQuestion();
+        _ = RunTimerAsync();
+    }
+
+    private async Task RunTimerAsync()
+    {
+        _timerCts = new CancellationTokenSource();
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+
+        try
+        {
+            while (await _timer.WaitForNextTickAsync(_timerCts.Token))
+            {
+                if (_locked)
+                    continue;
+
+                _secondsLeft--;
+
+                if (_secondsLeft <= 0)
+                    await AnswerAsync(-1);
+                else
+                    await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Komponent bağlanıb — normal hal.
+        }
+    }
+
+    private async Task AnswerAsync(int chosenIndex)
+    {
+        _locked = true;
+        _chosenIndex = chosenIndex;
+
+        var isCorrect = chosenIndex == _correctIndex;
+        if (isCorrect)
+            _correct++;
+
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(500);
+
+        // Səhv cavab da, vaxtın bitməsi də bir cana başa gəlir.
+        if (!isCorrect && !await LoseLifeAsync())
+            return;
+
+        _index++;
+
+        if (_index >= QuestionCount)
+        {
+            await FinishAsync();
+            return;
+        }
+
+        NextQuestion();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Can gedir; sonuncu da bitəndə oyun elə həmin anda bağlanır. Nəticə
+    /// itmir — uşaq neçə sual bilibsə, o qədər bal alır.
+    /// </summary>
+    private async Task<bool> LoseLifeAsync()
+    {
+        _lives--;
+        _hit = true;
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(420);
+        _hit = false;
+
+        if (_lives > 0)
+        {
+            await InvokeAsync(StateHasChanged);
+            return true;
+        }
+
+        _over = true;
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(900);
+        await FinishAsync();
+        return false;
+    }
+
+    private void NextQuestion()
+    {
+        var a = Random.Shared.Next(2, 13);
+        var b = Random.Shared.Next(2, 13);
+        var isAddition = Random.Shared.Next(2) == 0;
+
+        _answer = isAddition ? a + b : a * b;
+        _prompt = isAddition ? $"{a} + {b}" : $"{a} × {b}";
+
+        var values = new HashSet<int> { _answer };
+        while (values.Count < 4)
+        {
+            var candidate = _answer + Random.Shared.Next(-9, 10);
+            if (candidate > 0)
+                values.Add(candidate);
+        }
+
+        var shuffled = values.OrderBy(_ => Random.Shared.Next()).ToList();
+        _options.Clear();
+        _options.AddRange(shuffled.Select(v => v.ToString()));
+        _correctIndex = shuffled.IndexOf(_answer);
+
+        _chosenIndex = -1;
+        _secondsLeft = SecondsPerQuestion;
+        _locked = false;
+    }
+
+    private async Task FinishAsync()
+    {
+        if (_finished)
+            return;
+
+        _finished = true;
+
+        StopTimer();
+
+        var duration = (int)Math.Clamp((DateTime.UtcNow - _startedAt).TotalMilliseconds, 0, 1_800_000);
+        await OnFinished.InvokeAsync((_correct * 100 / QuestionCount, duration));
+    }
+
+    /// <summary>Doğru/yanlış rəngi yalnız cavab verildikdən sonra görünür.</summary>
+    private string? OptionClass(int index)
+    {
+        if (!_locked)
+            return null;
+
+        if (index == _correctIndex)
+            return "quick__option--correct";
+
+        return index == _chosenIndex ? "quick__option--wrong" : null;
+    }
+
+    private void StopTimer()
+    {
+        _timerCts?.Cancel();
+        _timer?.Dispose();
+    }
+
+    public void Dispose()
+    {
+        StopTimer();
+        _timerCts?.Dispose();
+    }
+}

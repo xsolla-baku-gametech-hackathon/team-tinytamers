@@ -1,0 +1,43 @@
+<div class="pp-root" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--pp-bg); color: var(--pp-ink);">
+
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, var(--pp-card-soft) 0%, var(--pp-bg) 60%);"></div>
+
+  <!-- Dörd lövhə: rəng tək daşıyıcı deyil — hər lövhənin öz nişanı var,
+       ona görə rəngi seçməyən uşaq da sıranı izləyir. -->
+  <div style="position: absolute; top: 250px; left: 24px; right: 24px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; z-index: 8;">
+
+    <!-- İşıqlanan lövhə: doymuş rəng, qalxma və ətrafında halqa. -->
+    <span style="position: relative; display: flex; align-items: center; justify-content: center; height: 158px; border-radius: 28px; background: linear-gradient(180deg, var(--pp-primary-lift) 0%, var(--pp-primary) 100%); box-shadow: 0 8px 0 var(--pp-primary-edge), var(--pp-shadow-md), var(--pp-gloss); outline: 4px solid var(--pp-primary); outline-offset: 6px; transform: translateY(-3px);">
+      <svg viewBox="0 0 40 40" width="52" height="52" aria-hidden="true"><circle cx="20" cy="20" r="14" fill="#FFFFFF" opacity="0.92" /></svg>
+    </span>
+
+    <span style="display: flex; align-items: center; justify-content: center; height: 158px; border-radius: 28px; background: var(--pp-life-soft); box-shadow: 0 6px 0 var(--pp-edge-neutral);">
+      <svg viewBox="0 0 40 40" width="52" height="52" aria-hidden="true"><path d="M20 5l15 26H5z" fill="var(--pp-life)" opacity="0.55" /></svg>
+    </span>
+
+    <span style="display: flex; align-items: center; justify-content: center; height: 158px; border-radius: 28px; background: var(--pp-spark-soft); box-shadow: 0 6px 0 var(--pp-edge-neutral);">
+      <svg viewBox="0 0 40 40" width="52" height="52" aria-hidden="true"><rect x="7" y="7" width="26" height="26" rx="7" fill="var(--pp-spark)" opacity="0.55" /></svg>
+    </span>
+
+    <span style="display: flex; align-items: center; justify-content: center; height: 158px; border-radius: 28px; background: var(--pp-alert-soft); box-shadow: 0 6px 0 var(--pp-edge-neutral);">
+      <svg viewBox="0 0 40 40" width="52" height="52" aria-hidden="true"><path d="M20 4l5 11 11 5-11 5-5 11-5-11-11-5 11-5z" fill="var(--pp-alert)" opacity="0.55" /></svg>
+    </span>
+  </div>
+
+  <!-- Sıra sayğacı: neçə addım təkrarlanıb, neçəsi qalıb. Rəqəm yox — nöqtə. -->
+  <div style="position: absolute; left: 24px; right: 24px; bottom: 128px; display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 8;">
+    <span style="font-size: 12px; font-weight: 800; color: var(--pp-ink-soft);">Sıranı təkrarla</span>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="width: 18px; height: 18px; border-radius: 999px; background: var(--pp-primary);"></span>
+      <span style="width: 18px; height: 18px; border-radius: 999px; background: var(--pp-spark);"></span>
+      <span style="width: 18px; height: 18px; border-radius: 999px; background: var(--pp-life);"></span>
+      <span style="width: 18px; height: 18px; border-radius: 999px; border: 3px solid var(--pp-track);"></span>
+      <span style="width: 18px; height: 18px; border-radius: 999px; border: 3px solid var(--pp-track);"></span>
+    </div>
+  </div>
+
+<!--CHROME:Rəng sırası,3,5,3-->
+<!--RULE:Sıraya bax, sonra təkrarla,primary-->
+<!--SCORE:3,raund keçildi-->
+
+</div>

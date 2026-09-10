@@ -1,0 +1,2 @@
+[0906/213753.942:INFO:CONSOLE:44] "Fetch API cannot load file:///C:/Users/User/Desktop/petpal/src/PetPal.App.Ui/Pages/Care.razor. URL scheme "file" is not supported.", source: file:///C:/Users/User/Desktop/petpal/.tmp-bed-preview.html (44)
+[0906/213753.944:INFO:CONSOLE:44] "Uncaught (in promise) TypeError: Failed to fetch", source: file:///C:/Users/User/Desktop/petpal/.tmp-bed-preview.html (44)

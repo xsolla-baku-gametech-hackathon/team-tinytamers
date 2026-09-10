@@ -1,0 +1,399 @@
+@implements IDisposable
+@inject Loc Loc
+@inject AppState State
+
+@* Səbət tut: yuxarıdan əşyalar düşür, uşaq səbəti üç zolaq arasında gəzdirir
+   və yalnız adı çəkilən SİNFƏ aid olanları tutur.
+
+   Bu, "Baloncuq ovu"ndan başqa bacarıqdır: orada qayda rəqəmin özündədir
+   (cütdür? böyükdür?), burada isə əşyanın NƏ OLDUĞUNU bilmək lazımdır —
+   kök tərəvəzdir, balıq heyvandır, peçenye şirniyyatdır. Bu, təsnifatdır.
+
+   Qayda hər beş əşyadan bir dəyişir və qayda zolağı döyünərək xəbər verir.
+   Səhv sinif tutmaq bir cana başa gəlir; qaçırmaq isə yalnız bal itkisidir —
+   tərəddüd cəzalandırılmır. *@
+
+<GameShell Title="@Loc.T("Səbət tut", "Basket Catch")"
+           Round="_caught" RoundTotal="TargetCatches"
+           Lives="_lives" Hit="_hit" Over="_over"
+           Rule="@_rule" RuleTone="life" RuleChanged="_ruleChanged"
+           ScoreValue="@_caught.ToString()"
+           ScoreLabel="@Loc.T("doğru tutuldu", "caught right")">
+
+    <Backdrop>
+        <div class="gsbg gsbg--garden">
+            <div class="gsbg__hill"></div>
+            <div class="gsbg__ground"></div>
+        </div>
+    </Backdrop>
+
+    <ChildContent>
+        <div class="catch">
+            @foreach (var item in _items)
+            {
+                var current = item;
+
+                <span @key="current.Id" class="catch__item @(current.Gone ? "catch__item--gone" : null) @(current.Missed ? "catch__item--miss" : null)"
+                      style="--lane:@(current.Lane - 1); --dur:@(FallMs)ms"
+                      aria-hidden="true">@current.Glyph</span>
+            }
+
+            <div class="catch__track" aria-hidden="true"></div>
+
+            <div class="catch__pet" style="--lane:@(_lane - 1)">
+                <PetAvatar Species="@Species" Stage="@Stage" Mood="PetMood.Happy" Name="@PetName" />
+            </div>
+
+            <div class="catch__basket" style="--lane:@(_lane - 1)" aria-hidden="true">
+                <svg viewBox="0 0 180 96">
+                    <path d="M14 22h152l-20 68H34z" fill="var(--pp-spark-lift)" stroke="var(--pp-spark-edge)" stroke-width="4" stroke-linejoin="round" />
+                    <path d="M40 22l10 68M90 22v68M140 22l-10 68" stroke="var(--pp-spark-edge)" stroke-width="3" opacity="0.55" />
+                    <rect x="6" y="12" width="168" height="16" rx="8" fill="var(--pp-spark)" stroke="var(--pp-spark-edge)" stroke-width="4" />
+                </svg>
+            </div>
+
+            <button class="gs__steer gs__steer--left" type="button"
+                    aria-label="@Loc.T("Səbəti sola apar", "Move the basket left")" disabled="@(_lane == 0)" @onclick="() => Steer(-1)">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M14 5l-7 7 7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </button>
+
+            <button class="gs__steer gs__steer--right" type="button"
+                    aria-label="@Loc.T("Səbəti sağa apar", "Move the basket right")" disabled="@(_lane == 2)" @onclick="() => Steer(1)">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M10 5l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </button>
+        </div>
+    </ChildContent>
+</GameShell>
+
+@code {
+    /// <summary>100 bal üçün lazım olan doğru tutuş sayı.</summary>
+    private const int TargetCatches = 10;
+
+    /// <summary>Bu qədər əşya düşür, sonra oyun bitir.</summary>
+    private const int ItemCount = 20;
+
+    /// <summary>
+    /// Əşyanın yuxarıdan SƏBƏTİN AĞZINA düşmə vaxtı — `catch-fall` keyframe-i
+    /// elə orada bitir. İki rəqəm eyni anı göstərməlidir, yoxsa uşaq tutuluşu
+    /// görür, hesab isə sonra dəyişir.
+    /// </summary>
+    private const int FallMs = 3400;
+
+    private const int SpawnGapMs = 1150;
+    private const int FadeMs = 300;
+    private const int MissMs = 340;
+    private const int FlashMs = 1400;
+    private const int RuleEvery = 5;
+
+    /// <summary>Can itkisinin titrəməsi və "canlar bitdi" pərdəsinin uzunluğu.</summary>
+    private const int HitMs = 420;
+    private const int OverMs = 900;
+
+    /// <summary>
+    /// Tik nə qədər sıxdırsa, tutuluş anı ekrandakı ana bir o qədər yaxındır:
+    /// gecikmə ən pis halda bir tikdir. 200 ms hiss olunurdu.
+    /// </summary>
+    private const int TickMs = 80;
+
+    private const int StartingLives = 3;
+
+    private sealed class Category
+    {
+        public required string Rule { get; init; }
+        public required string[] Glyphs { get; init; }
+    }
+
+    private sealed class Item
+    {
+        public required int Id { get; init; }
+        public required string Glyph { get; init; }
+        public required int Lane { get; init; }
+        public required bool Matches { get; init; }
+        public required DateTime LandsAt { get; init; }
+        public DateTime ExpiresAt { get; set; }
+        public bool Gone { get; set; }
+        public bool Missed { get; set; }
+        public bool Resolved { get; set; }
+    }
+
+    [Parameter] public EventCallback<(int Score, int DurationMs)> OnFinished { get; set; }
+
+    private readonly Random _random = new();
+    private readonly List<Item> _items = [];
+
+    private List<Category> _categories = [];
+    private Category _target = null!;
+
+    private string _rule = string.Empty;
+    private int _spawned;
+    private int _caught;
+    private int _lane = 1;
+
+    private int _lives = StartingLives;
+    private bool _hit;
+    private bool _over;
+    private bool _dying;
+    private bool _done;
+    private bool _busy;
+    private bool _ruleChanged;
+    private int _nextId;
+    private int _lastLane = -1;
+
+    private bool _finished;
+
+    private DateTime _startedAt;
+    private DateTime _nextSpawnAt;
+    private DateTime _flashUntil;
+    private DateTime _hitUntil;
+    private DateTime _overAt;
+    private System.Timers.Timer? _timer;
+
+    private string Species => State.Pet?.Species ?? "fox";
+    private PetStage Stage => State.Pet?.Stage ?? PetStage.Child;
+    private string PetName => State.Pet?.Name ?? "Pet";
+
+    protected override void OnInitialized()
+    {
+        _startedAt = DateTime.UtcNow;
+
+        _categories =
+        [
+            new Category { Rule = Loc.T("Yalnız MEYVƏ tut", "Catch only FRUIT"), Glyphs = ["🍎", "🍓", "🍐", "🍇", "🍌"] },
+            new Category { Rule = Loc.T("Yalnız TƏRƏVƏZ tut", "Catch only VEGETABLES"), Glyphs = ["🥕", "🌽", "🥦", "🍅"] },
+            new Category { Rule = Loc.T("Yalnız HEYVAN tut", "Catch only ANIMALS"), Glyphs = ["🐟", "🐰", "🐱", "🦊"] },
+            new Category { Rule = Loc.T("Yalnız ŞİRNİYYAT tut", "Catch only SWEETS"), Glyphs = ["🍪", "🍰", "🍬", "🍭"] }
+        ];
+
+        PickCategory();
+
+        _timer = new System.Timers.Timer(TickMs);
+        _timer.Elapsed += OnTick;
+        _timer.Start();
+    }
+
+    private void PickCategory()
+    {
+        var previous = _target;
+
+        do
+        {
+            _target = _categories[_random.Next(_categories.Count)];
+        }
+        while (_categories.Count > 1 && ReferenceEquals(_target, previous));
+
+        _rule = _target.Rule;
+        _flashUntil = DateTime.UtcNow.AddMilliseconds(FlashMs);
+    }
+
+    private void Steer(int direction)
+    {
+        if (_done || _over)
+            return;
+
+        _lane = Math.Clamp(_lane + direction, 0, 2);
+    }
+
+    private async void OnTick(object? sender, System.Timers.ElapsedEventArgs e)
+    {
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                // Oyunun bitməsi (nəticənin göndərilməsi) tikdən uzun sürə bilər.
+                // Bayraq olmasa, iki tik bir-birinin içində işləyərdi.
+                if (_done || _busy)
+                    return;
+
+                _busy = true;
+
+                try
+                {
+                    await TickAsync();
+                }
+                finally
+                {
+                    _busy = false;
+                }
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+            // Oyun bağlananda taymer son bir dəfə işə düşə bilər.
+        }
+    }
+
+    private async Task TickAsync()
+    {
+        var now = DateTime.UtcNow;
+
+        // Canlar bitib: səhnə donur, yalnız pərdənin bitməsi gözlənilir.
+        if (_over)
+        {
+            if (now >= _overAt)
+                await FinishAsync();
+
+            return;
+        }
+
+        var changed = _items.RemoveAll(i => now >= i.ExpiresAt) > 0;
+
+        // Səbətin ağzına çatan əşyalar: səbət altındadırsa tutulur.
+        // Siyahı burada dəyişmir (yalnız sahələr yazılır), ona görə sadə dövr
+        // kifayətdir — hər tikdə yeni siyahı yaratmağa ehtiyac yoxdur.
+        for (var index = 0; index < _items.Count; index++)
+        {
+            var item = _items[index];
+
+            if (item.Resolved || now < item.LandsAt)
+                continue;
+
+            item.Resolved = true;
+            changed = true;
+
+            // Yandan keçdi: səbətin yanından yerə sürüşür, yalnız bal itkisi.
+            if (item.Lane != _lane)
+            {
+                item.Missed = true;
+                item.ExpiresAt = now.AddMilliseconds(MissMs);
+                continue;
+            }
+
+            item.Gone = true;
+            item.ExpiresAt = now.AddMilliseconds(FadeMs);
+
+            if (item.Matches)
+                _caught++;
+            else
+                LoseLife(now);
+        }
+
+        // Can itkisi oyunu bitirdisə, pərdə dərhal görünməlidir.
+        if (_over)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        // Titrəmə bitir. Sonuncu can idisə, indi pərdə qalxır — iki xəbər
+        // bir-birinin üstünə düşmür: əvvəl "vurdun", sonra "bitdi".
+        if (_hit && now >= _hitUntil)
+        {
+            _hit = false;
+            changed = true;
+
+            if (_dying)
+            {
+                _over = true;
+                _overAt = now.AddMilliseconds(OverMs);
+                StateHasChanged();
+                return;
+            }
+        }
+
+        if (_spawned < ItemCount && now >= _nextSpawnAt)
+        {
+            Spawn(now);
+            _nextSpawnAt = now.AddMilliseconds(SpawnGapMs);
+            changed = true;
+        }
+
+        // Bütün əşyalar düşüb qurtardı — oyun bitir.
+        if (_spawned >= ItemCount && _items.All(i => i.Resolved))
+        {
+            await FinishAsync();
+            return;
+        }
+
+        var flashing = now < _flashUntil;
+        if (flashing != _ruleChanged)
+        {
+            _ruleChanged = flashing;
+            changed = true;
+        }
+
+        if (changed)
+            StateHasChanged();
+    }
+
+    private void Spawn(DateTime now)
+    {
+        _spawned++;
+
+        // Qayda hər beş əşyadan bir dəyişir: eyni sinif uzun sürsə, uşaq
+        // düşünməyi dayandırıb refleksə keçir.
+        if (_spawned > 1 && _spawned % RuleEvery == 1)
+            PickCategory();
+
+        // Uyğun və uyğunsuz əşyalar növbələşir ki, hər ikisi ilə rastlaşsın.
+        var matches = _random.Next(100) < 55;
+
+        var pool = matches
+            ? _target.Glyphs
+            : _categories.Where(c => !ReferenceEquals(c, _target)).SelectMany(c => c.Glyphs).ToArray();
+
+        _items.Add(new Item
+        {
+            Id = ++_nextId,
+            Glyph = pool[_random.Next(pool.Length)],
+            Lane = NextLane(),
+            Matches = matches,
+            LandsAt = now.AddMilliseconds(FallMs),
+            ExpiresAt = now.AddMilliseconds(FallMs + FadeMs)
+        });
+    }
+
+    /// <summary>Ardıcıl iki əşya eyni zolağa düşmür — səbət hərəkət etməlidir.</summary>
+    private int NextLane()
+    {
+        int lane;
+        do
+        {
+            lane = _random.Next(3);
+        }
+        while (lane == _lastLane);
+
+        _lastLane = lane;
+        return lane;
+    }
+
+    /// <summary>
+    /// Titrəmə və pərdə <c>await Task.Delay</c> ilə gözlənilmir: gözləmə tik
+    /// dövrünü bağlayırdı və o müddətdə səbətə düşən əşya gec sayılırdı.
+    /// İndi hər ikisi qayda döyüntüsü kimi vaxt damğasıdır.
+    /// </summary>
+    private void LoseLife(DateTime now)
+    {
+        _lives = Math.Max(0, _lives - 1);
+        _hit = true;
+        _hitUntil = now.AddMilliseconds(HitMs);
+        _dying = _lives == 0;
+    }
+
+    private async Task FinishAsync()
+    {
+        if (_finished)
+            return;
+
+        _finished = true;
+        _done = true;
+        _timer?.Stop();
+
+        var score = Math.Clamp(_caught * 100 / TargetCatches, 0, 100);
+        var duration = (int)Math.Clamp((DateTime.UtcNow - _startedAt).TotalMilliseconds, 0, 1_800_000);
+
+        await OnFinished.InvokeAsync((score, duration));
+    }
+
+    public void Dispose()
+    {
+        if (_timer is null)
+            return;
+
+        _timer.Elapsed -= OnTick;
+        _timer.Dispose();
+    }
+}

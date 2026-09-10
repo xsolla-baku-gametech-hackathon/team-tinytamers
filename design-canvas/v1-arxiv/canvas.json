@@ -1,0 +1,27 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 390, "h": 844, "title": "Ev" },
+    { "file": "Care.dc.html", "x": 470, "y": 0, "w": 390, "h": 844, "title": "Qulluq" },
+    { "file": "Play.dc.html", "x": 940, "y": 0, "w": 390, "h": 844, "title": "Oyunlar" },
+    { "file": "Learn.dc.html", "x": 1410, "y": 0, "w": 390, "h": 844, "title": "Öyrən" },
+    { "file": "World.dc.html", "x": 1880, "y": 0, "w": 390, "h": 844, "title": "Dünya" },
+    { "file": "Kit.dc.html", "x": 0, "y": 984, "w": 1120, "h": 1000, "title": "Səth resepti" }
+  ],
+  "annotations": [
+    {
+      "id": "brief",
+      "x": 0,
+      "y": -230,
+      "w": 560,
+      "text": "AI Pets for Kids — oyun səthi\n\nRəng ailələri, Nunito, radiuslar və pet SVG-si mövcud sistemdən olduğu kimi götürülüb. Dəyişən yalnız səthdir:\n\n• pet kart içində deyil, tam səhnədə — ekranın qəhrəmanı odur\n• HUD səhnənin üstündə üzür (şüşəvari kapsullar), ayrıca başlıq zolağı yoxdur\n• düymələrdə qradiyent + alt kənar — basılan hiss\n• qulluq statları halqa ölçər; 30%-dən aşağı düşən özü diqqət çəkir\n• emoji ikonlar çəkilmiş SVG ilə əvəzlənib\n\nKod dəyişməyib. Tətbiq planı «Səth resepti» lövhəsindədir."
+    },
+    {
+      "id": "note-scope",
+      "x": 1180,
+      "y": 984,
+      "w": 400,
+      "text": "Bu lövhə tətbiq üçündür: dəqiq hex dəyərləri, kölgə düsturları və hansı faylların dəyişəcəyi.\n\nQeyd: bu orijinal dizayndır — janr konvensiyaları (səhnədə pet, halqa ölçərlər, alt dok) götürülüb, heç bir markalı personaj və ya aktiv köçürülməyib."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

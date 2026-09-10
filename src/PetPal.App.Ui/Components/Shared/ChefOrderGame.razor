@@ -1,0 +1,374 @@
+@implements IAsyncDisposable
+@inject Loc Loc
+@inject IJSRuntime Js
+
+@* Balaca aşpaz: pet sifariş verir (3 çiyələk, 2 alma), uşaq boşqabı hazırlayır.
+
+   Sifariş ekranda QALIR və dolan hər yuva sönür — bu, yaddaş oyunu deyil,
+   SAYMA məşqidir: uşaq "neçə qaldı" sualını hər əlavədən sonra yenidən verir.
+
+   Əşya rəfdən boşqaba SÜRÜKLƏNİR — qulluq ekranında yemin pet-in ağzına
+   aparılması ilə eyni jest, ona görə uşaq nə edəcəyini artıq bilir. Toxunmaq
+   heç nə etmir: təsadüfi barmaq can aparmır, hər əlavə bir qərardır.
+
+   Artıq əşya qoymaq və ya sifarişdə olmayan əşyanı boşqaba aparmaq bir cana
+   başa gəlir; boşqabdan kənarda buraxmaq isə səhv deyil — barmaq sürüşüb. *@
+
+<GameShell Title="@Loc.T("Balaca aşpaz", "Little Chef")"
+           Round="_completed" RoundTotal="RoundCount"
+           Lives="_lives" Hit="_hit" Over="_over"
+           Rule="@Loc.T("Sifarişi düz hazırla", "Fill the order exactly")" RuleTone="spark"
+           TimerPercent="TimerPercent"
+           ScoreValue="@_completed.ToString()"
+           ScoreLabel="@Loc.T("sifariş hazır", "orders served")">
+
+    <Backdrop><div class="gsbg gsbg--kitchen"></div></Backdrop>
+
+    <ChildContent>
+        <div class="chef">
+            <div class="chef__order">
+                @foreach (var line in _order)
+                {
+                    var current = line;
+
+                    <div class="chef__row">
+                        <span class="chef__row-icon" aria-hidden="true">@current.Glyph</span>
+                        <span class="chef__pips" role="img"
+                              aria-label="@Loc.T($"{current.Done} / {current.Needed}", $"{current.Done} of {current.Needed}")">
+                            @for (var i = 0; i < current.Needed; i++)
+                            {
+                                <span class="chef__pip @(i < current.Done ? "chef__pip--done" : null)"></span>
+                            }
+                        </span>
+                        <span class="chef__count">@current.Done / @current.Needed</span>
+                    </div>
+                }
+            </div>
+
+            @* data-drop-zone — sürüklənən əşyanın hədəfi. Adı ümumidir, çünki
+               hədəfi tapan JS modulu oyunlar arasında ortaqdır. *@
+            <div class="chef__plate @(_dragOver ? "chef__plate--over" : null)" data-drop-zone>
+                <div class="chef__plate-inner">
+                    @foreach (var item in _plate)
+                    {
+                        <span class="chef__plate-item" aria-hidden="true">@item</span>
+                    }
+                </div>
+            </div>
+
+            <div class="chef__shelf">
+                @foreach (var glyph in _shelf)
+                {
+                    var current = glyph;
+
+                    <button class="chef__slot @(current == _wrongGlyph ? "chef__slot--wrong" : null) @(current == _dragGlyph ? "chef__slot--held" : null)"
+                            disabled="@_locked"
+                            aria-label="@current"
+                            @onpointerdown="e => StartDragAsync(current, e)">@current</button>
+                }
+            </div>
+        </div>
+    </ChildContent>
+</GameShell>
+
+@code {
+    private const int RoundCount = 5;
+    private const int SecondsPerRound = 30;
+    private const int StartingLives = 3;
+
+    /// <summary>Rəfdə dörd qab var: ikisi sifarişdən, ikisi yad.</summary>
+    private const int ShelfSize = 4;
+
+    private static readonly string[] Pantry = ["🍓", "🍎", "🥕", "🐟", "🍪", "🥛", "🍖", "🌽"];
+
+    private sealed class OrderLine
+    {
+        public required string Glyph { get; init; }
+        public required int Needed { get; init; }
+        public int Done { get; set; }
+    }
+
+    [Parameter] public EventCallback<(int Score, int DurationMs)> OnFinished { get; set; }
+
+    private readonly Random _random = new();
+    private readonly List<OrderLine> _order = [];
+    private readonly List<string> _plate = [];
+    private readonly List<string> _shelf = [];
+
+    private int _round;
+    private int _completed;
+    private string? _wrongGlyph;
+
+    private int _lives = StartingLives;
+    private bool _hit;
+    private bool _over;
+    private bool _locked;
+    private int _secondsLeft = SecondsPerRound;
+
+    private bool _finished;
+
+    private DateTime _startedAt;
+    private PeriodicTimer? _timer;
+    private CancellationTokenSource? _timerCts;
+
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<ChefOrderGame>? _self;
+
+    /// <summary>Barmağın altındakı əşya — rəfdəki yeri sönük görünür.</summary>
+    private string? _dragGlyph;
+
+    /// <summary>Kölgə boşqabın üstündədir: hədəf işıqlanır.</summary>
+    private bool _dragOver;
+
+    private int TimerPercent => Math.Clamp(_secondsLeft * 100 / SecondsPerRound, 0, 100);
+
+    protected override void OnInitialized()
+    {
+        _startedAt = DateTime.UtcNow;
+        NextOrder();
+        _ = RunTimerAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        _self = DotNetObjectReference.Create(this);
+        _module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/PetPal.App.Ui/js/gameDrag.js");
+    }
+
+    /// <summary>
+    /// Sifariş iki sətirdir və cəmi altı əşyadan çox olmur: 6 yaşlı uşaq üçün
+    /// "üç çiyələk, iki alma" hələ sayıla bilən, "yeddi" isə artıq şəkil deyil,
+    /// hesabdır.
+    /// </summary>
+    private void NextOrder()
+    {
+        _round++;
+        _plate.Clear();
+        _order.Clear();
+        _shelf.Clear();
+        _wrongGlyph = null;
+        _secondsLeft = SecondsPerRound;
+        _locked = false;
+
+        var picks = Pantry.OrderBy(_ => _random.Next()).Take(ShelfSize).ToList();
+
+        _order.Add(new OrderLine { Glyph = picks[0], Needed = _random.Next(2, 5) });
+        _order.Add(new OrderLine { Glyph = picks[1], Needed = _random.Next(1, 3) });
+
+        _shelf.AddRange(picks.OrderBy(_ => _random.Next()));
+    }
+
+    private async Task RunTimerAsync()
+    {
+        _timerCts = new CancellationTokenSource();
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+
+        try
+        {
+            while (await _timer.WaitForNextTickAsync(_timerCts.Token))
+            {
+                if (_locked)
+                    continue;
+
+                _secondsLeft--;
+
+                // Vaxt bitdi: sifariş itir, amma can getmir.
+                if (_secondsLeft <= 0)
+                    await AdvanceAsync();
+                else
+                    await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Komponent bağlanıb — normal hal.
+        }
+    }
+
+    private async Task StartDragAsync(string glyph, PointerEventArgs e)
+    {
+        if (_locked || _module is null)
+            return;
+
+        _dragGlyph = glyph;
+        _dragOver = false;
+
+        await _module.InvokeVoidAsync("start", _self, glyph, e.ClientX, e.ClientY);
+    }
+
+    [JSInvokable]
+    public Task OnDragOver(bool over)
+    {
+        _dragOver = over;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Barmaq qalxdı. Boşqabdan kənarda buraxmaq SƏHV DEYİL — barmaq sürüşüb,
+    /// əşya rəfə qayıdır. Can yalnız boşqaba yanlış əşya düşəndə gedir.
+    /// </summary>
+    [JSInvokable]
+    public async Task OnDragDrop(bool onPlate)
+    {
+        var glyph = _dragGlyph;
+
+        _dragGlyph = null;
+        _dragOver = false;
+
+        if (glyph is null || !onPlate)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        await PlaceAsync(glyph);
+    }
+
+    private async Task PlaceAsync(string glyph)
+    {
+        if (_locked)
+            return;
+
+        var line = _order.FirstOrDefault(o => o.Glyph == glyph);
+
+        // Sifarişdə olmayan əşya, yaxud artıq tamamlanmış sətir — hər ikisi səhvdir.
+        if (line is null || line.Done >= line.Needed)
+        {
+            _wrongGlyph = glyph;
+            _locked = true;
+            await InvokeAsync(StateHasChanged);
+
+            await Task.Delay(420);
+            _wrongGlyph = null;
+            _locked = false;
+
+            if (!await LoseLifeAsync())
+                return;
+
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        line.Done++;
+        _plate.Add(glyph);
+
+        if (_order.Any(o => o.Done < o.Needed))
+        {
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _completed++;
+        _locked = true;
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(800);
+        await AdvanceAsync();
+    }
+
+    private async Task AdvanceAsync()
+    {
+        await CancelDragAsync();
+
+        if (_round >= RoundCount)
+        {
+            await InvokeAsync(FinishAsync);
+            return;
+        }
+
+        NextOrder();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Barmaqda qalan əşyanı ləğv edir. Vaxt sürükləmənin ORTASINDA bitə bilər —
+    /// bu olmasa köhnə əşya buraxılanda artıq YENİ sifarişin üstünə düşürdü.
+    /// </summary>
+    private async Task CancelDragAsync()
+    {
+        _dragGlyph = null;
+        _dragOver = false;
+
+        if (_module is null)
+            return;
+
+        try
+        {
+            await _module.InvokeVoidAsync("stop");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Ekran bağlanır — körpü artıq qapanmış ola bilər.
+        }
+    }
+
+    private async Task<bool> LoseLifeAsync()
+    {
+        _lives--;
+        _hit = true;
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(420);
+        _hit = false;
+
+        if (_lives > 0)
+        {
+            await InvokeAsync(StateHasChanged);
+            return true;
+        }
+
+        _over = true;
+        _locked = true;
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(900);
+        await InvokeAsync(FinishAsync);
+        return false;
+    }
+
+    private async Task FinishAsync()
+    {
+        if (_finished)
+            return;
+
+        _finished = true;
+        StopTimer();
+        await CancelDragAsync();
+
+        var score = Math.Clamp(_completed * 100 / RoundCount, 0, 100);
+        var duration = (int)Math.Clamp((DateTime.UtcNow - _startedAt).TotalMilliseconds, 0, 1_800_000);
+
+        await OnFinished.InvokeAsync((score, duration));
+    }
+
+    private void StopTimer()
+    {
+        _timerCts?.Cancel();
+        _timer?.Dispose();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        StopTimer();
+        _timerCts?.Dispose();
+
+        if (_module is not null)
+        {
+            try
+            {
+                await _module.InvokeVoidAsync("stop");
+                await _module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Ekran bağlanarkən körpü artıq qapanmış ola bilər.
+            }
+        }
+
+        _self?.Dispose();
+    }
+}

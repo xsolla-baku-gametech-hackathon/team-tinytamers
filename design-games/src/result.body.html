@@ -1,0 +1,80 @@
+<div class="pp-root" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--pp-bg); color: var(--pp-ink);">
+
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, var(--pp-primary-soft) 0%, var(--pp-bg) 52%);"></div>
+
+  <!-- Konfeti: qısa bir sevinc anı, sonra ekran sakitləşir. -->
+  <svg viewBox="0 0 390 300" width="390" height="300" style="position: absolute; top: 0; left: 0;" aria-hidden="true">
+    <rect x="42" y="64" width="12" height="18" rx="3" fill="var(--pp-spark)" transform="rotate(-18 48 73)" />
+    <rect x="316" y="86" width="11" height="17" rx="3" fill="var(--pp-life)" transform="rotate(24 321 94)" />
+    <rect x="120" y="42" width="10" height="15" rx="3" fill="var(--pp-alert)" transform="rotate(38 125 49)" />
+    <rect x="268" y="40" width="10" height="16" rx="3" fill="var(--pp-primary)" transform="rotate(-30 273 48)" />
+    <circle cx="76" cy="132" r="6" fill="var(--pp-life-lift)" />
+    <circle cx="330" cy="158" r="5" fill="var(--pp-spark-lift)" />
+    <circle cx="196" cy="34" r="5" fill="var(--pp-primary-lift)" />
+  </svg>
+
+  <!-- Nəticə halqası: rəqəm var, amma dolğunluq onu rəqəmsiz də deyir. -->
+  <div style="position: absolute; top: 72px; left: 50%; transform: translateX(-50%); width: 168px; height: 168px; z-index: 8;">
+    <svg viewBox="0 0 168 168" width="168" height="168" aria-hidden="true">
+      <circle cx="84" cy="84" r="72" fill="var(--pp-card)" />
+      <circle cx="84" cy="84" r="66" fill="none" stroke="var(--pp-track)" stroke-width="14" />
+      <circle cx="84" cy="84" r="66" fill="none" stroke="var(--pp-life)" stroke-width="14" stroke-linecap="round" stroke-dasharray="415" stroke-dashoffset="75" transform="rotate(-90 84 84)" />
+    </svg>
+    <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;">
+      <span style="font-size: 46px; font-weight: 900; line-height: 1;">82</span>
+      <span style="font-size: 12px; font-weight: 800; color: var(--pp-ink-soft);">100-dən</span>
+    </div>
+  </div>
+
+  <div style="position: absolute; top: 258px; left: 50%; transform: translateX(-50%); z-index: 6;">
+    <!--PET:happy:230-->
+  </div>
+
+  <div style="position: absolute; top: 470px; left: 24px; right: 24px; text-align: center; z-index: 10;">
+    <div style="font-size: 21px; font-weight: 900; line-height: 1.25;">İnanılmaz! Miu heyran qaldı.</div>
+  </div>
+
+  <!-- Mükafat üç sütunda: ulduz, XP, yaş — Ev ekranındakı HUD ilə eyni sıra. -->
+  <div style="position: absolute; top: 524px; left: 20px; right: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; z-index: 10;">
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 8px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+        <path d="M12 3.2l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.6l6.1-.8z" fill="var(--pp-spark)" stroke="var(--pp-spark-edge)" stroke-width="1.6" stroke-linejoin="round" />
+      </svg>
+      <span style="font-size: 22px; font-weight: 900; line-height: 1;">+8</span>
+      <span style="font-size: 11px; font-weight: 800; color: var(--pp-ink-soft);">Ulduz</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 8px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">
+        <path d="M4 18l5-9 4 5 3-4 4 8z" fill="var(--pp-life-soft)" stroke="var(--pp-life-deep)" stroke-width="2" stroke-linejoin="round" />
+      </svg>
+      <span style="font-size: 22px; font-weight: 900; line-height: 1;">+18</span>
+      <span style="font-size: 11px; font-weight: 800; color: var(--pp-ink-soft);">XP</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 8px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="8.6" stroke="var(--pp-primary)" stroke-width="2.2" />
+        <path d="M12 7.4V12l3.2 2.4" stroke="var(--pp-primary-dark)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span style="font-size: 22px; font-weight: 900; line-height: 1;">7</span>
+      <span style="font-size: 11px; font-weight: 800; color: var(--pp-ink-soft);">Yaş</span>
+    </div>
+  </div>
+
+  <!-- Gündəlik limit dolub: mesaj xəbərdarlıq deyil, icazədir. -->
+  <div style="position: absolute; top: 656px; left: 20px; right: 20px; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 20px; background: var(--pp-spark-soft); z-index: 10;">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="var(--pp-spark-deep)" stroke-width="2" />
+      <path d="M12 10.6v6M12 7.4v.1" stroke="var(--pp-spark-deep)" stroke-width="2.4" stroke-linecap="round" />
+    </svg>
+    <span style="font-size: 12.5px; font-weight: 800; line-height: 1.35; color: var(--pp-spark-deep);">Bu günlük oyun ulduzları bitdi — amma istədiyin qədər oynaya bilərsən.</span>
+  </div>
+
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 44px; display: flex; flex-direction: column; gap: 10px; z-index: 10;">
+    <div style="display: flex; align-items: center; justify-content: center; min-height: 60px; border-radius: 999px; background: linear-gradient(180deg, var(--pp-primary-lift) 0%, var(--pp-primary) 100%); box-shadow: 0 5px 0 var(--pp-primary-edge), var(--pp-shadow-sm), var(--pp-gloss); font-size: 17px; font-weight: 900; color: #FFFFFF;">Yenidən oyna</div>
+    <div style="display: flex; align-items: center; justify-content: center; min-height: 54px; border-radius: 999px; background: var(--pp-card); box-shadow: 0 4px 0 var(--pp-edge-neutral); font-size: 15px; font-weight: 900; color: var(--pp-ink-soft);">Başqa oyun seç</div>
+  </div>
+
+</div>

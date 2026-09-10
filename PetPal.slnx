@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PetPal.Api/PetPal.Api.csproj" />
+    <Project Path="src/PetPal.Shared/PetPal.Shared.csproj" />
+    <Project Path="src/PetPal.App.Ui/PetPal.App.Ui.csproj" />
+    <Project Path="src/PetPal.App/PetPal.App.csproj" />
+    <Project Path="src/PetPal.Web/PetPal.Web.csproj" />
+    <Project Path="src/PetPal.Launcher/PetPal.Launcher.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PetPal.Tests/PetPal.Tests.csproj" />
+    <Project Path="tests/PetPal.App.Tests/PetPal.App.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,473 @@
+@page "/"
+@implements IDisposable
+@inject GameApiClient Api
+@inject LiveClient Live
+@inject AppState State
+@inject NavigationManager Navigation
+@inject Loc Loc
+
+<h1 class="visually-hidden-title">@Loc.T("Ev", "Home")</h1>
+
+<LoadingState IsLoading="_loading" Error="@_error" OnRetry="LoadAsync" LoadingText="@Loc.T("Pet oyanır…", "Waking your pet…")">
+    @if (_home is not null && _home.ScreenTime.IsBlocked)
+    {
+        @* Yuxu rejimi / gündəlik limit — oyun ekranları bağlanır. *@
+        <div class="blocked">
+            <div class="blocked__icon" aria-hidden="true">
+                @(_home.ScreenTime.State == ScreenTimeState.Bedtime ? "🌙" : "⏳")
+            </div>
+            <div class="blocked__title">
+                @(_home.ScreenTime.State == ScreenTimeState.Bedtime ? Loc.T("Yuxu vaxtıdır", "Time for bed") : Loc.T("Bugünlük bu qədər", "That's it for today"))
+            </div>
+            <div class="blocked__text">@_home.ScreenTime.Message</div>
+        </div>
+
+        <div class="card" style="margin-top:14px;text-align:center">
+            <p class="card__subtitle">
+                @Loc.T($"{_home.Pet.Name} səni sabah gözləyir. İstəsən, valideynin limiti dəyişə bilər.", $"{_home.Pet.Name} will be waiting tomorrow. Your parent can change the limit if you like.")
+            </p>
+            <button class="btn btn--ghost btn--block" style="margin-top:12px"
+                    @onclick='() => Navigation.NavigateTo("parent")'>
+                👨‍👩‍👧 @Loc.T("Valideyn bölməsi", "Parent area")
+            </button>
+        </div>
+    }
+    else if (_home is not null)
+    {
+
+        @* Ev = pet-in ÖZ OTAĞIdır, açıq hava deyil. Pəncərə isə çölə baxır və
+           havanı göstərir — Dünya ekranındakı mənzərə ilə əlaqə beləcə qalır,
+           amma uşaq üçün burası "içəri", ora "çöl" olur. *@
+        @* Üzən çip (sprint / duel nəticəsi) görünəndə səhnə onun zolağını
+           pet sütununa xəbər verir — yoxsa çip mərhələ nişanının ("🥚 Yumurta ·
+           2 yaş") üstünə düşür. Bax .scene--hero--chip. *@
+        <section class="scene scene--hero scene--room @WeatherClass @(HasFloatingChip ? "scene--hero--chip" : null)">
+            <div class="room" aria-hidden="true">
+                <div class="room__decor">
+                    @* Üst UI və danışıq buludu aydın qalsın deyə divarın sakitliyi qorunur. *@
+                    <div class="room__wall"></div>
+                    <div class="room__wall-pattern"></div>
+
+                    @* Otaq yerə bağlansın və alt kartın sahəsi qarışıq görünməsin deyə. *@
+                    <div class="room__floor"></div>
+                    <div class="room__floor-grain"></div>
+                    <div class="room__skirting">
+                      <span class="room__skirting-highlight"></span>
+                      <span class="room__skirting-shadow"></span>
+                    </div>
+                    <div class="room__floor-shadow"></div>
+
+                    @* Ev heyvanının mərkəzdə yumşaq və tanış dayanma yeri olsun deyə. *@
+                    <div class="room__rug">
+                      <span class="room__rug-middle"></span>
+                      <span class="room__rug-centre"></span>
+                      <span class="room__rug-softener"></span>
+                    </div>
+
+                    @* Uşaq otağına şəxsiyyət gəlsin, amma əsas obyekt sakitcə önə çıxsın deyə. *@
+                    <div class="room__picture">
+                      <span class="room__picture-shadow"></span>
+                      <span class="room__picture-frame"></span>
+                      <span class="room__picture-paper">
+                        <span class="room__picture-sun"></span>
+                        <span class="room__picture-hill-back"></span>
+                        <span class="room__picture-hill-front"></span>
+                      </span>
+                    </div>
+
+                    @* Sağ divar yaşanmış görünsün və oyun aparatının güclü silueti balanslansın deyə. *@
+                    <div class="room__shelf">
+                      <span class="room__shelf-shadow"></span>
+                      <span class="room__shelf-board"></span>
+                      <span class="room__shelf-edge"></span>
+                      <span class="room__shelf-bracket"></span>
+                      <span class="room__book-one"></span>
+                      <span class="room__book-two"></span>
+                      <span class="room__book-three"></span>
+                      <span class="room__shelf-toy"></span>
+                      <span class="room__plant-stem"></span>
+                      <span class="room__plant-leaf-left"></span>
+                      <span class="room__plant-leaf-right"></span>
+                      <span class="room__plant-pot"></span>
+                    </div>
+
+                    @* Oyuncaqların öz evi olduğu duyulsun və sağ döşəmə küncü səliqəli qalsın deyə. *@
+                    <div class="room__toybox">
+                      <span class="room__toybox-shadow"></span>
+                      <span class="room__toy-ball">
+                        <span class="room__toy-ball-patch"></span>
+                      </span>
+                      <span class="room__toy-cube"></span>
+                      <span class="room__toybox-lid"></span>
+                      <span class="room__toybox-body"></span>
+                      <span class="room__toybox-handle"></span>
+                    </div>
+
+                </div>
+
+                <div class="room__window">
+                    <div class="room__sky">
+                        @if (_home.Weather is WorldWeather.Sunny or WorldWeather.Clear)
+                        {
+                            <div class="room__sun"></div>
+                        }
+                        <svg class="room__hills" viewBox="0 0 160 60" preserveAspectRatio="none">
+                            <path d="M0 22c26-14 50-14 76 0 22 12 50 12 84-4v42H0z" fill="#A5D3B7" />
+                            <path d="M0 34c30-10 56-6 82 6 20 9 44 8 78-4v24H0z" fill="#77BE97" />
+                            <path d="M0 46c34-6 62 2 88 10 16 5 38 4 72-4v8H0z" fill="#35A57A" />
+                        </svg>
+                    </div>
+                    <div class="room__frame"></div>
+                    <div class="room__sill"></div>
+                </div>
+
+            </div>
+
+            @* Oyun avtomatı otağın qəhrəman əşyasıdır: uşaq oyunları menyudan
+               deyil, otaqdakı əşyaya toxunaraq açır. Şəkil dekor deyil, ona görə
+               `.room`-un içində yox, ayrıca düymədədir. *@
+            <button class="scene__arcade" @onclick='() => Navigation.NavigateTo("play")' aria-label="@(Loc.T("Oyunlar", "Games"))">
+                <span class="room__arcade" aria-hidden="true">
+                  <span class="room__arcade-spill"></span>
+                  <span class="room__arcade-leg-left"></span>
+                  <span class="room__arcade-leg-right"></span>
+                  <span class="room__arcade-cabinet"></span>
+                  <span class="room__arcade-face"></span>
+                  <span class="room__arcade-side"></span>
+                  <span class="room__arcade-marquee"></span>
+                  <span class="room__arcade-screen-halo"></span>
+                  <span class="room__arcade-screen">
+                    <span class="room__arcade-screen-inner">
+                      <span class="room__arcade-block-one"></span>
+                      <span class="room__arcade-block-two"></span>
+                      <span class="room__arcade-block-three"></span>
+                      <span class="room__arcade-heart"></span>
+                      <span class="room__arcade-paddle"></span>
+                      <span class="room__arcade-ball"></span>
+                    </span>
+                  </span>
+                  <span class="room__arcade-control-deck">
+                    <span class="room__arcade-control-surface"></span>
+                  </span>
+                  <span class="room__arcade-joystick-stick"></span>
+                  <span class="room__arcade-joystick-ball"></span>
+                  <span class="room__arcade-button-one">
+                    <span class="room__arcade-button-one-inner"></span>
+                  </span>
+                  <span class="room__arcade-button-two">
+                    <span class="room__arcade-button-two-inner"></span>
+                  </span>
+                  <span class="room__arcade-speaker"></span>
+                  <span class="room__arcade-base-shine"></span>
+                </span>
+            </button>
+
+            @* HUD (səviyyə halqası + ad + cüzdan) TopBar-dadır və bu səhnənin
+               üstündə üzür — bax AppLayout-dakı app-shell--immersive. *@
+
+            @* ---- Qulluq ölçərləri ----
+               YUMURTADA GÖSTƏRİLMİR. Yumurtanın doyğunluğu, enerjisi və
+               təmizliyi yoxdur — server də ona qulluğu rədd edir (bax
+               PetService → StillAnEgg). Ölçərlər çəkiləndə hamısı 0% olurdu və
+               ekran uşağa "petin acdır, çirklidir" deyirdi; halbuki edilməli
+               olan tək iş ulduz yığmaqdır. Yerinə yumurtanın öz proqresi
+               gəlir — uşaq nə qədər qaldığını görür. *@
+            @if (_home.Pet.IsHatched)
+            {
+                <div class="gauges">
+                    <PetGauge Label="@Loc.T("Doyğunluq", "Fullness")" Value="_home.Pet.Fullness" Family="spark" Icon="food" />
+                    <PetGauge Label="@Loc.T("Xoşbəxtlik", "Happiness")" Value="_home.Pet.Happiness" Family="spark" Icon="heart" />
+                    <PetGauge Label="@Loc.T("Enerji", "Energy")" Value="_home.Pet.Energy" Family="primary" Icon="bolt" />
+                    <PetGauge Label="@Loc.T("Təmizlik", "Cleanliness")" Value="_home.Pet.Cleanliness" Family="life" Icon="drop" />
+                </div>
+            }
+            else
+            {
+                <a class="hatchbar" href="care">
+                    <span class="hatchbar__title">🥚 @Loc.T("Yumurtanı aç", "Hatch the egg")</span>
+                    <span class="hatchbar__count">⭐ @State.Wallet.Stars / @_home.Pet.HatchStarCost</span>
+                    <span class="hatchbar__track">
+                        <span class="hatchbar__fill" style="width:@HatchPercent%"></span>
+                    </span>
+                </a>
+            }
+
+            @* Danışıq buludu söhbətin giriş nöqtəsidir: uşaq üçün ən təbii jest
+               pet-in DEDİYİNƏ toxunub cavab verməkdir. Söhbət bağlıdırsa bulud
+               adi mətn qalır — uşaq hər dəfə bağlı qapıya çatmamalıdır.
+
+               Yumurta DANIŞMIR: söhbət də qulluq kimi çıxandan sonra açılan
+               özəllikdir. Bulud qalır (yumurta bir cümlə deyir), amma toxunulan
+               giriş nöqtəsi deyil. *@
+            @if (_home.ChatEnabled && _home.Pet.IsHatched)
+            {
+                <button class="bubble bubble--tappable" @onclick='() => Navigation.NavigateTo("chat")'
+                        aria-label="@Loc.T($"{_home.Pet.Name} ilə danış", $"Talk with {_home.Pet.Name}")">
+                    @_home.PetMessage
+                    <span class="bubble__hint" aria-hidden="true">💬</span>
+                </button>
+            }
+            else
+            {
+                <div class="bubble">@_home.PetMessage</div>
+            }
+
+            <div class="scene__pet">
+                <PetAvatar Stage="_home.Pet.Stage" Mood="_home.Pet.Mood" Species="@_home.Pet.Species"
+                           Accessories="_home.Pet.EquippedAccessories"
+                           Name="@_home.Pet.Name" ShowStageLabel="true" Age="_home.Pet.Level" />
+            </div>
+
+            <div class="scene__goal">
+                <GoalBar Completed="_home.DailyGoal.Completed" Target="_home.DailyGoal.Target"
+                         StreakDays="_home.DailyGoal.StreakDays" Title="@Loc.T("Bugünkü hədəf", "Today's goal")" />
+            </div>
+
+            @* Sprint təklifi səhnənin İÇİNDƏ üzür, sıra tutmur. Əvvəl ekranın
+               yuxarısında tam enli banner idi və otağın 90px-ni yeyirdi —
+               halbuki bu, hərəkətsizlikdən sonra gələn qısa təkliftir, ekranın
+               daimi sakini deyil. *@
+            @* Duelin nəticəsi hazırdırsa o, sprintdən ÜSTÜNDÜR: uşaq nəticəni
+               gözləyir, sprint isə hər an təklif oluna bilər. İkisi eyni yerdə
+               üzdüyünə görə eyni anda göstərilmir. *@
+            @if (_arenaResults > 0)
+            {
+                <button class="sprint" @onclick='() => Navigation.NavigateTo("arena")'>
+                    <span class="sprint__icon" aria-hidden="true">🏆</span>
+                    <span class="sprint__body">
+                        <span class="sprint__title">@Loc.T("Duelin nəticəsi hazırdır", "Your duel result is ready")</span>
+                        <span class="sprint__text">@Loc.T("Rəqib oynadı — kim qalib gəldi?", "Your rival played — who won?")</span>
+                    </span>
+                    <span class="sprint__go">@Loc.T("Bax", "See")</span>
+                </button>
+            }
+            else if (_showSprint)
+            {
+                <button class="sprint" @onclick="StartSprint">
+                    <span class="sprint__icon" aria-hidden="true">⚡</span>
+                    <span class="sprint__body">
+                        <span class="sprint__title">@Loc.T("Bilik sprinti", "Knowledge sprint")</span>
+                        <span class="sprint__text">@Loc.T("3 sual · +15 ulduz", "3 questions · +15 stars")</span>
+                    </span>
+                    <span class="sprint__go">@Loc.T("Başla", "Start")</span>
+                </button>
+            }
+        </section>
+
+        @* Kafellər bölmə deyil, FEİLDİR: hər biri pet-in üstündə bir iş açır.
+           Bölmələr (Öyrən, Qulluq, Dünya, Kəşf) alt naviqasiyada qalır, ona görə
+           əvvəlki təkrar aradan qalxır.
+
+           Stat aşağı düşəndə müvafiq kafel özü diqqət çəkir — Qulluq ekranındakı
+           dok düymələri ilə eyni qayda (bax .dock__btn--alert).
+
+           YUMURTADA yalnız "Oyna" qalır. Yem, Çimizdir, Yatır və Şkaf qulluq
+           feilləridir və server onları rədd edir (PetService → StillAnEgg) —
+           göstərilsə, uşaq basıb xəta alır. Üstəlik stat 0 olduğu üçün hamısı
+           `action--alert` alıb çəhrayı yanıb-sönürdü: ekran "petin acdır"
+           deyirdi, halbuki pet hələ doğulmayıb. Oyna qalır, çünki oyun ulduz
+           qazandırır, ulduz isə yumurtanı açır — yeganə mənalı iş budur. *@
+        @if (!_home.Pet.IsHatched)
+        {
+            <div class="actions actions--solo">
+                <a class="action action--play" href="play">
+                    <span class="action__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" />
+                            <path d="M4.6 8.6c4.4 1.7 10.4 1.7 14.8 0M4.6 15.4c4.4-1.7 10.4-1.7 14.8 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                    </span>
+                    <span>@Loc.T("Oyna və ulduz qazan", "Play and earn stars")</span>
+                </a>
+            </div>
+        }
+        else
+        {
+        <div class="actions actions--five">
+            <a class="action @(_home.Pet.Fullness < LowStat ? "action--alert" : null)" href="care?mode=feed">
+                <span class="action__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M3.5 11h17a8.5 8.5 0 0 1-17 0z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                        <path d="M8 8c0-1.6 1-2.4 1-4M12 7.5c0-1.6 1-2.4 1-4M16 8c0-1.6 1-2.4 1-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </span>
+                <span>@Loc.T("Yem", "Feed")</span>
+            </a>
+            <a class="action @(_home.Pet.Cleanliness < LowStat ? "action--alert" : null)" href="care?mode=bath">
+                <span class="action__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <rect x="3.5" y="10" width="12" height="9.5" rx="3" stroke="currentColor" stroke-width="2" />
+                        <circle cx="18.5" cy="7" r="2.2" stroke="currentColor" stroke-width="2" />
+                        <circle cx="14.2" cy="4.4" r="1.5" stroke="currentColor" stroke-width="2" />
+                    </svg>
+                </span>
+                <span>@Loc.T("Çimizdir", "Bath")</span>
+            </a>
+            <a class="action @(_home.Pet.Energy < LowStat ? "action--alert" : null)" href="care?mode=sleep">
+                <span class="action__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M3 19v-9.5M3 13.5h13a4.5 4.5 0 0 1 4.5 4.5V19M3 19h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <circle cx="7.8" cy="10.2" r="2" stroke="currentColor" stroke-width="2" />
+                    </svg>
+                </span>
+                <span>@Loc.T("Yatır", "Sleep")</span>
+            </a>
+            <a class="action action--play" href="play">
+                <span class="action__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" />
+                        <path d="M4.6 8.6c4.4 1.7 10.4 1.7 14.8 0M4.6 15.4c4.4-1.7 10.4-1.7 14.8 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </span>
+                <span>@Loc.T("Oyna", "Play")</span>
+            </a>
+            <a class="action" href="care?mode=closet">
+                <span class="action__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M12 8.6V10l-7.6 5.7c-1 .8-.5 2.6.9 2.6h13.4c1.4 0 1.9-1.8.9-2.6L12 10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                        <path d="M12 8.6a2.1 2.1 0 1 1 2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </span>
+                <span>@Loc.T("Şkaf", "Closet")</span>
+            </a>
+        </div>
+        }
+
+        @* Səviyyə, XP və missiyalar qəsdən burada DEYİL: ev ekranı pet-in
+           otağıdır, siyahı ekranı yox. Səviyyə və XP onsuz da HUD-dakı halqada
+           görünür, missiyalar isə Dünya ekranındadır. *@
+    }
+</LoadingState>
+
+@code {
+    /// <summary>Bu qədər hərəkətsizlikdən sonra sprint təklif olunur.</summary>
+    private static readonly TimeSpan IdleBeforeSprint = TimeSpan.FromSeconds(25);
+
+    /// <summary>
+    /// Bu həddin altında stat "diqqət tələb edir" sayılır və müvafiq kafel
+    /// işarələnir. Dəyər <see cref="PetGauge"/>-dakı hədlə eynidir — halqa və
+    /// kafel eyni anda rəng dəyişməlidir, yoxsa uşaq üçün ziddiyyət yaranır.
+    /// </summary>
+    private const int LowStat = 30;
+
+    private HomeStateDto? _home;
+    private bool _loading = true;
+    private string? _error;
+
+    private bool _showSprint;
+    private CancellationTokenSource? _idleCts;
+
+    /// <summary>Nəticəsi hazır, uşağın hələ görmədiyi duel sayı.</summary>
+    private int _arenaResults;
+
+    /// <summary>
+    /// Səhnədə üzən çip varmı — duelin nəticəsi, ya da sprint təklifi. İkisi
+    /// eyni yerdə üzür və eyni anda göstərilmir, ona görə tək bayraqdır.
+    /// Səhnə bunu bilməlidir: çip mərhələ nişanının zolağına düşür, nişan da
+    /// ondan yuxarı qalxmalıdır.
+    /// </summary>
+    private bool HasFloatingChip => _arenaResults > 0 || _showSprint;
+
+    /// <summary>
+    /// Yumurtanın açılmasına nə qədər qalıb. Care ekranındakı eyni hesabdır —
+    /// ulduz cüzdanda saxlanılır, qiymət isə pet-in özündə gəlir.
+    /// </summary>
+    private int HatchPercent => _home is null || _home.Pet.HatchStarCost <= 0
+        ? 0
+        : Math.Clamp(State.Wallet.Stars * 100 / _home.Pet.HatchStarCost, 0, 100);
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Rəqib duelini bitirəndə nişan CANLI çıxır — uşaq ana ekranı yeniləmir.
+        Live.DuelCompleted += OnDuelCompleted;
+
+        await LoadAsync();
+        StartIdleWatch();
+        await Live.EnsureStartedAsync();
+    }
+
+    private void OnDuelCompleted(Guid duelId) => InvokeAsync(() =>
+    {
+        _arenaResults++;
+        StateHasChanged();
+    });
+
+    /// <summary>
+    /// Sprint tetikleyicisi tamamilə app daxilindədir — heç bir sensor və ya
+    /// sağlamlıq məlumatı istifadə olunmur (bax docs/PARENT_SAFETY.md).
+    /// </summary>
+    private void StartIdleWatch()
+    {
+        _idleCts?.Cancel();
+        _idleCts = new CancellationTokenSource();
+        var token = _idleCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(IdleBeforeSprint, token);
+                _showSprint = true;
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (TaskCanceledException)
+            {
+                // Səhifə bağlanıb və ya sprint başlayıb.
+            }
+        }, token);
+    }
+
+    private void StartSprint()
+    {
+        _showSprint = false;
+        _idleCts?.Cancel();
+        Navigation.NavigateTo("learn?sprint=1");
+    }
+
+    public void Dispose()
+    {
+        Live.DuelCompleted -= OnDuelCompleted;
+        _idleCts?.Cancel();
+        _idleCts?.Dispose();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        var result = await Api.GetHomeAsync();
+
+        _loading = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _home = result.Value;
+        State.ApplyHome(_home);
+
+        await LoadArenaAsync();
+    }
+
+    /// <summary>
+    /// Arena vəziyyəti ana ekranın öz sorğusundan AYRI alınır: Home slice-ı
+    /// arenadan xəbərsiz qalır və nişan uğursuz sorğuda sadəcə görünmür —
+    /// ana ekran bir bildiriş üstündə xəta ekranına düşməməlidir.
+    /// </summary>
+    private async Task LoadArenaAsync()
+    {
+        var arena = await Api.GetArenaStatusAsync();
+
+        _arenaResults = arena is { Succeeded: true, Value: not null }
+            ? arena.Value.PendingResultDuelIds.Count
+            : 0;
+    }
+
+
+
+
+    private string WeatherClass => $"scene--{(_home?.Weather ?? WorldWeather.Clear).ToString().ToLowerInvariant()}";
+}

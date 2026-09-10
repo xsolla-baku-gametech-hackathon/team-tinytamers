@@ -1,0 +1,13 @@
+@page "/friends"
+@inject Loc Loc
+
+@* Dostlar ekranı öz ünvanında qalır — köhnə keçidlər və dəvət linkləri
+   işləməyə davam etməlidir. Məzmun isə Arena ekranının "Dostlar" tabı ilə
+   EYNİ komponentdir: iki yerdə iki cür davranan ekran ən pis haldır.
+
+   Burada çağırış düyməsi YOXDUR: duelin vəziyyətini arena ekranı saxlayır,
+   bu səhifə isə ondan xəbərsizdir. *@
+
+<h1 class="visually-hidden-title">@Loc.T("Dostlar", "Friends")</h1>
+
+<FriendsPanel ShowChallenge="false" />

@@ -1,0 +1,246 @@
+@inject Loc Loc
+@inject AppState State
+
+@* Bulud tullanışı: buludlar rəqəm daşıyır, uşaq sıranı davam etdirən buluda
+   tullanır — 2, 4, 6 … Qanunauyğunluq hər dörd tullanışdan bir dəyişir
+   (+2, +5, ×2), ona görə oyun əzbər deyil, QAYDA TAPMAQ məşqidir.
+
+   Burada vaxt zolağı yoxdur: düşünmək lazım olan oyunda saniyə saymaq uşağı
+   qaydanı tapmaqdan yayındırır. Səhv bulud bir cana başa gəlir, keçilmiş
+   buludlar isə aşağıda qalır ki, sıra göz önündə olsun. *@
+
+<GameShell Title="@Loc.T("Bulud tullanışı", "Cloud Jump")"
+           Round="_correct" RoundTotal="JumpCount"
+           Lives="_lives" Hit="_hit" Over="_over"
+           Rule="@_rule" RuleTone="primary" RuleChanged="_ruleChanged"
+           ScoreValue="@_correct.ToString()"
+           ScoreLabel="@Loc.T("bulud keçildi", "clouds cleared")">
+
+    <Backdrop><div class="gsbg gsbg--high"></div></Backdrop>
+
+    <ChildContent>
+        <div class="jump">
+            <div class="jump__row">
+                @foreach (var option in _options)
+                {
+                    var current = option;
+
+                    <button class="jump__cloud @CloudClass(current)"
+                            disabled="@_locked"
+                            @onclick="() => PickAsync(current)">@current</button>
+                }
+            </div>
+
+            <div class="jump__pet">
+                <PetAvatar Species="@Species" Stage="@Stage" Mood="PetMood.Excited" Name="@PetName" />
+            </div>
+
+            @* Keçilmiş buludlar: sıranın başlanğıcı həmişə görünür. *@
+            <div class="jump__past" aria-hidden="true">
+                @foreach (var past in _history.TakeLast(4))
+                {
+                    <span class="jump__past-cloud">@past</span>
+                }
+            </div>
+        </div>
+    </ChildContent>
+</GameShell>
+
+@code {
+    private const int JumpCount = 12;
+
+    /// <summary>Bu qədər tullanışdan sonra qayda dəyişir.</summary>
+    private const int PatternLength = 4;
+
+    private const int StartingLives = 3;
+
+    [Parameter] public EventCallback<(int Score, int DurationMs)> OnFinished { get; set; }
+
+    private readonly Random _random = new();
+    private readonly List<int> _history = [];
+    private readonly List<int> _options = [];
+
+    private string _rule = string.Empty;
+    private int _current;
+    private int _step;
+    private bool _multiply;
+    private int _next;
+
+    private int _jump;
+    private int _correct;
+    private int _sinceRuleChange;
+    private int _wrongPick = -1;
+    private int _rightPick = -1;
+
+    private int _lives = StartingLives;
+    private bool _hit;
+    private bool _over;
+    private bool _locked;
+    private bool _ruleChanged;
+
+    private bool _finished;
+
+    private DateTime _startedAt;
+
+    private string Species => State.Pet?.Species ?? "fox";
+    private PetStage Stage => State.Pet?.Stage ?? PetStage.Child;
+    private string PetName => State.Pet?.Name ?? "Pet";
+
+    protected override void OnInitialized()
+    {
+        _startedAt = DateTime.UtcNow;
+        NewPattern();
+    }
+
+    /// <summary>
+    /// Yeni sıra: başlanğıc və addım. Uşaq qaydanı ilk üç buluddan oxuyur,
+    /// ona görə qayda zolağında rəqəmlərin özü yazılır — söz yox, nümunə.
+    /// </summary>
+    private void NewPattern()
+    {
+        _multiply = _random.Next(4) == 0;
+        _step = _multiply ? 2 : _random.Next(2, 6);
+        _current = _multiply ? _random.Next(1, 4) : _random.Next(1, 9);
+        _sinceRuleChange = 0;
+
+        _history.Clear();
+        _history.Add(_current);
+
+        var second = Advance(_current);
+        var third = Advance(second);
+
+        _rule = $"{_current} · {second} · {third} …";
+        _ruleChanged = true;
+
+        _next = second;
+        BuildOptions();
+    }
+
+    private int Advance(int value) => _multiply ? value * _step : value + _step;
+
+    /// <summary>Üç bulud: biri sıranı davam etdirir, ikisi yaxın, amma yanlışdır.</summary>
+    private void BuildOptions()
+    {
+        var values = new HashSet<int> { _next };
+
+        while (values.Count < 3)
+        {
+            var offset = _random.Next(1, 4) * (_random.Next(2) == 0 ? -1 : 1);
+            var candidate = _next + offset;
+
+            if (candidate > 0 && candidate != _next)
+                values.Add(candidate);
+        }
+
+        _options.Clear();
+        _options.AddRange(values.OrderBy(_ => _random.Next()));
+
+        _wrongPick = -1;
+        _rightPick = -1;
+        _locked = false;
+    }
+
+    private async Task PickAsync(int value)
+    {
+        if (_locked)
+            return;
+
+        _locked = true;
+        _jump++;
+
+        if (value == _next)
+        {
+            _rightPick = value;
+            _correct++;
+            _current = _next;
+            _history.Add(_current);
+            _sinceRuleChange++;
+
+            StateHasChanged();
+            await Task.Delay(420);
+
+            if (_jump >= JumpCount)
+            {
+                await FinishAsync();
+                return;
+            }
+
+            // Qayda dəyişir: eyni addım uzun sürsə, uşaq düşünməyi dayandırır.
+            if (_sinceRuleChange >= PatternLength)
+            {
+                NewPattern();
+                StateHasChanged();
+                return;
+            }
+
+            _ruleChanged = false;
+            _next = Advance(_current);
+            BuildOptions();
+            StateHasChanged();
+            return;
+        }
+
+        _wrongPick = value;
+        StateHasChanged();
+        await Task.Delay(420);
+
+        if (!await LoseLifeAsync())
+            return;
+
+        if (_jump >= JumpCount)
+        {
+            await FinishAsync();
+            return;
+        }
+
+        // Səhvdən sonra sıra dəyişmir — uşaq eyni sualı düzəltmək şansı alır.
+        _ruleChanged = false;
+        BuildOptions();
+        StateHasChanged();
+    }
+
+    private async Task<bool> LoseLifeAsync()
+    {
+        _lives--;
+        _hit = true;
+        StateHasChanged();
+
+        await Task.Delay(420);
+        _hit = false;
+
+        if (_lives > 0)
+        {
+            StateHasChanged();
+            return true;
+        }
+
+        _over = true;
+        StateHasChanged();
+
+        await Task.Delay(900);
+        await FinishAsync();
+        return false;
+    }
+
+    private async Task FinishAsync()
+    {
+        if (_finished)
+            return;
+
+        _finished = true;
+        _locked = true;
+
+        var score = Math.Clamp(_correct * 100 / JumpCount, 0, 100);
+        var duration = (int)Math.Clamp((DateTime.UtcNow - _startedAt).TotalMilliseconds, 0, 1_800_000);
+
+        await OnFinished.InvokeAsync((score, duration));
+    }
+
+    private string? CloudClass(int value)
+    {
+        if (value == _rightPick)
+            return "jump__cloud--hit";
+
+        return value == _wrongPick ? "jump__cloud--miss" : null;
+    }
+}

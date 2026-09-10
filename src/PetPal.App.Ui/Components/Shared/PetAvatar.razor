@@ -1,0 +1,360 @@
+@inject Loc Loc
+
+@* Pet-in vizual təsviri. Tamamilə inline SVG — asset faylı yoxdur, hər ölçüdə kəskindir.
+   Bədən ALTI YAŞ MƏRHƏLƏSİ üçün ayrıca çəkilib (Codex ilə): körpədə baş nəhəng,
+   bədən kiçicikdir; yaş artdıqca boy uzanır, qulaqlar böyüyür, cizgilər aydınlaşır.
+   Şirinlik heç bir mərhələdə itmir — böyümə proporsiya ilə göstərilir, sifəti
+   sərtləşdirməklə yox.
+
+   Üz və taxılan əşyalar mərhələdən asılı olaraq DƏYİŞƏN nöqtələrə (bax Anchor)
+   görə çəkilir: göz, burun, ağız və boyunbağı hər mərhələdə başqa yerdədir, ona
+   görə sabit koordinat yazmaq olmaz.
+
+   Rənglər növə görə CSS dəyişənlərindən gəlir — eyni rəsm dörd növə xidmət edir. *@
+
+<div class="pet-wrap">
+    @if (Stage == PetStage.Egg)
+    {
+        <svg class="pet pet--egg" viewBox="0 0 200 200" role="img" aria-label="@AccessibleLabel">
+            <ellipse cx="100" cy="185" rx="52" ry="9" fill="rgba(0,0,0,0.12)" />
+            <path d="M100 24c30 0 52 42 52 76a52 52 0 1 1-104 0c0-34 22-76 52-76z" fill="@ShellColor" />
+            <path d="M100 24c-30 0-52 42-52 76a52 52 0 0 0 26 45c-10-14-14-31-14-49 0-30 16-60 40-72z"
+                  fill="#FFFFFF" opacity="0.35" />
+            <path d="M62 108l16-9 4 16 18-12 5 18 17-11" stroke="@CrackColor" stroke-width="4"
+                  fill="none" stroke-linecap="round" stroke-linejoin="round" />
+            <circle class="pet__sparkle" cx="148" cy="52" r="5" fill="#FFD966" />
+        </svg>
+    }
+    else
+    {
+        @* data-pet-target: sürüklənən əşyanın hədəf sahəsini JS bu atributla tapır. *@
+        <svg class="pet @MoodClass @ReactionClass" viewBox="0 0 200 200" role="img"
+             aria-label="@AccessibleLabel" data-pet-target
+             style="--pet-fur:@FurColor;--pet-belly:@BellyColor;--pet-inner-ear:@InnerEarColor">
+
+            <ellipse cx="100" cy="168" rx="@N(A.ShadowRx)" ry="9" fill="rgba(0,0,0,0.12)" />
+
+            @* ---- Bədən: quyruq, qulaqlar, gövdə, pəncələr, baş ---- *@
+            <g class="pet__body">
+                @* Bədən növ və mərhələyə görə ayrıca komponentdədir: dörd növ ×
+                   altı yaş = 24 rəsm, hamısı burada saxlansaydı fayl oxunmaz
+                   olardı. Burun da oradadır — formasını növ müəyyən edir
+                   (pişikdə ürək, əjdahada iki burun deşiyi). *@
+                <PetBody Species="@Species" Stage="Stage" />
+
+                @* ---- Gözlər ---- *@
+                @if (Mood == PetMood.Sleepy)
+                {
+                    <path class="pet__lash" d="@ClosedEye(A.EyeLx)" />
+                    <path class="pet__lash" d="@ClosedEye(A.EyeRx)" />
+                }
+                else if (Mood is PetMood.Excited or PetMood.Happy)
+                {
+                    <path class="pet__lash" d="@HappyEye(A.EyeLx)" />
+                    <path class="pet__lash" d="@HappyEye(A.EyeRx)" />
+                }
+                else
+                {
+                    <circle class="pet__eye pet__eye--left" cx="@N(A.EyeLx)" cy="@N(A.EyeCy)" r="@N(A.EyeR)" />
+                    <circle class="pet__eye pet__eye--right" cx="@N(A.EyeRx)" cy="@N(A.EyeCy)" r="@N(A.EyeR)" />
+                    <circle cx="@N(A.EyeLx + A.EyeR * 0.3)" cy="@N(A.EyeCy - A.EyeR * 0.34)" r="@N(A.EyeR * 0.28)" fill="#FFFFFF" />
+                    <circle cx="@N(A.EyeRx + A.EyeR * 0.3)" cy="@N(A.EyeCy - A.EyeR * 0.34)" r="@N(A.EyeR * 0.28)" fill="#FFFFFF" />
+
+                    @* Göz qapağı yalnız qırpma animasiyası üçündür — tükün rəngindədir. *@
+                    <ellipse class="pet__eyelid" cx="@N(A.EyeLx)" cy="@N(A.EyeCy)" rx="@N(A.EyeR + 1)" ry="@N(A.EyeR + 1.5)" fill="var(--pet-fur)" />
+                    <ellipse class="pet__eyelid" cx="@N(A.EyeRx)" cy="@N(A.EyeCy)" rx="@N(A.EyeR + 1)" ry="@N(A.EyeR + 1.5)" fill="var(--pet-fur)" />
+                }
+
+                @* ---- Ağız ---- *@
+
+                @if (MouthOpen || Talking)
+                {
+                    @* Ağız iki halda açılır: yemək yaxınlaşanda (uşaq harada
+                       buraxacağını başa düşsün) və pet DANIŞANDA.
+
+                       Hər iki ellips bir qrupdadır ki, animasiya ikisini birlikdə
+                       aparsın — ayrı-ayrı animasiya edilsəydi dil ağızdan çıxardı.
+                       Fırlanma nöqtəsi ağzın ÜST kənarıdır və mərhələyə görə
+                       dəyişir, ona görə sinifdə deyil, burada verilir. *@
+                    <g class="@MouthClass" style="transform-origin:100px @N(A.MouthTop)px">
+                        <ellipse cx="100" cy="@N((A.MouthTop + A.MouthCtrl) / 2)"
+                                 rx="@N(A.MouthW + 1)" ry="@N((A.MouthCtrl - A.MouthTop) * 0.9)" fill="#2B2140" />
+                        <ellipse cx="100" cy="@N((A.MouthTop + A.MouthCtrl) / 2 + 2)"
+                                 rx="@N(A.MouthW * 0.55)" ry="@N((A.MouthCtrl - A.MouthTop) * 0.45)" fill="#FF8FA0" />
+                    </g>
+                }
+                else if (IsUnhappy)
+                {
+                    <path class="pet__mouth" d="@SadMouth()" />
+                }
+                else
+                {
+                    <path class="pet__mouth" d="@SmileMouth()" />
+                }
+
+                @* Yanaqlar — sevincli əhvalda görünür *@
+                @if (Mood is PetMood.Happy or PetMood.Excited)
+                {
+                    <ellipse cx="@N(100 - A.HeadRx * 0.68)" cy="@N(A.NoseCy - 3)" rx="7" ry="4.5" fill="#FF9EA8" opacity="0.65" />
+                    <ellipse cx="@N(100 + A.HeadRx * 0.68)" cy="@N(A.NoseCy - 3)" rx="7" ry="4.5" fill="#FF9EA8" opacity="0.65" />
+                }
+
+                @* ---- Taxılmış kosmetik əşyalar ----
+                   Mərhələyə görə deyil, uşağın seçib taxdığı əşyalara görə çəkilir.
+                   Mövqe isə mərhələdən gəlir: körpənin boynu ilə yetkinin boynu
+                   eyni yerdə deyil. Sıra vacibdir: şərf boyunbağının altında. *@
+
+                @if (Has("scarf-mint"))
+                {
+                    <path d="@CollarCurve(0)" stroke="var(--pp-life)" stroke-width="@N(A.CollarHalf * 0.62)"
+                          fill="none" stroke-linecap="round" />
+                    <path d="@ScarfTail()" fill="var(--pp-life-deep)" />
+                }
+
+                @if (Has("collar-classic") || (Stage >= PetStage.Child && !HasAccessoryList))
+                {
+                    <path d="@CollarCurve(0)" stroke="@CollarColor" stroke-width="7" fill="none" stroke-linecap="round" />
+                    <circle cx="100" cy="@N(A.CollarY + A.CollarHalf * 0.5)" r="@N(A.EyeR * 0.78)"
+                            fill="var(--pp-spark)" stroke="var(--pp-spark-deep)" stroke-width="2" />
+                }
+
+                @if (Has("glasses-round"))
+                {
+                    <circle cx="@N(A.EyeLx)" cy="@N(A.EyeCy)" r="@N(A.EyeR + 4)" fill="#FFFFFF" fill-opacity="0.22" stroke="#2B2140" stroke-width="3" />
+                    <circle cx="@N(A.EyeRx)" cy="@N(A.EyeCy)" r="@N(A.EyeR + 4)" fill="#FFFFFF" fill-opacity="0.22" stroke="#2B2140" stroke-width="3" />
+                    <path d="@GlassesBridge()" stroke="#2B2140" stroke-width="3" stroke-linecap="round" />
+                }
+
+                @if (Has("bow-red"))
+                {
+                    <path d="@BowWing(-1)" fill="var(--pp-alert)" />
+                    <path d="@BowWing(1)" fill="var(--pp-alert)" />
+                    <circle cx="@N(A.EarRx - 4)" cy="@N(A.EarRy + 12)" r="5" fill="var(--pp-alert)" stroke="#FFFFFF" stroke-width="1.5" />
+                }
+
+                @if (Has("crown-gold") || (Stage == PetStage.Elder && !HasAccessoryList))
+                {
+                    <path d="@Crown()" fill="var(--pp-spark)" stroke="var(--pp-spark-deep)"
+                          stroke-width="2" stroke-linejoin="round" />
+                }
+            </g>
+
+            @if (Mood == PetMood.Sleepy)
+            {
+                @* "Z" hərfləri path kimi çəkilir — Razor <text> teqini öz sintaksisi kimi oxuyur. *@
+                <path class="pet__zzz" d="@Zzz(A.HeadRx + 40, A.HeadTopY + 6, 16, 17)"
+                      stroke="var(--pp-ink-soft)" stroke-width="3.5"
+                      fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                <path class="pet__zzz" d="@Zzz(A.HeadRx + 60, A.HeadTopY - 12, 11, 12)"
+                      stroke="var(--pp-ink-muted)" stroke-width="3"
+                      fill="none" stroke-linecap="round" stroke-linejoin="round" />
+            }
+
+            @if (Mood == PetMood.Excited)
+            {
+                <path class="pet__sparkle" d="@Sparkle(100 + A.HeadRx + 20, A.HeadTopY + 8, 4)" fill="#FFD966" />
+                <path class="pet__sparkle" d="@Sparkle(100 - A.HeadRx - 24, A.HeadTopY + 26, 3)" fill="#FFD966" />
+            }
+
+            @if (Mood == PetMood.Dirty)
+            {
+                <circle cx="72" cy="140" r="5" fill="#8A6A44" opacity="0.6" />
+                <circle cx="126" cy="146" r="4" fill="#8A6A44" opacity="0.55" />
+                <circle cx="106" cy="124" r="3.5" fill="#8A6A44" opacity="0.5" />
+            }
+        </svg>
+    }
+
+    @if (ShowStageLabel)
+    {
+        @* Nişanda mərhələ ilə birlikdə YAŞ da yazılır: uşaq üçün "səviyyə 4"
+           mücərrəddir, "4 yaş" isə pet haqqında bir faktdır. *@
+        <div class="pet-stage-label">
+            <span aria-hidden="true">@StageIcon</span>
+            <span>@StageText</span>
+
+            @if (Age > 0 && Stage != PetStage.Egg)
+            {
+                <span class="pet-stage-label__age">@Loc.T($"{Age} yaş", $"age {Age}")</span>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly System.Globalization.CultureInfo Culture = System.Globalization.CultureInfo.InvariantCulture;
+
+    [Parameter] public PetStage Stage { get; set; } = PetStage.Baby;
+
+    [Parameter] public PetMood Mood { get; set; } = PetMood.Neutral;
+
+    [Parameter] public string Species { get; set; } = "fox";
+
+    [Parameter] public string Name { get; set; } = "Pet";
+
+    [Parameter] public bool ShowStageLabel { get; set; }
+
+    /// <summary>Pet-in yaşı = səviyyəsi. 0 verilsə nişanda yaş yazılmır.</summary>
+    [Parameter] public int Age { get; set; }
+
+    /// <summary>Taxılmış əşyaların kodları. <c>null</c> = mərhələ əsaslı standart görünüş.</summary>
+    [Parameter] public IReadOnlyCollection<string>? Accessories { get; set; }
+
+    /// <summary>Yem ağıza yaxınlaşanda ağız açılır.</summary>
+    [Parameter] public bool MouthOpen { get; set; }
+
+    /// <summary>
+    /// Pet replikasını "deyir" — ağız danışıq ritmində açılıb-örtülür. Söhbət
+    /// otağı bunu replika ekranda olduğu müddətdə qoşur (bax Chat.razor).
+    /// </summary>
+    [Parameter] public bool Talking { get; set; }
+
+    /// <summary>Qulluq reaksiyası — qısa animasiya sinfi.</summary>
+    [Parameter] public string? ReactionClass { get; set; }
+
+    /// <summary>
+    /// Mərhələnin üz və əşya nöqtələri. Rəqəmlər Codex-in çəkdiyi bədənlərdən
+    /// götürülüb: hər mərhələdə baş başqa hündürlükdədir, ona görə göz, burun,
+    /// ağız və boyunbağı da onunla birlikdə sürüşür.
+    /// </summary>
+    private sealed record Anchor(
+        double EyeLx, double EyeRx, double EyeCy, double EyeR,
+        double NoseCy,
+        double MouthTop, double MouthCtrl, double MouthW,
+        double CollarY, double CollarHalf,
+        double HeadTopY, double HeadRx,
+        double EarLx, double EarLy, double EarRx, double EarRy,
+        double ShadowRx);
+
+    private Anchor A => Stage switch
+    {
+        PetStage.Newborn => new(83, 117, 86, 9.5, 103, 108, 116, 10, 118, 21, 54, 44, 67, 40, 133, 40, 34),
+        PetStage.Baby => new(83, 117, 81, 9.0, 98, 103, 111, 10, 111, 24, 47, 42, 65, 31, 135, 31, 36),
+        PetStage.Child => new(84, 116, 71, 8.0, 86, 90, 100, 9, 99, 25, 39, 40, 63, 22, 137, 22, 40),
+        PetStage.Teen => new(85, 115, 61, 7.2, 75, 79, 89, 9, 91, 20, 31, 38, 61, 14, 139, 14, 42),
+        PetStage.Adult => new(84, 116, 56, 6.8, 70, 74, 86, 9, 84, 22, 26, 40, 59, 8, 141, 8, 44),
+        _ => new(83, 117, 52, 6.5, 67, 71, 81, 9, 79, 26, 21, 42, 57, 4, 143, 4, 47)
+    };
+
+    /// <summary>
+    /// SVG rəqəmləri həmişə invariant formatda yazılmalıdır — vergüllü onluq
+    /// ayırıcı olan lokallarda (məs. az-AZ) atribut etibarsız olur.
+    /// </summary>
+    private static string N(double value) => value.ToString("0.##", Culture);
+
+    private string ClosedEye(double cx) =>
+        $"M{N(cx - A.EyeR)} {N(A.EyeCy)} q {N(A.EyeR)} {N(A.EyeR * 0.85)} {N(A.EyeR * 2)} 0";
+
+    private string HappyEye(double cx) =>
+        $"M{N(cx - A.EyeR)} {N(A.EyeCy + A.EyeR * 0.35)} q {N(A.EyeR)} {N(-A.EyeR * 1.25)} {N(A.EyeR * 2)} 0";
+
+    private string SmileMouth() =>
+        $"M{N(100 - A.MouthW)} {N(A.MouthTop)} Q100 {N(A.MouthCtrl)} {N(100 + A.MouthW)} {N(A.MouthTop)}";
+
+    private string SadMouth() =>
+        $"M{N(100 - A.MouthW)} {N(A.MouthTop + 6)} Q100 {N(A.MouthTop - 3)} {N(100 + A.MouthW)} {N(A.MouthTop + 6)}";
+
+    private string CollarCurve(double offset) =>
+        $"M{N(100 - A.CollarHalf)} {N(A.CollarY + offset)} q {N(A.CollarHalf)} {N(A.CollarHalf * 0.55)} {N(A.CollarHalf * 2)} 0";
+
+    private string ScarfTail() =>
+        $"M{N(100 + A.CollarHalf * 0.75)} {N(A.CollarY + A.CollarHalf * 0.35)} " +
+        $"l 12 5 l -5 16 l -10 -13 z";
+
+    private string GlassesBridge() =>
+        $"M{N(A.EyeLx + A.EyeR + 4)} {N(A.EyeCy)} H{N(A.EyeRx - A.EyeR - 4)}";
+
+    /// <summary>Bant sağ qulağın dibinə oturur — mərhələ dəyişəndə qulaqla birlikdə sürüşür.</summary>
+    private string BowWing(int direction)
+    {
+        var cx = A.EarRx - 4;
+        var cy = A.EarRy + 12;
+        var span = 13 * direction;
+
+        return $"M{N(cx)} {N(cy - 8)} l {N(span)} 8 l {N(-span)} 8 z";
+    }
+
+    private string Crown()
+    {
+        var w = A.HeadRx * 0.62;
+        var y = A.HeadTopY + 2;
+
+        return $"M{N(100 - w)} {N(y)} l {N(w * 0.34)} 14 l {N(w * 0.66)} -18 l {N(w * 0.66)} 18 " +
+               $"l {N(w * 0.34)} -14 l 4 20 H{N(100 - w - 4)} z";
+    }
+
+    private static string Zzz(double dx, double y, double w, double h) =>
+        $"M{N(100 + dx)} {N(y)} h{N(w)} l-{N(w)} {N(h)} h{N(w)}";
+
+    private static string Sparkle(double cx, double cy, double r) =>
+        $"M{N(cx)} {N(cy - r * 2)} l {N(r * 0.75)} {N(r * 2)} l {N(r * 2)} {N(r * 0.75)} " +
+        $"l {N(-r * 2)} {N(r * 0.75)} l {N(-r * 0.75)} {N(r * 2)} l {N(-r * 0.75)} {N(-r * 2)} " +
+        $"l {N(-r * 2)} {N(-r * 0.75)} l {N(r * 2)} {N(-r * 0.75)} z";
+
+    private bool Has(string code) => Accessories?.Contains(code) == true;
+
+    /// <summary>
+    /// Siyahı ümumiyyətlə ötürülməyibsə (məsələn dostun profili) mərhələ əsaslı
+    /// standart görünüşə qayıdırıq. Boş siyahı isə uşağın qərarıdır — "heç nə
+    /// taxma" seçimi standart boyunbağı ilə pozulmamalıdır.
+    /// </summary>
+    private bool HasAccessoryList => Accessories is not null;
+
+    private bool IsUnhappy => Mood is PetMood.Sad or PetMood.Hungry or PetMood.Dirty;
+
+    /// <summary>
+    /// Danışıq təkrarlanan animasiyadır, yem isə bir dəfəlik açılış. Hər ikisi
+    /// eyni ağzı işlədir, ona görə fərq yalnız sinifdədir.
+    /// </summary>
+    private string MouthClass => Talking ? "pet__mouth-talk" : "pet__mouth-open";
+
+    private string MoodClass => $"pet--{Mood.ToString().ToLowerInvariant()}";
+
+    private string FurColor => Species switch
+    {
+        "cat" => "#9C8FE8",
+        "dragon" => "#5FCB92",
+        "bunny" => "#F0A5C0",
+        _ => "#F3A05A"
+    };
+
+    private string BellyColor => Species switch
+    {
+        "cat" => "#EFEAFF",
+        "dragon" => "#E4FBEE",
+        "bunny" => "#FFF0F5",
+        _ => "#FFF3E2"
+    };
+
+    private string InnerEarColor => Species switch
+    {
+        "cat" => "#C9BEFF",
+        "dragon" => "#BDEFD4",
+        "bunny" => "#FFD1E0",
+        _ => "#FFD3A8"
+    };
+
+    private string CollarColor => "var(--pp-primary)";
+
+    private string ShellColor => "#FFF0D6";
+
+    private string CrackColor => "#D9B27A";
+
+    private string StageIcon => Stage switch
+    {
+        PetStage.Egg => "🥚",
+        PetStage.Newborn => "🐣",
+        PetStage.Baby => "🐾",
+        PetStage.Child => "✨",
+        PetStage.Teen => "🌟",
+        PetStage.Adult => "💫",
+        _ => "👑"
+    };
+
+    private string StageText => DisplayNames.Stage(Loc, Stage);
+
+    private string AccessibleLabel => Age > 0 && Stage != PetStage.Egg
+        ? Loc.T($"{Name}, {StageText}, {Age} yaş, {DisplayNames.Mood(Loc, Mood)}",
+                $"{Name}, {StageText}, age {Age}, {DisplayNames.Mood(Loc, Mood)}")
+        : $"{Name}, {StageText}, {DisplayNames.Mood(Loc, Mood)}";
+}

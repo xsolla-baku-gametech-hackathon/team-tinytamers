@@ -1,0 +1,170 @@
+@page "/explore"
+@inject GameApiClient Api
+@inject AppState State
+@inject IPhotoPicker PhotoPicker
+@inject Loc Loc
+
+@* "Real Life Connect": uşaq ekrandan qalxıb ətrafda nəsə tapır və qeyd edir.
+   Foto könüllüdür — kameraya icazə verilməsə də axın işləyir. *@
+
+<h1 class="visually-hidden-title">@Loc.T("Kəşf", "Explore")</h1>
+
+@* BÜTÜN ekran sürüşən qutunun içindədir, yalnız kolleksiya deyil.
+   Əvvəl forma qutudan kənarda idi: şəkil seçiləndə önizləmə forması uzadırdı,
+   uzanan hissə isə .app-main-in `overflow: hidden`-i ilə kəsilirdi — "Kəşfi
+   qeyd et" düyməsi ekranın altında qalır və ona toxunmaq mümkün olmurdu.
+   Uşaq yalnız şəkli olmayan kəşfi saxlaya bilirdi. *@
+<div class="list-scroll">
+    <div class="card">
+        <h2 class="card__title">🍃 @Loc.T("Ekrandan kənar kəşf", "Discover away from the screen")</h2>
+        <p class="card__subtitle">@Loc.T("Ətrafda maraqlı bir şey tap: yarpaq, daş, çiçək, həşərat…", "Find something interesting around you: a leaf, a stone, a flower, a bug…")</p>
+
+        @if (_result is not null)
+        {
+            <div class="feedback feedback--correct" style="margin-top:14px">
+                <div>@_result.Message</div>
+                @if (_result.StarsEarned > 0)
+                {
+                    <div class="reward-pop">⭐ +@_result.StarsEarned</div>
+                }
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="alert alert--error" style="margin-top:14px">@_error</div>
+        }
+
+        <label class="field" style="margin-top:14px">
+            <span class="field__label">@Loc.T("Nə tapdın?", "What did you find?")</span>
+            <input class="field__input" @bind="_label" @bind:event="oninput" maxlength="60" placeholder="@Loc.T("Yarpaq", "Leaf")" />
+        </label>
+
+        <label class="field">
+            <span class="field__label">@Loc.T("Kateqoriya", "Category")</span>
+            <select class="field__input" @bind="_category">
+                <option value="nature">🌿 @Loc.T("Təbiət", "Nature")</option>
+                <option value="animal">🐞 @Loc.T("Heyvan", "Animal")</option>
+                <option value="rock">🪨 @Loc.T("Daş", "Stone")</option>
+                <option value="sky">☁️ @Loc.T("Səma", "Sky")</option>
+                <option value="other">✨ @Loc.T("Digər", "Other")</option>
+            </select>
+        </label>
+
+        @* Önizləmə qəsdən kiçikdir: tam ölçülü şəkil formanı ekrandan uzun edir
+           və düymələri aşağı itələyirdi. Şəkli tam görmək kolleksiyadadır. *@
+        @if (_photoBase64 is not null)
+        {
+            <div class="photo-preview">
+                <img src="@PhotoSource(_photoBase64)" alt="@Loc.T("Kəşfin şəkli", "Photo of the discovery")" />
+                <button type="button" class="photo-preview__clear" disabled="@_busy"
+                        aria-label="@Loc.T("Şəkli sil", "Remove the photo")" @onclick="ClearPhoto">✕</button>
+            </div>
+        }
+
+        <button class="btn btn--ghost btn--block" disabled="@_busy" @onclick="TakePhotoAsync">
+            📷 @(_photoBase64 is null ? Loc.T("Şəkil çək (könüllü)", "Take a photo (optional)") : Loc.T("Şəkli dəyiş", "Change the photo"))
+        </button>
+
+        <div style="height:12px"></div>
+
+        <button class="btn btn--primary btn--block" disabled="@(_busy || string.IsNullOrWhiteSpace(_label))"
+                @onclick="SubmitAsync">
+            @(_busy ? Loc.T("Göndərilir…", "Sending…") : Loc.T("Kəşfi qeyd et", "Save the discovery"))
+        </button>
+    </div>
+
+    <h2 class="section-title">@Loc.T("Kolleksiyam", "My collection") (@_discoveries.Count)</h2>
+    <DiscoveryList Items="_discoveries"
+                   LoadPhoto="LoadPhotoAsync"
+                   EmptyText="@Loc.T("Hələ heç nə tapmamısan. Çölə çıx və ilk kəşfini qeyd et!", "Nothing found yet. Head outside and record your first discovery!")" />
+</div>
+
+@code {
+    private readonly List<DiscoveryDto> _discoveries = [];
+
+    private string _label = string.Empty;
+    private string _category = "nature";
+    private string? _photoBase64;
+    private DiscoveryResultDto? _result;
+    private string? _error;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var result = await Api.GetDiscoveriesAsync();
+        if (!result.Succeeded || result.Value is null)
+            return;
+
+        _discoveries.Clear();
+        _discoveries.AddRange(result.Value);
+    }
+
+    private Task<ApiResult<string>> LoadPhotoAsync(Guid discoveryId) => Api.GetDiscoveryPhotoAsync(discoveryId);
+
+    private async Task TakePhotoAsync()
+    {
+        _error = null;
+
+        try
+        {
+            // İmtina edəndə seçici null qaytarır — o halda ƏVVƏLKİ şəkil qalmalıdır,
+            // yoxsa "şəkli dəyiş"-ə basıb fikrini dəyişmək seçilmiş şəkli silərdi.
+            var photo = await PhotoPicker.CaptureAsync();
+            if (!string.IsNullOrWhiteSpace(photo))
+                _photoBase64 = photo;
+        }
+        catch (Exception)
+        {
+            _error = Loc.T("Kameraya giriş alınmadı. Şəkilsiz də davam edə bilərsən.", "Could not open the camera. You can continue without a photo.");
+        }
+    }
+
+    private void ClearPhoto() => _photoBase64 = null;
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        _result = null;
+
+        var result = await Api.CreateDiscoveryAsync(new DiscoveryRequest
+        {
+            Label = _label.Trim(),
+            CategoryKey = _category,
+            PhotoBase64 = _photoBase64
+        });
+
+        _busy = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _result = result.Value;
+        _label = string.Empty;
+        _photoBase64 = null;
+
+        var wallet = await Api.GetWalletAsync();
+        if (wallet.Succeeded && wallet.Value is not null)
+            State.ApplyWallet(wallet.Value);
+
+        await LoadAsync();
+    }
+
+    /// <summary>
+    /// Seçici platformadan asılı olaraq ya təmiz base64, ya da hazır "data:…"
+    /// mətni qaytarır (brauzerdə FileReader data URL verir, MAUI-də isə bayt
+    /// base64-ə çevrilir). Prefiksi kor-koranə əlavə etmək brauzerdə
+    /// "data:image/jpeg;base64,data:image/png;base64,…" yaradırdı — şəkil
+    /// sınıq görünürdü. Ona görə prefiks yalnız yoxdursa qoyulur.
+    /// </summary>
+    private static string PhotoSource(string photo) =>
+        photo.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+            ? photo
+            : $"data:image/jpeg;base64,{photo}";
+}

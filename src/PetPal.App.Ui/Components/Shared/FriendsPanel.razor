@@ -1,0 +1,502 @@
+@implements IDisposable
+@inject GameApiClient Api
+@inject LiveClient Live
+@inject InviteCodeReader Invite
+@inject Loc Loc
+
+@* Dostlar paneli — həm Arena ekranının "Dostlar" tabı, həm də /friends səhifəsi
+   eyni komponenti göstərir. Ekran iki yerdə iki cür davranmamalıdır.
+
+   Sosial hissə qəsdən qapalı dövrədir: sərbəst mətn yazışması yoxdur, uşaqlar
+   yalnız 6 simvolluq dost kodu ilə tanış olur.
+
+   ƏN VACİB QAYDA: kod yazmaq dostluq QURMUR. Sorğu yaranır və dostluq yalnız
+   kodun sahibi onu qəbul edəndən sonra işləyir. Ona görə bu ekranda
+   "gözləyir" vəziyyəti birinci dərəcəli məlumatdır — uşaq nə baş verdiyini
+   başa düşməlidir, yoxsa kodu təkrar-təkrar yazacaq. *@
+
+<LoadingState IsLoading="_loading" Error="@_loadError" OnRetry="LoadAsync"
+              LoadingText="@Loc.T("Dostlar yüklənir…", "Loading friends…")">
+
+    <div class="list-scroll">
+
+        <div class="card">
+            <h2 class="card__title">🪪 @Loc.T("Mənim dost kodum", "My friend code")</h2>
+            <p class="card__subtitle">@Loc.T("Dostuna bu kodu göstər — o səni əlavə edə bilər.", "Show this code to your friend — they can add you.")</p>
+            <div class="friendcode" aria-label="@Loc.T("Dost kodu", "Friend code")">@_friendCode</div>
+        </div>
+
+        <div class="card">
+            <h2 class="card__title">➕ @Loc.T("Dost əlavə et", "Add a friend")</h2>
+            <p class="card__subtitle">@Loc.T("Dostunun 6 simvolluq kodunu yaz. Sonra o, sorğunu qəbul etməlidir.", "Type your friend's 6-character code. They then have to accept it.")</p>
+
+            @if (_addMessage is not null)
+            {
+                <div class="feedback feedback--correct" style="margin-top:12px">@_addMessage</div>
+            }
+
+            @if (_addError is not null)
+            {
+                <div class="alert alert--error" style="margin-top:12px">@_addError</div>
+            }
+
+            <label class="field" style="margin-top:12px">
+                <span class="field__label">@Loc.T("Dost kodu", "Friend code")</span>
+                <input class="field__input friendcode__input" maxlength="6" placeholder="AB12CD"
+                       value="@_codeInput" @oninput="OnCodeInput" inputmode="latin" autocomplete="off" />
+            </label>
+
+            <button class="btn btn--primary btn--block" disabled="@(_addBusy || _codeInput.Length != 6)"
+                    @onclick="AddFriendAsync">
+                @(_addBusy ? Loc.T("Göndərilir…", "Sending…") : Loc.T("Sorğu göndər", "Send request"))
+            </button>
+        </div>
+
+        @* Gözləyən sorğular dostlardan ƏVVƏL göstərilir: uşaq kodu yazandan
+           sonra ilk baxdığı yer buradır. *@
+        @if (_pending.Count > 0)
+        {
+            <h2 class="section-title">@Loc.T("Gözləyən sorğular", "Waiting") (@_pending.Count)</h2>
+
+            <div class="card">
+                @foreach (var request in _pending)
+                {
+                    <div class="mission">
+                        <div class="mission__icon" aria-hidden="true">@DisplayNames.Avatar(request.AvatarKey)</div>
+                        <div class="mission__body">
+                            <div class="mission__title">@request.DisplayName</div>
+                            <div class="mission__meta">
+                                <span>
+                                    @(request.IsOutgoing
+                                        ? Loc.T("⏳ O, qəbul edəndə dost olacaqsınız", "⏳ You'll be friends once they accept")
+                                        : Loc.T("👋 Səninlə dost olmaq istəyir", "👋 Wants to be your friend"))
+                                </span>
+                            </div>
+                        </div>
+
+                        @* GƏLƏN sorğunu uşaq ÖZÜ cavablandırır — valideyn panelinə
+                           getmir. Göndərdiyi sorğunu isə yalnız ləğv edə bilər:
+                           öz sorğusunu özü qəbul etmək dostluğu tək tərəfli edərdi. *@
+                        @if (request.IsOutgoing)
+                        {
+                            <button class="btn btn--quiet btn--ghost" disabled="@_busy"
+                                    @onclick="() => RemoveAsync(request.ChildId)"
+                                    aria-label="@Loc.T($"{request.DisplayName} sorğusunu ləğv et", $"Cancel request to {request.DisplayName}")">✕</button>
+                        }
+                    </div>
+
+                    @if (!request.IsOutgoing)
+                    {
+                        <div class="row-actions" style="margin-top:10px">
+                            <button class="btn btn--success" disabled="@_busy"
+                                    @onclick="() => RespondAsync(request.ChildId, true)">
+                                @Loc.T("Qəbul et", "Accept")
+                            </button>
+                            <button class="btn btn--ghost" disabled="@_busy"
+                                    @onclick="() => RespondAsync(request.ChildId, false)">
+                                @Loc.T("İmtina et", "Decline")
+                            </button>
+                        </div>
+                    }
+                }
+            </div>
+        }
+
+        <h2 class="section-title">@Loc.T("Dostlarım", "My friends") (@_friends.Count)</h2>
+
+        @if (_friends.Count == 0)
+        {
+            <div class="card">
+                <p class="card__subtitle">@Loc.T("Hələ dostun yoxdur. Yuxarıdakı kodu dostuna göstər və ya onun kodunu yaz!", "No friends yet. Show your code to a friend, or type theirs!")</p>
+            </div>
+        }
+        else
+        {
+            <div class="card">
+                @* Sətir İKİ MƏRTƏBƏLİDİR: 390 px-lik ekranda ad, pet, yaş və üç
+                   düymə bir sıraya sığmır — düymələr daralır və mətn sınır.
+                   Aşağıdakı sıra hər düyməyə tam eni verir. *@
+                @foreach (var friend in _friends)
+                {
+                    <div class="friend">
+                        <div class="friend__head">
+                            <div class="mission__icon" aria-hidden="true">@DisplayNames.Avatar(friend.AvatarKey)</div>
+                            <div class="mission__body">
+                                <div class="mission__title">
+                                    @friend.DisplayName
+                                    @* Onlayn işarəsi rəngdən ƏLAVƏ mətn də daşıyır — rəng tək
+                                       məlumat daşıyıcısı ola bilməz (bax DESIGN_SYSTEM.md). *@
+                                    @if (friend.IsOnline)
+                                    {
+                                        <span class="presence">
+                                            <span class="presence__dot" aria-hidden="true"></span>@Loc.T("onlayn", "online")
+                                        </span>
+                                    }
+                                </div>
+                                <div class="mission__meta">
+                                    <span>🦊 @friend.PetName</span>
+                                    <span>@Loc.T($"{friend.Level} yaş", $"age {friend.Level}")</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="friend__actions">
+                            @if (ShowChallenge && friend.IsOnline)
+                            {
+                                <button class="btn btn--success" disabled="@_busy"
+                                        @onclick="() => ChallengeAsync(friend)">
+                                    @Loc.T("⚔️ Çağır", "⚔️ Duel")
+                                </button>
+                            }
+
+                            <button class="btn @(IsPicked(friend.ChildId) ? "btn--success" : "btn--ghost")"
+                                    @onclick="() => TogglePick(friend.ChildId)"
+                                    aria-pressed="@IsPicked(friend.ChildId)">
+                                @(IsPicked(friend.ChildId) ? Loc.T("✓ Seçildi", "✓ Picked") : Loc.T("Seç", "Pick"))
+                            </button>
+
+                            <button class="btn btn--ghost friend__remove" disabled="@_busy"
+                                    @onclick="() => RemoveAsync(friend.ChildId)"
+                                    aria-label="@Loc.T($"{friend.DisplayName} dostluqdan çıxar", $"Remove {friend.DisplayName}")">✕</button>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="card">
+                <h2 class="card__title">🤝 @Loc.T("Birgə missiya başlat", "Start a team mission")</h2>
+                <p class="card__subtitle">
+                    @if (_picked.Count == 0)
+                    {
+                        <text>@Loc.T("Yuxarıdan ən azı bir dost seç.", "Pick at least one friend above.")</text>
+                    }
+                    else
+                    {
+                        <text>@Loc.T($"{_picked.Count} dosta dəvət göndəriləcək — qəbul edənlərin cavabları ümumi hədəfə sayılır.", $"{_picked.Count} friend(s) will be invited — answers from those who join count towards one goal.")</text>
+                    }
+                </p>
+
+                @if (_startError is not null)
+                {
+                    <div class="alert alert--error" style="margin-top:12px">@_startError</div>
+                }
+
+                <button class="btn btn--success btn--block" style="margin-top:12px"
+                        disabled="@(_busy || _picked.Count == 0)" @onclick="StartTeamMissionAsync">
+                    @(_busy ? Loc.T("Göndərilir…", "Sending…") : Loc.T("Dəvət göndər", "Send invites"))
+                </button>
+            </div>
+        }
+
+        @if (_teamMissions.Count > 0)
+        {
+            <h2 class="section-title">@Loc.T("Komanda missiyaları", "Team missions")</h2>
+
+            @foreach (var mission in _teamMissions)
+            {
+                <div class="card">
+                    <h2 class="card__title">@mission.Title</h2>
+                    <p class="card__subtitle">@mission.Description</p>
+
+                    @* Dəvət cavabsızdırsa missiya hələ "mənim" deyil: irəliləyiş
+                       yerinə sual verilir. *@
+                    @if (mission.MyStatus == TeamMemberStatus.Invited)
+                    {
+                        <div class="feedback" style="margin-top:12px">
+                            @Loc.T($"{mission.StartedBy} səni bu missiyaya çağırır.", $"{mission.StartedBy} is inviting you to this mission.")
+                        </div>
+
+                        <div class="row-actions" style="margin-top:12px">
+                            <button class="btn btn--success" disabled="@_busy"
+                                    @onclick="() => RespondToMissionAsync(mission.Id, true)">
+                                @Loc.T("Qoşul", "Join")
+                            </button>
+                            <button class="btn btn--ghost" disabled="@_busy"
+                                    @onclick="() => RespondToMissionAsync(mission.Id, false)">
+                                @Loc.T("İndi yox", "Not now")
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="progress__row" style="margin-top:12px">
+                            <span>@mission.Progress / @mission.Target</span>
+                            <span>⭐ @mission.RewardStars</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress__bar" style="width:@Percent(mission)%"></div>
+                        </div>
+
+                        @if (mission.Status == MissionStatus.Completed || mission.Status == MissionStatus.Claimed)
+                        {
+                            <div class="feedback feedback--correct" style="margin-top:12px">
+                                🎉 @Loc.T("Komanda missiyası tamamlandı!", "Team mission complete!")
+                            </div>
+                        }
+
+                        <div class="team">
+                            @foreach (var member in mission.Members)
+                            {
+                                <div class="team__member @(member.Status == TeamMemberStatus.Invited ? "team__member--pending" : null)">
+                                    <span class="team__avatar" aria-hidden="true">@DisplayNames.Avatar(member.AvatarKey)</span>
+                                    <span class="team__name">@member.DisplayName</span>
+                                    <span class="team__score">
+                                        @(member.Status == TeamMemberStatus.Invited ? "⏳" : member.Contribution.ToString())
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        }
+
+    </div>
+</LoadingState>
+
+@code {
+    /// <summary>
+    /// Arena tabında dostu birbaşa yarışa çağırmaq olar. /friends səhifəsində
+    /// isə yox: duelin vəziyyətini arena ekranı saxlayır, bu panel yox.
+    /// </summary>
+    [Parameter] public bool ShowChallenge { get; set; }
+
+    /// <summary>Çağırış qəbul edilən kimi duelin idarəsi arena ekranına keçir.</summary>
+    [Parameter] public EventCallback<Guid> OnChallengeStarted { get; set; }
+
+    private readonly List<FriendDto> _friends = [];
+    private readonly List<PendingFriendDto> _pending = [];
+    private readonly List<TeamMissionDto> _teamMissions = [];
+    private readonly HashSet<Guid> _picked = [];
+
+    private string _friendCode = "……";
+    private string _codeInput = string.Empty;
+
+    private bool _loading = true;
+    private string? _loadError;
+
+    private bool _busy;
+    private bool _addBusy;
+    private string? _addError;
+    private string? _addMessage;
+    private string? _startError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Kanal presence və dəvət xəbərlərini gətirir; qoşula bilməsə panel
+        // sadəcə statik qalır — sorğu döyəcləmə yoxdur.
+        Live.FriendPresence += OnFriendPresence;
+        Live.FriendsChanged += OnFriendsChanged;
+        Live.TeamInvited += OnTeamInvited;
+        Live.TeamProgress += OnTeamProgress;
+        Live.TeamCompleted += OnTeamCompleted;
+
+        await Live.EnsureStartedAsync();
+        await LoadAsync();
+
+        // Dəvət linki ilə gəlibsə kod formaya YAZILIR, amma göndərilmir:
+        // sorğunu uşaq özü təsdiqləməlidir və dostluq yenə valideyn
+        // təsdiqindən keçir. Link bir kliklə dostluq qurmur.
+        if (await Invite.ReadAsync() is { Length: 6 } invited)
+        {
+            _codeInput = invited;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        Live.FriendPresence -= OnFriendPresence;
+        Live.FriendsChanged -= OnFriendsChanged;
+        Live.TeamInvited -= OnTeamInvited;
+        Live.TeamProgress -= OnTeamProgress;
+        Live.TeamCompleted -= OnTeamCompleted;
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _loadError = null;
+
+        var codeResult = await Api.GetFriendCodeAsync();
+        if (!codeResult.Succeeded)
+        {
+            _loadError = codeResult.Error;
+            _loading = false;
+            return;
+        }
+
+        _friendCode = codeResult.Value ?? "……";
+
+        var friendsResult = await Api.GetFriendsAsync();
+        if (friendsResult is { Succeeded: true, Value: not null })
+        {
+            _friends.Clear();
+            _friends.AddRange(friendsResult.Value.Friends);
+            _pending.Clear();
+            _pending.AddRange(friendsResult.Value.Pending);
+        }
+
+        var missionsResult = await Api.GetTeamMissionsAsync();
+        if (missionsResult is { Succeeded: true, Value: not null })
+        {
+            _teamMissions.Clear();
+            _teamMissions.AddRange(missionsResult.Value);
+        }
+
+        // Artıq dost olmayan biri seçili qalmasın.
+        _picked.RemoveWhere(id => _friends.All(f => f.ChildId != id));
+
+        _loading = false;
+    }
+
+    /// <summary>Kodlar böyük hərflə saxlanılır — uşaq kiçik hərflə yazsa da işləsin.</summary>
+    private void OnCodeInput(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString() ?? string.Empty;
+        _codeInput = new string(raw.ToUpperInvariant().Where(char.IsLetterOrDigit).Take(6).ToArray());
+        _addError = null;
+        _addMessage = null;
+    }
+
+    private async Task AddFriendAsync()
+    {
+        _addBusy = true;
+        _addError = null;
+        _addMessage = null;
+
+        var result = await Api.AddFriendAsync(_codeInput);
+
+        _addBusy = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _addError = string.IsNullOrWhiteSpace(result.Error)
+                ? Loc.T("Bu kodla dost tapılmadı. Kodu bir də yoxla.", "No friend found with that code. Check it once more.")
+                : result.Error;
+            return;
+        }
+
+        // Mesaj "dost oldunuz" DEMİR: hələ olmayıb. Uşağa yalan deməmək
+        // burada xüsusilə vacibdir — o, dostunun siyahıda görünməsini gözləyəcək.
+        _addMessage = Loc.T(
+            $"Sorğu {result.Value.DisplayName} adlı dostuna göndərildi. O, qəbul edəndə dost olacaqsınız.",
+            $"Request sent to {result.Value.DisplayName}. You'll be friends once they accept.");
+
+        _codeInput = string.Empty;
+        await LoadAsync();
+    }
+
+    private async Task RemoveAsync(Guid childId)
+    {
+        _busy = true;
+        await Api.RemoveFriendAsync(childId);
+        _busy = false;
+        await LoadAsync();
+    }
+
+    /// <summary>
+    /// Gələn sorğuya cavab. Siyahı serverdən yenidən oxunur — qəbul edilən
+    /// sorğu «gözləyənlər»dən çıxıb «dostlarım»a keçməlidir, imtina edilən isə
+    /// tamamilə yox olmalıdır; ikisini də əl ilə saymaq səhv riskidir.
+    /// </summary>
+    private async Task RespondAsync(Guid requesterChildId, bool approve)
+    {
+        _busy = true;
+        var result = await Api.RespondToFriendRequestAsync(requesterChildId, approve);
+        _busy = false;
+
+        // Xəta UDULMAMALIDIR. Ən real hal dost həddidir: təsdiq anında hər iki
+        // tərəf yoxlanılır və 20 dostu olan uşaq 409 alır. Cavab göstərilməsə,
+        // siyahı yenilənir, sorğu yerində qalır və uşaq niyəsini bilmir.
+        if (!result.Succeeded)
+        {
+            _addError = result.Error;
+            return;
+        }
+
+        _addError = null;
+        await LoadAsync();
+    }
+
+    private async Task ChallengeAsync(FriendDto friend)
+    {
+        _busy = true;
+        var result = await Api.ChallengeFriendAsync(friend.ChildId);
+        _busy = false;
+
+        if (result is { Succeeded: true, Value: not null })
+            await OnChallengeStarted.InvokeAsync(result.Value.DuelId);
+    }
+
+    private bool IsPicked(Guid childId) => _picked.Contains(childId);
+
+    private void TogglePick(Guid childId)
+    {
+        if (!_picked.Add(childId))
+            _picked.Remove(childId);
+
+        _startError = null;
+    }
+
+    private async Task StartTeamMissionAsync()
+    {
+        _busy = true;
+        _startError = null;
+
+        var result = await Api.StartTeamMissionAsync([.. _picked]);
+
+        _busy = false;
+
+        if (!result.Succeeded)
+        {
+            _startError = string.IsNullOrWhiteSpace(result.Error)
+                ? Loc.T("Missiya başladıla bilmədi. Bir azdan yenidən cəhd et.", "The mission could not start. Try again in a moment.")
+                : result.Error;
+            return;
+        }
+
+        _picked.Clear();
+        await LoadAsync();
+    }
+
+    private async Task RespondToMissionAsync(Guid missionId, bool join)
+    {
+        _busy = true;
+        await Api.RespondToTeamMissionAsync(missionId, join);
+        _busy = false;
+        await LoadAsync();
+    }
+
+    // ---------- Real vaxt ----------
+
+    private void OnFriendPresence(Guid friendId, bool online)
+    {
+        var friend = _friends.FirstOrDefault(f => f.ChildId == friendId);
+        if (friend is null)
+            return;
+
+        friend.IsOnline = online;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnFriendsChanged() => InvokeAsync(LoadAsync);
+
+    private void OnTeamInvited(Guid missionId) => InvokeAsync(LoadAsync);
+
+    private void OnTeamProgress(Guid missionId, int progress, int target)
+    {
+        var mission = _teamMissions.FirstOrDefault(m => m.Id == missionId);
+        if (mission is null)
+            return;
+
+        mission.Progress = progress;
+        mission.Target = target;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnTeamCompleted(Guid missionId) => InvokeAsync(LoadAsync);
+
+    private static int Percent(TeamMissionDto mission) =>
+        mission.Target <= 0 ? 0 : Math.Clamp(mission.Progress * 100 / mission.Target, 0, 100);
+}

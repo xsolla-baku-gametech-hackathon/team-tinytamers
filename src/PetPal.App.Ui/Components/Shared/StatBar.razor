@@ -1,0 +1,27 @@
+@* Care statı (0–100). Rəng dəyəri "yaxşı / orta / aşağı" kimi anında oxunaqlı edir. *@
+
+<div class="stat">
+    <div class="stat__icon" aria-hidden="true">@Icon</div>
+    <div class="stat__track">
+        <div class="stat__fill @FillClass" style="width:@Percent%" role="progressbar"
+             aria-valuenow="@Value" aria-valuemin="0" aria-valuemax="100" aria-label="@Label"></div>
+    </div>
+    <div class="stat__value">@Value%</div>
+</div>
+
+@code {
+    [Parameter] public string Icon { get; set; } = "❤️";
+
+    [Parameter] public string Label { get; set; } = string.Empty;
+
+    [Parameter] public int Value { get; set; }
+
+    private int Percent => Math.Clamp(Value, 0, 100);
+
+    private string FillClass => Percent switch
+    {
+        >= 60 => "stat__fill--good",
+        >= 30 => "stat__fill--warn",
+        _ => "stat__fill--low"
+    };
+}

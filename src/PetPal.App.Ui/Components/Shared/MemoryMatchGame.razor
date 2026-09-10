@@ -1,0 +1,268 @@
+@implements IDisposable
+@inject Loc Loc
+
+@* Yaddaş cütləri: 4×4 lövhə, 8 cüt nişan.
+   Mətn yoxdur → dildən asılı deyil və oxumağı hələ öyrənən uşaq da oynaya bilir.
+
+   Üzüquylu kartın üzündə "?" yazılmır: bu yaşda sual işarəsi də bir hərfdir.
+   Onun yerinə üç nöqtə var — zər kimi, oxunmadan tanınan bir naxış.
+
+   Oyun BAXIŞLA başlayır: beş saniyə bütün kartlar açıq durur. Kor-koranə
+   çevirməkdənsə uşaq əvvəlcə yerləri yadda saxlamağa çalışır — beləliklə
+   oyun bəxt yox, yaddaş oyunu olur. Geri sayımı vaxt zolağı aparır, çünki
+   rəqəm də oxunmalı bir işarədir. *@
+
+<GameShell Title="@Loc.T("Yaddaş cütləri", "Memory Match")"
+           Round="_matched" RoundTotal="PairCount"
+           Lives="_lives" Hit="_hit" Over="_over"
+           Rule="@Rule" RuleTone="@(_previewing ? "spark" : "primary")" RuleChanged="_ruleChanged"
+           TimerPercent="PreviewPercent"
+           ScoreValue="@_matched.ToString()"
+           ScoreLabel="@Loc.T("cüt tapıldı", "pairs found")">
+
+    <Backdrop><div class="gsbg gsbg--table"></div></Backdrop>
+
+    <ChildContent>
+        <div class="memory">
+            @foreach (var card in _cards)
+            {
+                var current = card;
+                var open = _previewing || current.IsFaceUp || current.IsMatched;
+
+                <button class="memory-card @(current.IsFaceUp ? "memory-card--up" : null) @(_previewing ? "memory-card--peek" : null) @(current.IsMatched ? "memory-card--done" : null)"
+                        disabled="@(_previewing || current.IsMatched || current.IsFaceUp || _locked)"
+                        aria-label="@(open ? current.Symbol : Loc.T("Üzüquylu kart", "Face-down card"))"
+                        @onclick="() => FlipAsync(current)">
+                    @if (open)
+                    {
+                        <span class="memory-card__face">@current.Symbol</span>
+                    }
+                    else
+                    {
+                        <span class="memory-card__back" aria-hidden="true"><i></i><i></i><i></i></span>
+                    }
+                </button>
+            }
+        </div>
+    </ChildContent>
+</GameShell>
+
+@code {
+    private const int PairCount = 8;
+
+    /// <summary>Üç can: bir səhv oyunu bitirmir, amma diqqətsizlik bahaya başa gəlir.</summary>
+    private const int StartingLives = 3;
+
+    /// <summary>Başlanğıc baxışı: kartlar bu qədər müddət açıq qalır.</summary>
+    private const int PreviewMs = 5_000;
+
+    /// <summary>
+    /// Zolaq saniyədə bir yox, tez-tez yenilənir: keçidi 260 ms olan zolaq
+    /// belə axıcı boşalır, geri sayım pilləkən kimi görünmür.
+    /// </summary>
+    private const int PreviewTickMs = 250;
+
+    private static readonly string[] Symbols = ["🦊", "🐱", "🐰", "🐲", "🐻", "🌟", "🍃", "💎"];
+
+    private readonly List<Card> _cards = [];
+    private Card? _firstPick;
+    private bool _locked;
+    private int _matched;
+    private int _lives = StartingLives;
+    private int _mistakes;
+    private bool _hit;
+    private bool _over;
+
+    /// <summary>Baxış davam edir: bütün kartlar açıqdır və toxunuş qəbul olunmur.</summary>
+    private bool _previewing = true;
+    private int _previewLeftMs = PreviewMs;
+
+    /// <summary>Baxış bitəndə qayda sətri dəyişir və bir dəfə döyünür.</summary>
+    private bool _ruleChanged;
+
+    /// <summary>Nəticə yalnız bir dəfə göndərilir — canlar və oyunun sonu üst-üstə düşə bilər.</summary>
+    private bool _finished;
+
+    private DateTime _startedAt;
+    private CancellationTokenSource? _flipBackCts;
+    private CancellationTokenSource? _previewCts;
+
+    [Parameter] public EventCallback<(int Score, int DurationMs)> OnFinished { get; set; }
+
+    private string Rule => _previewing
+        ? Loc.T("Kartların yerini yadda saxla!", "Remember where the cards are!")
+        : Loc.T("Eyni nişanlı cütü tap", "Find the matching pair");
+
+    /// <summary>
+    /// Baxışın geri sayımı. Baxış bitəndə zolaq GİZLƏNMİR, boş qalır: gizlənsəydi
+    /// üst panel 18 piksel qısalar, lövhə isə elə kartlar üzüquylu çevrilən anda
+    /// yerindən tərpənərdi — yaddaş oyununda tərpənən lövhə ən pis şeydir.
+    /// </summary>
+    private int PreviewPercent => _previewing
+        ? Math.Clamp(_previewLeftMs * 100 / PreviewMs, 0, 100)
+        : 0;
+
+    protected override void OnInitialized()
+    {
+        _startedAt = DateTime.UtcNow;
+
+        var deck = Symbols
+            .Concat(Symbols)
+            .OrderBy(_ => Random.Shared.Next())
+            .Select((symbol, index) => new Card { Id = index, Symbol = symbol })
+            .ToList();
+
+        _cards.AddRange(deck);
+
+        _ = RunPreviewAsync();
+    }
+
+    /// <summary>
+    /// Beş saniyəlik baxış. Vaxt yalnız baxış bitəndən sonra sayılmağa başlayır —
+    /// yadda saxlamağa verilən müddət uşağın nəticəsinə yazılmır.
+    /// </summary>
+    private async Task RunPreviewAsync()
+    {
+        _previewCts = new CancellationTokenSource();
+
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(PreviewTickMs));
+
+            while (await timer.WaitForNextTickAsync(_previewCts.Token))
+            {
+                _previewLeftMs -= PreviewTickMs;
+
+                if (_previewLeftMs <= 0)
+                    break;
+
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Komponent bağlanıb — normal hal.
+            return;
+        }
+
+        _previewLeftMs = 0;
+        _previewing = false;
+        _ruleChanged = true;
+        _startedAt = DateTime.UtcNow;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task FlipAsync(Card card)
+    {
+        card.IsFaceUp = true;
+
+        if (_firstPick is null)
+        {
+            _firstPick = card;
+            return;
+        }
+
+        if (_firstPick.Symbol == card.Symbol)
+        {
+            _firstPick.IsMatched = true;
+            card.IsMatched = true;
+            _firstPick = null;
+            _matched++;
+
+            if (_matched == PairCount)
+                await FinishAsync();
+
+            return;
+        }
+
+        // Səhv cüt: bir can gedir və lövhə qısaca titrəyir.
+        _mistakes++;
+        var alive = await LoseLifeAsync();
+
+        // Uşaq kartları görsün deyə qısa fasilə, sonra geri çevirilir.
+        _locked = true;
+        var wrongPick = _firstPick;
+        _firstPick = null;
+
+        if (!alive)
+            return;
+
+        _flipBackCts?.Cancel();
+        _flipBackCts = new CancellationTokenSource();
+
+        try
+        {
+            await Task.Delay(750, _flipBackCts.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        wrongPick.IsFaceUp = false;
+        card.IsFaceUp = false;
+        _locked = false;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Can gedir. Son can da bitibsə, oyun elə həmin anda bağlanır — nəticə
+    /// isə itmir: uşaq nə qədər cüt tapıbsa, o qədər bal alır.
+    /// </summary>
+    private async Task<bool> LoseLifeAsync()
+    {
+        _lives--;
+        _hit = true;
+        StateHasChanged();
+
+        await Task.Delay(420);
+        _hit = false;
+
+        if (_lives > 0)
+        {
+            StateHasChanged();
+            return true;
+        }
+
+        _over = true;
+        _locked = true;
+        StateHasChanged();
+
+        await Task.Delay(900);
+        await FinishAsync();
+        return false;
+    }
+
+    private async Task FinishAsync()
+    {
+        if (_finished)
+            return;
+
+        _finished = true;
+
+        var duration = (int)Math.Clamp((DateTime.UtcNow - _startedAt).TotalMilliseconds, 0, 1_800_000);
+
+        // Bal tapılan cütlərdən gəlir, hər səhv isə ondan çıxır. Beləliklə
+        // canlar bitəndə də əmək sayılır, səhvsiz oyun isə 100 verir.
+        var score = Math.Clamp(_matched * 100 / PairCount - _mistakes * 6, 0, 100);
+
+        await OnFinished.InvokeAsync((score, duration));
+    }
+
+    public void Dispose()
+    {
+        _previewCts?.Cancel();
+        _previewCts?.Dispose();
+        _flipBackCts?.Cancel();
+        _flipBackCts?.Dispose();
+    }
+
+    private sealed class Card
+    {
+        public int Id { get; init; }
+        public string Symbol { get; init; } = string.Empty;
+        public bool IsFaceUp { get; set; }
+        public bool IsMatched { get; set; }
+    }
+}

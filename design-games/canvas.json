@@ -1,0 +1,67 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Yeni oyunlar" },
+    { "id": "page-2", "name": "Mövcud dörd oyun" },
+    { "id": "page-3", "name": "Sistem" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 390, "h": 844, "title": "Oyun rəfi", "page": "page-1" },
+    { "file": "Qacis.dc.html", "x": 470, "y": 0, "w": 390, "h": 844, "title": "1 · Ulduz qaçışı", "page": "page-1" },
+    { "file": "Kes.dc.html", "x": 940, "y": 0, "w": 390, "h": 844, "title": "2 · Meyvə kəs", "page": "page-1" },
+    { "file": "Sebet.dc.html", "x": 1410, "y": 0, "w": 390, "h": 844, "title": "3 · Səbət tut", "page": "page-1" },
+    { "file": "Tullanis.dc.html", "x": 0, "y": 984, "w": 390, "h": 844, "title": "4 · Bulud tullanışı", "page": "page-1" },
+    { "file": "Herfler.dc.html", "x": 470, "y": 984, "w": 390, "h": 844, "title": "5 · Hərf ovu", "page": "page-1" },
+    { "file": "Aspaz.dc.html", "x": 940, "y": 984, "w": 390, "h": 844, "title": "6 · Balaca aşpaz", "page": "page-1" },
+    { "file": "Netice.dc.html", "x": 1410, "y": 984, "w": 390, "h": 844, "title": "Nəticə ekranı", "page": "page-1" },
+
+    { "file": "Yaddas.dc.html", "x": 0, "y": 0, "w": 390, "h": 844, "title": "Yaddaş cütləri", "page": "page-2" },
+    { "file": "Hesab.dc.html", "x": 470, "y": 0, "w": 390, "h": 844, "title": "Sürətli hesab", "page": "page-2" },
+    { "file": "Baloncuq.dc.html", "x": 940, "y": 0, "w": 390, "h": 844, "title": "Baloncuq ovu", "page": "page-2" },
+    { "file": "RengSirasi.dc.html", "x": 1410, "y": 0, "w": 390, "h": 844, "title": "Rəng sırası", "page": "page-2" },
+
+    { "file": "Sistem.dc.html", "x": 0, "y": 0, "w": 880, "h": 1240, "title": "Oyun xromu — resept", "page": "page-3" }
+  ],
+  "annotations": [
+    {
+      "id": "brief",
+      "x": 0,
+      "y": -330,
+      "w": 660,
+      "page": "page-1",
+      "text": "Mini oyunlar — tətbiq olunub\n\nBu kanvas artıq koda düşüb: on oyunun hamısı ortaq GameShell çərçivəsindədir, altı yeni oyun isə GameCatalog-dadır (star-run, fruit-slice, basket-catch, cloud-jump, letter-hunt, chef-order).\n\nİki iş bir yerdə görüldü:\n1. Oyunun səthi dəyişdi — oyun artıq kartın içində deyil, hamam və yataq otağı kimi TAM EKRAN SƏHNƏDİR. Üst zolaq, qayda, vaxt və nəticə səhnənin üstündə üzən şüşəvari kapsullardır.\n2. Altı yeni oyun əlavə olundu — hər birinin bir bacarıq hədəfi var, çünki kataloqun qaydası budur: «sadəcə əyləncə» olan oyun əlavə edilmir.\n\nJanr konvensiyaları My Talking Tom, Talking Tom Gold Run, Talking Tom Cake Jump və Pou araşdırmasından götürülüb: zolaqlı qaçış, şaquli tullanış, kəsmə, tutma, söz yığma. Heç bir markalı personaj, ad və ya aktiv köçürülməyib — mexanika janrın ümumi malıdır, ifadə isə bu app-in öz palitrası, öz pet-i və öz tipoqrafiyası ilədir.\n\nPalitra, Nunito, radius və kölgə düsturları app-in öz CSS-indən götürülüb — yeni rəng icad edilməyib."
+    },
+    {
+      "id": "row-new-one",
+      "x": 1880,
+      "y": 0,
+      "w": 360,
+      "page": "page-1",
+      "text": "1-ci sıra — hərəkət oyunları.\n\nUlduz qaçışı (Gold Run janrı): pet üç zolaqda qaçır, qapılar ulduz sayına təsir edir (+3, ×2, −4). Uşaq hesablamır — MÜQAYİSƏ edir və qərarı bir saniyəyə verir. Səhv qapı bir can aparır.\n\nMeyvə kəs (Fruit Ninja janrı): hədəf cəm verilir, uşaq həmin cəmi quran meyvələri kəsir. Bu, «Sürətli hesab»dan fərqli bacarıqdır: orada cavab seçilir, burada rəqəm PARÇALANIR. Bomba qaydadan kənardır — kəsilsə can gedir.\n\nSəbət tut (Pou Food Drop janrı): düşən əşyalardan yalnız adı çəkilən sinfə aid olanlar tutulur — meyvə / tərəvəz, canlı / cansız, üzən / batan. Səbət barmağın altında sürüşür."
+    },
+    {
+      "id": "row-new-two",
+      "x": 1880,
+      "y": 984,
+      "w": 360,
+      "page": "page-1",
+      "text": "2-ci sıra — düşünmə oyunları.\n\nBulud tullanışı (Cake Jump / Doodle Jump janrı): buludlar rəqəm daşıyır, uşaq sıranı davam etdirir — 2, 4, 6… Qanunauyğunluq hər raundda dəyişir (+2, +5, ×2). Yanlış bulud sönük qalır, cəza yalnız bir candır.\n\nHərf ovu: şəkil göstərilir, uşaq sözü hərf-hərf yığır. İkidilli — az sözü «BALIQ», en sözü «FISH». Səs düyməsi sözü ucadan deyir.\n\nBalaca aşpaz: pet sifariş verir (3 çiyələk, 2 alma), uşaq boşqabı hazırlayır. Sifariş ekranda QALIR — bu, yaddaş yox, sayma məşqidir. Rəf qulluq ekranındakı yem qabı ilə eyni qrammatikadadır.\n\nNəticə ekranı hamısı üçün eynidir: halqa, pet-in reaksiyası, üç mükafat sütunu."
+    },
+    {
+      "id": "old-note",
+      "x": 0,
+      "y": -280,
+      "w": 620,
+      "page": "page-2",
+      "text": "Mövcud dörd oyun — səth yeniləməsi.\n\nMexanika, bal düsturu və üç can dəyişmir. Dəyişən yalnız çərçivədir: kart getdi, səhnə gəldi.\n\n• Yaddaş cütləri — kartlar 78px-ə böyüdü, nişanlar hərf/rəqəm əvəzinə formadır. Tapılan cüt yerində qalıb solur.\n• Sürətli hesab — sual ekranın ən böyük elementidir (62px), cavab kapsulları 74px.\n• Baloncuq ovu — baloncuqlar səhnənin özündə üzür, qayda zolağı yuxarıda qalır.\n• Rəng sırası — hər lövhənin öz NİŞANI var: rəng tək daşıyıcı deyil.\n\nYaddaş cütlərində vaxt zolağı yoxdur, çünki oyunda taymer yoxdur — səth mexanikanı olmayan bir şeylə vəd etməməlidir."
+    },
+    {
+      "id": "system-note",
+      "x": 960,
+      "y": 0,
+      "w": 380,
+      "page": "page-3",
+      "text": "Bu lövhə tətbiq üçündür.\n\nOn oyunun hamısı eyni dörd elementi geyinir: üst zolaq, qayda, vaxt, nəticə. Yeni oyun əlavə edəndə yalnız SƏHNƏ yazılır — xrom hazırdır.\n\nBu, GameShell adlı ortaq komponentdir (Components/Shared/GameShell.razor). Qayda testlə qorunur: hər oyun onu geyinməli və kataloqdakı hər açar üçün Play.razor-da hal olmalıdır.\n\nAçılış qiymətləri: 180 / 240 / 300 / 380 / 460 / 560. Gündə ~5 doğru cavab ≈ 75 ulduz gətirir, yəni sonuncu oyun təxminən bir həftəlik hədəfdir. Rəqəmlər bir faylda saxlanılır (GameCatalog.cs), ona görə balans sonradan da dəyişdirilə bilər."
+    }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}

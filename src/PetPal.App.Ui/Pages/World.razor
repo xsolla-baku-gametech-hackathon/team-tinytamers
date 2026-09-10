@@ -1,0 +1,162 @@
+@page "/world"
+@inject GameApiClient Api
+@inject AppState State
+@inject Loc Loc
+
+@* Dünya uşağın iştirakına görə dəyişir: hava vəziyyəti son 7 günün fəaliyyətindən hesablanır,
+   zonalar ulduzla açılır, missiyalar tamamlandıqca zona "bərpa olunur". *@
+
+<h1 class="visually-hidden-title">@Loc.T("Dünya", "World")</h1>
+
+<LoadingState IsLoading="_loading" Error="@_error" OnRetry="LoadAsync" LoadingText="@Loc.T("Xəritə açılır…", "Opening the map…")">
+    @if (_world is not null)
+    {
+        @* Xəritə başlığı Ev səhnəsi ilə eyni dörd təpə qatını daşıyır —
+           iki ekran arasında keçid vizual olaraq kəsilmir. *@
+        <section class="scene scene--map @WeatherClass">
+            <div class="scene__sky" aria-hidden="true">
+                @if (_world.Weather is WorldWeather.Sunny or WorldWeather.Clear)
+                {
+                    <div class="scene__sun"></div>
+                }
+                <div class="scene__cloud" style="left:-70px"></div>
+
+                <svg class="scene__hills" viewBox="0 0 390 200" preserveAspectRatio="none">
+                    <path d="M0 0c60-28 118-28 178 0 54 26 118 27 212-4v208H0z" fill="#CFE3D2" />
+                    <path d="M0 34c72-24 132-23 196 4 58 24 116 22 194-9v175H0z" fill="#A5D3B7" />
+                    <path d="M0 63c86-16 150-10 214 11 52 17 108 16 176-6v136H0z" fill="#77BE97" />
+                    <path d="M0 97c96-11 168 2 236 21 42 11 90 11 154-4v90H0z" fill="#35A57A" />
+                </svg>
+            </div>
+
+            <div class="scene__topline">
+                <div class="bubble bubble--map">@_world.Headline</div>
+                <span class="weatherchip">
+                    <span class="weatherchip__icon" aria-hidden="true">@WeatherIcon</span>
+                    @WeatherName
+                </span>
+            </div>
+
+            <div class="scene__engagement">
+                @Loc.T("İştirak balı:", "Engagement score:") <strong>@_world.EngagementScore</strong> / 100
+            </div>
+        </section>
+
+        @* Zonaların sayı serverdən gəlir — ekran sürüşmür, yalnız bu siyahı sürüşür. *@
+        <div class="list-scroll">
+        @foreach (var zone in _world.Zones)
+        {
+            <div class="zone @(zone.IsUnlocked ? null : "zone--locked")" style="margin-top:14px">
+                <div class="zone__head">
+                    <div class="zone__icon" aria-hidden="true">@ZoneIcon(zone.Code)</div>
+                    <div style="flex:1;min-width:0">
+                        <div class="zone__name">@zone.Name</div>
+                        <div class="zone__meta">
+                            @if (zone.IsUnlocked)
+                            {
+                                <span>@Loc.T($"{zone.RestoredPercent}% bərpa olunub", $"{zone.RestoredPercent}% restored")</span>
+                            }
+                            else
+                            {
+                                <span>@Loc.T($"🔒 {zone.RequiredStars} ulduz lazımdır", $"🔒 {zone.RequiredStars} stars needed")</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                @if (zone.IsUnlocked)
+                {
+                    <div class="progress" style="height:10px;margin-bottom:12px">
+                        <div class="progress__bar" style="width:@zone.RestoredPercent%"></div>
+                    </div>
+
+                    @foreach (var mission in zone.Missions)
+                    {
+                        <MissionRow Mission="mission" OnClaim="ClaimAsync" IsClaiming="_claimingId == mission.Id" />
+                    }
+                }
+                else
+                {
+                    <p class="card__subtitle">@zone.Description</p>
+                }
+            </div>
+        }
+        </div>
+    }
+</LoadingState>
+
+@code {
+    private WorldStateDto? _world;
+    private bool _loading = true;
+    private string? _error;
+    private Guid? _claimingId;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        var result = await Api.GetWorldAsync();
+
+        _loading = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _world = result.Value;
+    }
+
+    private async Task ClaimAsync(MissionDto mission)
+    {
+        _claimingId = mission.Id;
+
+        var result = await Api.ClaimMissionAsync(mission.Id);
+
+        _claimingId = null;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        State.ApplyWallet(result.Value.Wallet);
+        await LoadAsync();
+    }
+
+    private string WeatherClass => $"scene--{(_world?.Weather ?? WorldWeather.Clear).ToString().ToLowerInvariant()}";
+
+    /* Hava həm ikona, həm də adla verilir: rəng və şəkil tək daşıyıcı olsaydı,
+       oxumağı hələ öyrənən uşaq üçün fərq itərdi. */
+    private string WeatherIcon => (_world?.Weather ?? WorldWeather.Clear) switch
+    {
+        WorldWeather.Sunny => "☀️",
+        WorldWeather.Clear => "🌤️",
+        WorldWeather.Cloudy => "☁️",
+        WorldWeather.Rain => "🌧️",
+        _ => "⛈️"
+    };
+
+    private string WeatherName => (_world?.Weather ?? WorldWeather.Clear) switch
+    {
+        WorldWeather.Sunny => Loc.T("Günəşli", "Sunny"),
+        WorldWeather.Clear => Loc.T("Açıq", "Clear"),
+        WorldWeather.Cloudy => Loc.T("Buludlu", "Cloudy"),
+        WorldWeather.Rain => Loc.T("Yağışlı", "Rainy"),
+        _ => Loc.T("Fırtınalı", "Stormy")
+    };
+
+    private static string ZoneIcon(string code) => code switch
+    {
+        "forest" => "🌲",
+        "lake" => "💧",
+        "mountain" => "⛰️",
+        "castle" => "🏰",
+        _ => "🌼"
+    };
+}

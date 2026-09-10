@@ -1,0 +1,264 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Nunito', ui-rounded, 'Segoe UI Variable', system-ui, sans-serif; }
+    a { color: #5334D9; } a:hover { color: #6C4CF1; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: linear-gradient(180deg, #7FD1FF 0%, #A8E4FF 38%, #D9F4FF 58%, #D9F4FF 100%); color: #1B1140;">
+
+  <!-- ==== SƏHNƏ: buludlar, günəş, təpələr, ot ==== -->
+  <svg viewBox="0 0 390 844" width="390" height="844" style="position: absolute; inset: 0;" aria-hidden="true">
+    <circle cx="326" cy="118" r="44" fill="#FFE9A8" opacity="0.55" />
+    <circle cx="326" cy="118" r="28" fill="#FFD25E" />
+    <ellipse cx="82" cy="150" rx="46" ry="20" fill="#FFFFFF" opacity="0.9" />
+    <ellipse cx="112" cy="140" rx="32" ry="24" fill="#FFFFFF" opacity="0.9" />
+    <ellipse cx="248" cy="206" rx="34" ry="15" fill="#FFFFFF" opacity="0.65" />
+    <path d="M0 500c60-46 118-46 178 0 54 42 118 44 212-6v130H0z" fill="#BDEBD2" />
+    <path d="M0 556c72-40 132-38 196 6 58 40 116 36 194-14v134H0z" fill="#7FDCAE" />
+    <path d="M0 604c86-26 150-16 214 18 52 28 108 26 176-10v220H0z" fill="#3FD08A" />
+    <path d="M0 660c96-18 168 4 236 34 42 18 90 18 154-6v164H0z" fill="#17B26A" />
+  </svg>
+
+  <!-- ==== HUD: səviyyə, ad, pul vahidləri ==== -->
+  <div style="position: absolute; top: 54px; left: 0; right: 0; display: flex; align-items: flex-start; justify-content: space-between; padding: 0 16px; gap: 12px;">
+
+    <!-- Səviyyə halqası + ad -->
+    <div style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px 0 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.94); box-shadow: 0 4px 0 rgba(76, 46, 173, 0.14), 0 10px 22px rgba(76, 46, 173, 0.2);">
+      <div style="position: relative; width: 42px; height: 42px; flex-shrink: 0;">
+        <svg viewBox="0 0 44 44" width="42" height="42">
+          <circle cx="22" cy="22" r="18" fill="none" stroke="#EDE9F9" stroke-width="6" />
+          <circle cx="22" cy="22" r="18" fill="none" stroke="#6C4CF1" stroke-width="6" stroke-linecap="round" stroke-dasharray="113" stroke-dashoffset="34" transform="rotate(-90 22 22)" />
+          <circle cx="22" cy="22" r="14" fill="#6C4CF1" />
+        </svg>
+        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; color: #FFFFFF;">7</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1px;">
+        <div style="font-size: 16px; font-weight: 900; line-height: 1;">Max</div>
+        <div style="font-size: 11px; font-weight: 700; color: #5F5786; line-height: 1;">70 / 100 XP</div>
+      </div>
+    </div>
+
+    <!-- Ulduz və gem kapsulları -->
+    <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
+      <div style="display: flex; align-items: center; gap: 7px; height: 40px; padding: 0 6px 0 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.94); box-shadow: 0 4px 0 rgba(76, 46, 173, 0.14), 0 8px 18px rgba(76, 46, 173, 0.18);">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path d="M12 3.2l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.6l6.1-.8z" fill="#FF8A15" stroke="#A85200" stroke-width="1.6" stroke-linejoin="round" />
+        </svg>
+        <span style="font-size: 16px; font-weight: 900; color: #3A1D00;">248</span>
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 999px; background: linear-gradient(180deg, #FFA648 0%, #FF8A15 100%); box-shadow: 0 2px 0 #A85200;">
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+            <path d="M12 6v12M6 12h12" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" />
+          </svg>
+        </span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 7px; height: 40px; padding: 0 6px 0 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.94); box-shadow: 0 4px 0 rgba(76, 46, 173, 0.14), 0 8px 18px rgba(76, 46, 173, 0.18);">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path d="M7.5 4h9l4 5-8.5 11L3.5 9z" fill="#9C8FE8" stroke="#5334D9" stroke-width="1.6" stroke-linejoin="round" />
+          <path d="M7.5 4l4.5 5 4.5-5M3.5 9h17" stroke="#5334D9" stroke-width="1.4" fill="none" />
+        </svg>
+        <span style="font-size: 16px; font-weight: 900; color: #1B1140;">12</span>
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 999px; background: linear-gradient(180deg, #8A6DFF 0%, #6C4CF1 100%); box-shadow: 0 2px 0 #4A2CC4;">
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+            <path d="M12 6v12M6 12h12" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" />
+          </svg>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==== QULLUQ ÖLÇÜLƏRİ ==== -->
+  <div style="position: absolute; top: 122px; left: 16px; right: 16px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;">
+
+    <!-- Doyğunluq — kritik -->
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 9px 0 8px; border-radius: 22px; background: rgba(255, 255, 255, 0.9); box-shadow: 0 3px 0 rgba(200, 30, 67, 0.22), 0 8px 16px rgba(76, 46, 173, 0.16); outline: 2.5px solid #C81E43; outline-offset: -2.5px;">
+      <div style="position: relative; width: 40px; height: 40px;">
+        <svg viewBox="0 0 44 44" width="40" height="40">
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#FFE4EA" stroke-width="5.5" />
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#C81E43" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="107" stroke-dashoffset="82" transform="rotate(-90 22 22)" />
+        </svg>
+        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+            <path d="M6 3v7a3 3 0 003 3v8M6 3v5M9 3v5M15 3c-1.5 2-2 4-2 6 0 2 1 3 2.5 3H17v9" stroke="#C81E43" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+      </div>
+      <div style="font-size: 12px; font-weight: 900; color: #C81E43;">23%</div>
+    </div>
+
+    <!-- Xoşbəxtlik -->
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 9px 0 8px; border-radius: 22px; background: rgba(255, 255, 255, 0.9); box-shadow: 0 3px 0 rgba(76, 46, 173, 0.12), 0 8px 16px rgba(76, 46, 173, 0.16);">
+      <div style="position: relative; width: 40px; height: 40px;">
+        <svg viewBox="0 0 44 44" width="40" height="40">
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#FFEEDA" stroke-width="5.5" />
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#FF8A15" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="107" stroke-dashoffset="16" transform="rotate(-90 22 22)" />
+        </svg>
+        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+            <path d="M12 20s-7-4.4-7-9.2A4 4 0 0112 8a4 4 0 017 2.8C19 15.6 12 20 12 20z" fill="#FF8A15" stroke="#A85200" stroke-width="1.7" stroke-linejoin="round" />
+          </svg>
+        </div>
+      </div>
+      <div style="font-size: 12px; font-weight: 900; color: #A85200;">85%</div>
+    </div>
+
+    <!-- Enerji -->
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 9px 0 8px; border-radius: 22px; background: rgba(255, 255, 255, 0.9); box-shadow: 0 3px 0 rgba(76, 46, 173, 0.12), 0 8px 16px rgba(76, 46, 173, 0.16);">
+      <div style="position: relative; width: 40px; height: 40px;">
+        <svg viewBox="0 0 44 44" width="40" height="40">
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#EDE8FF" stroke-width="5.5" />
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#6C4CF1" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="107" stroke-dashoffset="32" transform="rotate(-90 22 22)" />
+        </svg>
+        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+            <path d="M13.5 2.5L5 13.5h5.5L10 21.5 19 10h-5.8z" fill="#6C4CF1" stroke="#4A2CC4" stroke-width="1.7" stroke-linejoin="round" />
+          </svg>
+        </div>
+      </div>
+      <div style="font-size: 12px; font-weight: 900; color: #5334D9;">70%</div>
+    </div>
+
+    <!-- Təmizlik -->
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 9px 0 8px; border-radius: 22px; background: rgba(255, 255, 255, 0.9); box-shadow: 0 3px 0 rgba(76, 46, 173, 0.12), 0 8px 16px rgba(76, 46, 173, 0.16);">
+      <div style="position: relative; width: 40px; height: 40px;">
+        <svg viewBox="0 0 44 44" width="40" height="40">
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#DAF5E7" stroke-width="5.5" />
+          <circle cx="22" cy="22" r="17" fill="none" stroke="#17B26A" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="107" stroke-dashoffset="11" transform="rotate(-90 22 22)" />
+        </svg>
+        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+            <path d="M12 3.2c3.6 4.2 5.6 7 5.6 9.4A5.6 5.6 0 016.4 12.6c0-2.4 2-5.2 5.6-9.4z" fill="#17B26A" stroke="#0B7A47" stroke-width="1.7" stroke-linejoin="round" />
+          </svg>
+        </div>
+      </div>
+      <div style="font-size: 12px; font-weight: 900; color: #0B7A47;">90%</div>
+    </div>
+  </div>
+
+  <!-- ==== PET — səhnənin qəhrəmanı ==== -->
+  <div style="position: absolute; top: 236px; left: 0; right: 0; display: flex; justify-content: center;">
+    <svg viewBox="0 0 200 200" width="300" height="300" role="img" aria-label="Max — şən tülkü">
+      <ellipse cx="100" cy="172" rx="46" ry="10" fill="rgba(11, 60, 40, 0.18)" />
+      <path d="M132 132c22 4 34-10 34-26 0-12-7-22-16-24 4 10 2 22-6 29-7 6-15 8-22 8z" fill="#F3A05A" />
+      <path d="M150 84c6 3 10 10 10 18 0 6-2 11-5 15 1-12-1-24-5-33z" fill="#FFFFFF" opacity="0.75" />
+      <ellipse cx="100" cy="128" rx="38" ry="34" fill="#F3A05A" />
+      <ellipse cx="100" cy="136" rx="24" ry="23" fill="#FFF3E2" />
+      <ellipse cx="80" cy="158" rx="13" ry="8" fill="#FFF3E2" />
+      <ellipse cx="120" cy="158" rx="13" ry="8" fill="#FFF3E2" />
+      <path d="M64 60l-6-30 28 16z" fill="#F3A05A" />
+      <path d="M136 60l6-30-28 16z" fill="#F3A05A" />
+      <path d="M67 57l-3-17 16 9z" fill="#FFD3A8" />
+      <path d="M133 57l3-17-16 9z" fill="#FFD3A8" />
+      <ellipse cx="100" cy="74" rx="34" ry="30" fill="#F3A05A" />
+      <ellipse cx="100" cy="86" rx="26" ry="18" fill="#FFF3E2" />
+      <path d="M78 74q8 -11 16 0" stroke="#2B2140" stroke-width="5" fill="none" stroke-linecap="round" />
+      <path d="M106 74q8 -11 16 0" stroke="#2B2140" stroke-width="5" fill="none" stroke-linecap="round" />
+      <ellipse cx="100" cy="84" rx="6" ry="4.5" fill="#2B2140" />
+      <path d="M92 92q8 9 16 0" stroke="#2B2140" stroke-width="3.5" fill="none" stroke-linecap="round" />
+      <ellipse cx="72" cy="86" rx="7" ry="4.5" fill="#FF9EA8" opacity="0.65" />
+      <ellipse cx="128" cy="86" rx="7" ry="4.5" fill="#FF9EA8" opacity="0.65" />
+      <path d="M76 100q24 14 48 0" stroke="#6C4CF1" stroke-width="7" fill="none" stroke-linecap="round" />
+      <circle cx="100" cy="110" r="7" fill="#FF8A15" stroke="#A85200" stroke-width="2" />
+      <path d="M162 44l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#FFD966" />
+      <path d="M34 62l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="#FFD966" />
+    </svg>
+  </div>
+
+  <!-- Pet replikası -->
+  <div style="position: absolute; top: 214px; left: 46px; max-width: 214px; padding: 11px 16px; border-radius: 22px 22px 22px 6px; background: #FFFFFF; box-shadow: 0 4px 0 rgba(76, 46, 173, 0.12), 0 10px 22px rgba(76, 46, 173, 0.2); font-size: 14px; font-weight: 700; line-height: 1.3;">
+    Acmışam! Bir şey yeyə bilərəmmi?
+  </div>
+
+  <!-- ==== GÜNLÜK HƏDƏF ==== -->
+  <div style="position: absolute; bottom: 196px; left: 16px; right: 16px; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 26px; background: rgba(255, 255, 255, 0.95); box-shadow: 0 5px 0 rgba(76, 46, 173, 0.14), 0 12px 26px rgba(76, 46, 173, 0.2);">
+    <span style="display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; flex-shrink: 0; border-radius: 999px; background: linear-gradient(180deg, #FFA648 0%, #FF8A15 100%); box-shadow: 0 3px 0 #A85200;">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <circle cx="12" cy="12" r="8" fill="none" stroke="#FFFFFF" stroke-width="2.2" />
+        <circle cx="12" cy="12" r="3.2" fill="#FFFFFF" />
+      </svg>
+    </span>
+    <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+        <span style="font-size: 14px; font-weight: 900;">Günlük hədəf</span>
+        <span style="font-size: 13px; font-weight: 800; color: #A85200;">3 / 5</span>
+      </div>
+      <div style="height: 12px; border-radius: 999px; background: #EDE9F9; overflow: hidden;">
+        <div style="width: 60%; height: 100%; border-radius: 999px; background: linear-gradient(180deg, #FFA648 0%, #FF8A15 100%);"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==== ALT NAVİQASİYA ==== -->
+  <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 108px; padding: 0 10px 26px; background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #FFFFFF 34%); ">
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; align-items: end; height: 82px;">
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding-bottom: 4px;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 58px; height: 58px; margin-top: -18px; border-radius: 999px; background: linear-gradient(180deg, #8A6DFF 0%, #6C4CF1 100%); box-shadow: 0 4px 0 #4A2CC4, 0 10px 20px rgba(76, 46, 173, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.4);">
+          <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+            <path d="M4 11.2L12 4l8 7.2V20a1 1 0 01-1 1h-4.5v-6h-5v6H5a1 1 0 01-1-1z" fill="#FFFFFF" />
+          </svg>
+        </span>
+        <span style="font-size: 11px; font-weight: 900; color: #5334D9;">Ev</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding-bottom: 4px;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 999px; background: #F5F2FF;">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+            <path d="M4 5.5A2 2 0 016 4h5v15H6a2 2 0 00-2 1.5zM20 5.5A2 2 0 0018 4h-5v15h5a2 2 0 012 1.5z" fill="none" stroke="#8E88AC" stroke-width="2" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <span style="font-size: 11px; font-weight: 800; color: #8E88AC;">Öyrən</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding-bottom: 4px;">
+        <span style="position: relative; display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 999px; background: #F5F2FF;">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+            <path d="M12 20s-7-4.4-7-9.2A4 4 0 0112 8a4 4 0 017 2.8C19 15.6 12 20 12 20z" fill="none" stroke="#8E88AC" stroke-width="2" stroke-linejoin="round" />
+          </svg>
+          <span style="position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; border-radius: 999px; background: #C81E43; border: 2.5px solid #FFFFFF;"></span>
+        </span>
+        <span style="font-size: 11px; font-weight: 800; color: #8E88AC;">Qulluq</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding-bottom: 4px;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 999px; background: #F5F2FF;">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+            <path d="M9 5L3.5 7v12L9 17l6 2 5.5-2V5L15 7z" fill="none" stroke="#8E88AC" stroke-width="2" stroke-linejoin="round" />
+            <path d="M9 5v12M15 7v12" stroke="#8E88AC" stroke-width="2" />
+          </svg>
+        </span>
+        <span style="font-size: 11px; font-weight: 800; color: #8E88AC;">Dünya</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding-bottom: 4px;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 999px; background: #F5F2FF;">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+            <path d="M20 4c0 9-5.4 13-9.5 13A4.5 4.5 0 016 12.5C6 7 12 4 20 4z" fill="none" stroke="#8E88AC" stroke-width="2" stroke-linejoin="round" />
+            <path d="M4 20c2.5-4.5 6-7.5 10-9.5" stroke="#8E88AC" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span style="font-size: 11px; font-weight: 800; color: #8E88AC;">Kəşf</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

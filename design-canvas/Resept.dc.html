@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Nunito', ui-rounded, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      --paper: #F1F0F2;
+      --panel: #FFFFFF;
+      --ink: #1C1B22;
+      --ink-soft: #5A5866;
+      --rule: #DCDAE2;
+      --code: #F6F5F8;
+    }
+    a { color: #4A4757; }
+    a:hover { color: #1C1B22; }
+    code, pre {
+      font-family: ui-monospace, 'Cascadia Mono', 'Consolas', 'SF Mono', monospace;
+    }
+  </style>
+</helmet>
+
+<div style="width: 880px; height: 1040px; padding: 40px; background: var(--paper); color: var(--ink); display: flex; flex-direction: column; gap: 24px;">
+
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <div style="font-size: 28px; font-weight: 900; line-height: 1.1;">Tətbiq resepti</div>
+    <div style="font-size: 15px; font-weight: 700; line-height: 1.45; color: var(--ink-soft); max-width: 660px; text-wrap: pretty;">Kanvasdakı ekranlar bu dəyərlərlə çəkilib. Rəng dəyişikliyi tamamilə <code style="font-size: 14px;">theme.css</code>-dədir — komponentlər token adına istinad etdiyi üçün heç bir <code style="font-size: 14px;">.razor</code> faylında heks yazmaq lazım gəlmir.</div>
+  </div>
+
+  <!-- ===== TOKENLER ===== -->
+  <div style="padding: 22px 24px; border-radius: 20px; background: var(--panel); display: flex; flex-direction: column; gap: 14px;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+      <div style="font-size: 15px; font-weight: 900;">1 · theme.css — dəyişən token dəyərləri</div>
+      <div style="font-size: 12px; font-weight: 800; color: var(--ink-soft);">token adları eyni qalır</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 24px;">
+
+      <div style="display: flex; flex-direction: column; gap: 7px;">
+        <div style="font-size: 11px; font-weight: 900; letter-spacing: 0.05em; color: var(--ink-soft);">BƏNÖVŞƏYİ</div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #6F5AD8; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-primary: #6F5AD8</code></div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #54419E; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-primary-dark: #54419E</code></div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #E9E4F7; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-primary-soft: #E9E4F7</code></div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #8A78E4; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-primary-lift: #8A78E4</code></div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #4E3BA8; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-primary-edge: #4E3BA8</code></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 7px;">
+        <div style="font-size: 11px; font-weight: 900; letter-spacing: 0.05em; color: var(--ink-soft);">YAŞIL</div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #35A57A; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-life: #35A57A</code></div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #156F4F; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-life-deep: #156F4F</code></div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #DCEEE4; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-life-soft: #DCEEE4</code></div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #4FBB91; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-life-lift: #4FBB91</code></div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #156F4F; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-life-edge: #156F4F</code></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 7px;">
+        <div style="font-size: 11px; font-weight: 900; letter-spacing: 0.05em; color: var(--ink-soft);">NARINCI</div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #E89A3C; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-spark: #E89A3C</code></div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #93540E; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-spark-deep: #93540E</code></div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #FAEBD6; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-spark-soft: #FAEBD6</code></div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #F2B166; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-spark-lift: #F2B166</code></div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #93540E; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-spark-edge: #93540E</code></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 7px;">
+        <div style="font-size: 11px; font-weight: 900; letter-spacing: 0.05em; color: var(--ink-soft);">MORUQ VƏ SƏTHLƏR</div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #B7304C; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-alert: #B7304C</code></div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #F7E1E5; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-alert-soft: #F7E1E5</code></div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #F0EBE0; flex-shrink: 0; box-shadow: inset 0 0 0 1px var(--rule);"></span><code style="font-size: 12px; font-weight: 700;">--pp-bg: #F0EBE0</code></div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #FBF7EF; flex-shrink: 0; box-shadow: inset 0 0 0 1px var(--rule);"></span><code style="font-size: 12px; font-weight: 700;">--pp-card: #FBF7EF</code></div>
+        <div style="display: flex; align-items: center; gap: 9px;"><span style="width: 26px; height: 20px; border-radius: 6px; background: #241E38; flex-shrink: 0;"></span><code style="font-size: 12px; font-weight: 700;">--pp-ink: #241E38</code></div>
+      </div>
+    </div>
+
+    <div style="padding: 12px 14px; border-radius: 12px; background: var(--code);">
+      <div style="font-size: 12px; font-weight: 800; line-height: 1.5; color: var(--ink-soft);">Kölgələr də isti tona keçir — bənövşəyi kölgə sümük rəngli fonda çirkli görünür:<br><code style="font-size: 12px; color: var(--ink);">--pp-shadow-md: 0 8px 24px rgba(96, 74, 46, 0.13)</code> · <code style="font-size: 12px; color: var(--ink);">--pp-edge-neutral: rgba(96, 74, 46, 0.20)</code></div>
+    </div>
+  </div>
+
+  <!-- ===== SETH RESEPTI ===== -->
+  <div style="padding: 22px 24px; border-radius: 20px; background: var(--panel); display: flex; flex-direction: column; gap: 16px;">
+    <div style="font-size: 15px; font-weight: 900;">2 · Səth resepti — dəyişmir</div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 24px; align-items: center;">
+      <div style="padding: 14px 16px; border-radius: 12px; background: var(--code);">
+        <pre style="margin: 0; font-size: 12px; line-height: 1.65; white-space: pre-wrap;">background:  linear-gradient(180deg, &lt;ailə&gt;-lift, &lt;ailə&gt;)
+box-shadow:  0 5px 0 &lt;ailə&gt;-edge,   ← qalınlıq
+             &lt;kölgə&gt;,               ← səthdən qopma
+             var(--pp-gloss)        ← üst işıq
+
+:active      translateY(3px) və kənar 5px → 2px</pre>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px; align-items: center;">
+        <div style="display: flex; align-items: center; justify-content: center; width: 200px; height: 54px; border-radius: 999px; background: linear-gradient(180deg, #8A78E4 0%, #6F5AD8 100%); box-shadow: 0 5px 0 #4E3BA8, 0 8px 24px rgba(96, 74, 46, 0.13), inset 0 2px 0 rgba(255, 255, 255, 0.4); color: #FFFFFF; font-size: 16px; font-weight: 900;">Adi</div>
+        <div style="display: flex; align-items: center; justify-content: center; width: 200px; height: 54px; border-radius: 999px; background: linear-gradient(180deg, #8A78E4 0%, #6F5AD8 100%); box-shadow: 0 2px 0 #4E3BA8, inset 0 2px 0 rgba(255, 255, 255, 0.4); color: #FFFFFF; font-size: 16px; font-weight: 900; transform: translateY(3px);">Basılmış</div>
+        <div style="font-size: 11px; font-weight: 800; color: var(--ink-soft); text-align: center; max-width: 220px; line-height: 1.45;">Ümumi hündürlük dəyişmir — ona görə basılanda ətrafdakı heç nə yerindən oynamır.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DEYISECEK FAYLLAR ===== -->
+  <div style="padding: 22px 24px; border-radius: 20px; background: var(--panel); display: flex; flex-direction: column; gap: 14px;">
+    <div style="font-size: 15px; font-weight: 900;">3 · Dəyişəcək fayllar</div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr); gap: 10px 20px; font-size: 13px; font-weight: 800;">
+      <div style="color: var(--ink-soft); padding-bottom: 8px; border-bottom: 2px solid var(--rule);">Fayl</div>
+      <div style="color: var(--ink-soft); padding-bottom: 8px; border-bottom: 2px solid var(--rule);">Nə dəyişir</div>
+
+      <div><code style="font-size: 12px;">wwwroot/css/theme.css</code></div>
+      <div style="font-weight: 700; color: var(--ink-soft);">Yalnız token dəyərləri — yuxarıdakı siyahı</div>
+
+      <div><code style="font-size: 12px;">Pages/Home.razor</code></div>
+      <div style="font-weight: 700; color: var(--ink-soft);">Beş kafel bölmə deyil, qulluq feili olur: Yem, Çimizdir, Yatır, Oyna, Şkaf</div>
+
+      <div><code style="font-size: 12px;">wwwroot/css/app.css</code></div>
+      <div style="font-weight: 700; color: var(--ink-soft);">Səhnə təpələrindəki dörd sabit heks (<code style="font-size: 11px;">#BDEBD2 … #17B26A</code>) yumşaq çalarlara keçir</div>
+
+      <div><code style="font-size: 12px;">Pages/World.razor</code></div>
+      <div style="font-weight: 700; color: var(--ink-soft);">Xəritə başlığındakı eyni dörd heks — Ev səhnəsi ilə uyğun qalmalıdır</div>
+    </div>
+
+    <div style="padding: 13px 15px; border-radius: 12px; background: #FDF4E3;">
+      <div style="font-size: 12px; font-weight: 800; line-height: 1.5; color: #7A4E0C;">Diqqət: təpə rəngləri <code style="font-size: 12px;">.razor</code> və <code style="font-size: 12px;">app.css</code> daxilində birbaşa heks kimi yazılıb — dizayn sisteminin «heks yazma» qaydasından kənara çıxan yeganə yer buradır. Token dəyişəndə bu dörd dəyər əldə yenilənməlidir.</div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":880,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

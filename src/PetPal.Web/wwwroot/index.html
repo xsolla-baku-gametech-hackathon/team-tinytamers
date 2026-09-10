@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#6F5AD8" />
+    <meta name="description" content="Uşaqlar üçün ağıllı AI pet — qulluq, mini oyunlar və qısa öyrənmə tapşırıqları." />
+    <title>AI Pets for Kids</title>
+    <base href="/" />
+
+    <!-- ?v= damğası aşağıdakı skript teqindəki ilə eyni olmalıdır (bax izah orada).
+         Stil faylları da hash daşımır: köhnə deploy onları 7 günlük cache ilə
+         vermişdi, ona görə telefon yeni HTML-i köhnə CSS ilə çəkirdi — ekran
+         dağılırdı. Damğa ünvanı dəyişdiyi üçün brauzer onları dərhal yenidən alır. -->
+    <link rel="stylesheet" href="_content/PetPal.App.Ui/css/theme.css?v=5" />
+    <link rel="stylesheet" href="_content/PetPal.App.Ui/css/app.css?v=5" />
+    <link rel="stylesheet" href="_content/PetPal.App.Ui/css/pet.css?v=5" />
+
+    <!-- Kətanı ekrana sığışdırır (--pp-zoom). Blazor-dan ƏVVƏL işə düşür ki,
+         açılış ekranı da düzgün ölçüdə olsun. ?v= damğası stil faylları ilə
+         eyni səbəbdəndir — bax aşağıdakı izah. -->
+    <script src="_content/PetPal.App.Ui/js/appFrame.js?v=5"></script>
+    <script src="_content/PetPal.App.Ui/js/share.js?v=5"></script>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%A3%3C/text%3E%3C/svg%3E" />
+
+    <style>
+        /* Blazor-un standart xəta paneli: normalda gizlidir, framework xəta anında göstərir. */
+        #blazor-error-ui {
+            display: none;
+            position: fixed;
+            inset: auto 0 0 0;
+            z-index: 1000;
+            padding: 0.9rem 1.2rem;
+            background: #ffe8e8;
+            color: #7a1f1f;
+            font: 500 0.95rem/1.4 system-ui, sans-serif;
+            box-shadow: 0 -2px 12px rgb(0 0 0 / 0.15);
+        }
+
+        #blazor-error-ui a,
+        #blazor-error-ui .dismiss {
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        #blazor-error-ui .dismiss {
+            float: right;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="state">
+            <div class="spinner" aria-hidden="true"></div>
+            <div data-text="splash">AI Pets for Kids açılır…</div>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui" data-nosnippet>
+        <span data-text="error">Gözlənilməz xəta baş verdi.</span>
+        <a href="." class="reload" data-text="reload">Yenidən yüklə</a>
+        <span class="dismiss">🗙</span>
+    </div>
+
+    <script>
+        // Bu ekran Blazor işə düşməmişdən ƏVVƏL görünür, yəni app-in dil
+        // servisi (Loc) hələ yoxdur. Ona görə dili özü seçir: əvvəl uşağın
+        // seçdiyi və brauzerdə saxlanmış dil, sonra cihazın dili.
+        (function () {
+            var stored = null;
+            try { stored = localStorage.getItem('petpal.language'); } catch (e) { }
+
+            var language = stored || (navigator.language || 'az').slice(0, 2).toLowerCase();
+            if (language !== 'en') { return; }   // Azərbaycanca variant onsuz da HTML-dədir
+
+            var english = {
+                splash: 'AI Pets for Kids is opening…',
+                error: 'Something went wrong.',
+                reload: 'Reload'
+            };
+
+            Object.keys(english).forEach(function (key) {
+                var node = document.querySelector('[data-text="' + key + '"]');
+                if (node) { node.textContent = english[key]; }
+            });
+        })();
+    </script>
+
+    <!-- Cache-dən çıxış yolu. Bir vaxtlar nginx bütün /_framework/ qovluğunu bir
+       illik "immutable" ilə verirdi, halbuki iki fayl — blazor.webassembly.js və
+       dotnet.js — adında hash DAŞIMIR. Nəticədə saytı həmin dövrdə açmış cihaz
+       köhnə yükləyicidə ilişib qaldı: o, artıq mövcud olmayan hash-lı faylları
+       çağırır və app heç vaxt açılmır. "immutable" brauzerə "bir daha soruşma"
+       dediyi üçün nginx-dəki düzəliş həmin cihazlara öz-özünə çatmır.
+
+       ?v= damğası ÜNVANI dəyişir, yəni köhnə cache açarı tamamilə keçilir.
+       Damğa iki yerə lazımdır: skript teqi yalnız yükləyicinin özünü təzələyir,
+       yükləyicinin çəkdiyi dotnet.js isə öz ünvanı ilə gedir — onu loadBootResource
+       damğalayır. Hash daşıyan fayllar (System.Text.Json.9nev9ihnpx.wasm) toxunulmur:
+       onların adı onsuz da məzmunla dəyişir, təzədən endirilməsi mənasız trafikdir.
+
+       Damğa hər deploy-da dəyişməməlidir — nginx artıq bu iki faylı hər dəfə
+       revalidasiya edir. Yalnız yenidən belə bir vəziyyət yaransa artırılır. -->
+    <script src="_framework/blazor.webassembly.js?v=5" autostart="false"></script>
+    <script>
+        Blazor.start({
+            loadBootResource: function (type, name, defaultUri, integrity) {
+                return /\.[a-z0-9]{8,12}\./.test(name) ? defaultUri : defaultUri + '?v=5';
+            }
+        });
+    </script>
+</body>
+</html>

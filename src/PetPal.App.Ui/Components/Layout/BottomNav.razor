@@ -1,0 +1,71 @@
+@implements IDisposable
+@inject Loc Loc
+
+@* Beş əsas ekran. Hər element ən azı 56px hündürlükdədir (uşaq barmağı üçün).
+
+   İkonlar inline SVG-dir, emoji deyil: emoji cihazdan-cihaza fərqli çəkilir,
+   ölçüsü şrifə bağlıdır və rəngi dizayn tokenlərinə tabe olmur. SVG həm hər
+   ekranda eyni görünür, həm də currentColor ilə aktiv/passiv rəngini özü alır. *@
+
+<nav class="bottomnav">
+    <NavLink class="bottomnav__item" href="" Match="NavLinkMatch.All">
+        <span class="bottomnav__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M4 11.2L12 4l8 7.2V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"
+                      stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+            </svg>
+        </span>
+        <span>@Loc.T("Ev", "Home")</span>
+    </NavLink>
+    <NavLink class="bottomnav__item" href="learn">
+        <span class="bottomnav__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M4 5.5A2 2 0 0 1 6 4h5v15H6a2 2 0 0 0-2 1.5zM20 5.5A2 2 0 0 0 18 4h-5v15h5a2 2 0 0 1 2 1.5z"
+                      stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+            </svg>
+        </span>
+        <span>@Loc.T("Öyrən", "Learn")</span>
+    </NavLink>
+    <NavLink class="bottomnav__item" href="care">
+        <span class="bottomnav__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 20s-7-4.4-7-9.2A4 4 0 0 1 12 8a4 4 0 0 1 7 2.8C19 15.6 12 20 12 20z"
+                      stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+            </svg>
+        </span>
+        <span>@Loc.T("Otaq", "Room")</span>
+    </NavLink>
+    <NavLink class="bottomnav__item" href="world">
+        <span class="bottomnav__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M9 5L3.5 7v12L9 17l6 2 5.5-2V5L15 7z"
+                      stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                <path d="M9 5v12M15 7v12" stroke="currentColor" stroke-width="2" />
+            </svg>
+        </span>
+        <span>@Loc.T("Dünya", "World")</span>
+    </NavLink>
+    <NavLink class="bottomnav__item" href="explore">
+        <span class="bottomnav__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M20 4c0 9-5.4 13-9.5 13A4.5 4.5 0 0 1 6 12.5C6 7 12 4 20 4z"
+                      stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                <path d="M4 20c2.5-4.5 6-7.5 10-9.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+        </span>
+        <span>@Loc.T("Kəşf", "Explore")</span>
+    </NavLink>
+</nav>
+
+@code {
+    /// <summary>
+    /// Panel həmişə ekranda qalır və heç bir parametr almır, ona görə valideyn
+    /// dili dəyişəndə özü xəbər tutmalıdır — yoxsa app ingiliscə olur, aşağıdakı
+    /// beş yazı isə köhnə dildə qalır.
+    /// </summary>
+    protected override void OnInitialized() => Loc.Changed += OnLanguageChanged;
+
+    private void OnLanguageChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Loc.Changed -= OnLanguageChanged;
+}

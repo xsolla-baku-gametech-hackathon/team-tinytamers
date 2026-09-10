@@ -1,0 +1,54 @@
+## .NET / Visual Studio
+bin/
+obj/
+out/
+*.user
+*.suo
+.vs/
+
+## Rider / VS Code
+.idea/
+.vscode/
+
+## Build results
+[Dd]ebug/
+[Rr]elease/
+*.dll
+*.pdb
+
+## Masaüstü paketi (scripts/dev/publish-windows.ps1)
+dist/
+
+## MAUI / mobil build artefactları
+*.apk
+*.aab
+*.ipa
+*.keystore
+!debug.keystore
+src/PetPal.App/Platforms/Android/obj/
+src/PetPal.App/Platforms/iOS/obj/
+
+## ASP.NET secrets / local config
+appsettings.*.local.json
+appsettings.local.json
+secrets.json
+.env
+
+## OS files
+.DS_Store
+Thumbs.db
+
+## Design reference (HTML+CSS mockup-lar — app build-ə daxil deyil)
+design/
+
+# Runtime upload-lar (Explore/Discovery şəkilləri — dev artefactları)
+src/PetPal.Api/uploads/
+
+# Test nəticələri (trx artefactları)
+**/TestResults/
+
+# Claude Code şəxsi ayarları (komanda ilə paylaşılmır)
+.claude/settings.local.json
+
+# Bilik Arenası planı — daxili iş sənədi, repoda saxlanılmır
+docs/LEARN_ARENA.md

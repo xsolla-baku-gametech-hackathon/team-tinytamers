@@ -1,0 +1,1394 @@
+@page "/care"
+@implements IAsyncDisposable
+@inject GameApiClient Api
+@inject AppState State
+@inject NavigationManager Navigation
+@inject IJSRuntime Js
+@inject Loc Loc
+
+@* Ekranın qəhrəmanı pet-dir — mobil oyunlardakı kimi. Düymələr yazısız
+   dairələrdir və hər biri abstrakt "əməliyyat" deyil, ayrıca səhnə açır:
+   qabdan yem seçilib ağıza aparılır, sabun bədəndə gəzdirilib köpüklənir və
+   köpük su ilə yuyulur, pet tutulub yatağa aparılır.
+
+   Yumurta rejimində bunların heç biri yoxdur — orada tək bir iş var. *@
+
+<h1 class="visually-hidden-title">@Loc.T("Otaq", "Room")</h1>
+
+<LoadingState IsLoading="_loading" Error="@_error" OnRetry="LoadAsync" LoadingText="@Loc.T("Pet çağırılır…", "Calling your pet…")">
+    @if (_pet is not null)
+    {
+        @* Səhnə yalnız otaq açıq DEYİLKƏN çəkilir. Səbəb texnikidir: pet-in
+           SVG-si `data-pet-target` daşıyır və JS sürükləməni sənədin BİRİNCİ
+           belə elementinə bağlayır — səhnə arxada qalsa, sabun görünməyən
+           pet-in üstünə düşür. *@
+        @if (!IsRoomOpen)
+        {
+        <section class="stage">
+            <div class="stage__sky" aria-hidden="true"></div>
+            <div class="stage__ground" aria-hidden="true"></div>
+
+            @if (!string.IsNullOrWhiteSpace(BubbleText))
+            {
+                <div class="stage__bubble">@BubbleText</div>
+            }
+
+            <div class="stage__pet">
+                <PetAvatar Stage="_pet.Stage" Mood="_pet.Mood" Species="@_pet.Species" Name="@_pet.Name"
+                           Accessories="_pet.EquippedAccessories"
+                           MouthOpen="MouthOpen" ReactionClass="@_reaction" />
+            </div>
+        </section>
+        }
+
+        @if (!_pet.IsHatched)
+        {
+            <div class="card">
+                <h2 class="card__title">🥚 @Loc.T("Yumurtanı aç", "Hatch the egg")</h2>
+                <p class="card__subtitle">
+                    @Loc.T($"Sual həll edib ulduz qazan. {_pet.HatchStarCost} ulduz toplananda {_pet.Name} yumurtadan çıxacaq!", $"Solve questions and earn stars. When you reach {_pet.HatchStarCost} stars, {_pet.Name} will hatch!")
+                </p>
+
+                <div class="progress__row" style="margin-top:14px">
+                    <span>⭐ @State.Wallet.Stars / @_pet.HatchStarCost</span>
+                    <span>@HatchPercent%</span>
+                </div>
+                <div class="progress progress--goal">
+                    <div class="progress__bar" style="width:@HatchPercent%"></div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_actionError))
+                {
+                    <div class="alert alert--error" style="margin-top:14px">@_actionError</div>
+                }
+
+                <button class="btn btn--primary btn--block" style="margin-top:14px"
+                        disabled="@(_busy || State.Wallet.Stars < _pet.HatchStarCost)" @onclick="HatchAsync">
+                    @if (_busy)
+                    {
+                        <text>@Loc.T("Açılır…", "Hatching…")</text>
+                    }
+                    else if (State.Wallet.Stars < _pet.HatchStarCost)
+                    {
+                        <text>@Loc.T($"Daha {_pet.HatchStarCost - State.Wallet.Stars} ulduz lazımdır", $"{_pet.HatchStarCost - State.Wallet.Stars} more stars needed")</text>
+                    }
+                    else
+                    {
+                        <text>✨ @Loc.T("Yumurtanı aç", "Hatch the egg")</text>
+                    }
+                </button>
+
+                <a class="btn btn--ghost btn--block" style="margin-top:10px" href="learn">📖 @Loc.T("Ulduz qazanmağa get", "Go and earn stars")</a>
+            </div>
+        }
+        else
+        {
+            @* Statlar oyun HUD-u kimi: kompakt, adsız, rəngi özü danışır. *@
+            <div class="vitals">
+                <div class="vitals__stat" title="@Loc.T("Sevinc", "Joy")"><span aria-hidden="true">😊</span><span class="vitals__track"><span class="vitals__fill @FillClass(_pet.Happiness)" style="width:@_pet.Happiness%"></span></span></div>
+                <div class="vitals__stat" title="@Loc.T("Toxluq", "Fullness")"><span aria-hidden="true">🍖</span><span class="vitals__track"><span class="vitals__fill @FillClass(_pet.Fullness)" style="width:@_pet.Fullness%"></span></span></div>
+                <div class="vitals__stat" title="@Loc.T("Enerji", "Energy")"><span aria-hidden="true">⚡</span><span class="vitals__track"><span class="vitals__fill @FillClass(_pet.Energy)" style="width:@_pet.Energy%"></span></span></div>
+                <div class="vitals__stat" title="@Loc.T("Təmizlik", "Cleanliness")"><span aria-hidden="true">🧼</span><span class="vitals__track"><span class="vitals__fill @FillClass(_pet.Cleanliness)" style="width:@_pet.Cleanliness%"></span></span></div>
+            </div>
+
+            <div class="dock">
+                <button class="dock__btn @(_mode == CareMode.Feed ? "dock__btn--on" : null) @(_pet.Fullness < 50 ? "dock__btn--alert" : null)"
+                        disabled="@_busy" @onclick="() => SetModeAsync(CareMode.Feed)" aria-label="@Loc.T("Yedizdir", "Feed")">
+                    <span aria-hidden="true">🍖</span>
+                    <span class="dock__cost">⭐@CheapestFoodCost+</span>
+                </button>
+                <button class="dock__btn" disabled="@_busy" @onclick="GoToGames" aria-label="@Loc.T("Oyunlar", "Games")">
+                    <span aria-hidden="true">🎾</span>
+                </button>
+                <button class="dock__btn @(_mode == CareMode.Bath ? "dock__btn--on" : null) @(_pet.Cleanliness < 50 ? "dock__btn--alert" : null)"
+                        disabled="@_busy" @onclick="() => SetModeAsync(CareMode.Bath)" aria-label="@Loc.T("Çimizdir", "Bath")">
+                    <span aria-hidden="true">🧼</span>
+                </button>
+                <button class="dock__btn @(_mode == CareMode.Sleep ? "dock__btn--on" : null)"
+                        disabled="@_busy" @onclick="() => SetModeAsync(CareMode.Sleep)" aria-label="@Loc.T("Yatızdır", "Put to sleep")">
+                    <span aria-hidden="true">🛏️</span>
+                </button>
+                <button class="dock__btn @(_closetOpen ? "dock__btn--on" : null)"
+                        disabled="@_busy" @onclick="OpenClosetAsync" aria-label="@Loc.T("Şkaf", "Closet")">
+                    <span aria-hidden="true">👕</span>
+                </button>
+            </div>
+
+            @* Səhnə, statlar və dok yerində qalır; aşağıdakı panel və paltar rəfi
+               isə əşya sayına görə uzanır, ona görə sürüşən hissə budur. *@
+            <div class="list-scroll list-scroll--care">
+
+            @* Yem vermək artıq burada deyil: o da hamam və yataq otağı kimi
+               ayrıca tam ekran otaqdır (bax "Yemək otağı" aşağıda). Bu sahədə
+               yalnız xəta və mükafat mesajları qalır. *@
+            @if (!string.IsNullOrWhiteSpace(_actionError))
+            {
+                <div class="alert alert--error">@_actionError</div>
+            }
+
+            @if (_newAccessories.Count > 0)
+            {
+                <div class="feedback feedback--correct">
+                    <div>🎁 @Loc.T("Yeni əşya açıldı!", "New item unlocked!")</div>
+                    @foreach (var accessory in _newAccessories)
+                    {
+                        <div class="reward-pop">@accessory.Icon @accessory.Name</div>
+                    }
+                </div>
+            }
+            </div>
+
+            @* ===== Paltar dəyişmə otağı =====
+               Şkaf səhifənin bir parçası deyil, AYRICA TAM EKRAN otaqdır: uşaq
+               içəri girir, pet-i güzgünün qarşısında geyindirir və çıxır.
+               Statlar, dok, kartlar və alt naviqasiya burada görünmür — janr
+               konvensiyası budur və diqqət yalnız pet-in üstündə qalmalıdır. *@
+            @if (_closetOpen)
+            {
+                <div class="closet" role="dialog" aria-modal="true" aria-label="@Loc.T("Paltar dəyişmə otağı", "Dressing room")">
+                    @* Otaq digər otaqlarla eyni sistemdədir: sabit 390x620
+                       qutu, miqyas JS-dən (fitRooms). Əvvəl faizlə idi və
+                       uzun ekranda güzgü dartılırdı. *@
+                    <div class="closet__room" data-room>
+                        <div class="closet__decor" aria-hidden="true">
+                            @* Otağın həcmi və döşəmə perspektivi ilk baxışda hiss olunsun deyə arxa qatlar ayrılır. *@
+                            <div class="closet__wall"></div>
+                            <div class="closet__floor"></div>
+                            <div class="closet__planks"></div>
+                            <div class="closet__baseboard"></div>
+                            <div class="closet__floor-depth"></div>
+                            <div class="closet__floor-shadow"></div>
+
+                            @* Alt panel gələndə də mərkəz sakit və səliqəli qalsın deyə xalça iri, sadə halqa kimi işlənir. *@
+                            <div class="closet__rug"></div>
+
+                            @* Petin arxasında aydın fokus və başının üstündə işıqlı tağ qalması üçün güzgü mərkəzə yerləşir. *@
+                            <div class="closet__mirror">
+                              <div class="closet__mirror-glass"></div>
+                              <div class="closet__mirror-foot closet__mirror-foot--left"></div>
+                              <div class="closet__mirror-foot closet__mirror-foot--right"></div>
+                              <i class="closet__bulb closet__bulb--01"></i>
+                              <i class="closet__bulb closet__bulb--02"></i>
+                              <i class="closet__bulb closet__bulb--03"></i>
+                              <i class="closet__bulb closet__bulb--04"></i>
+                              <i class="closet__bulb closet__bulb--05"></i>
+                              <i class="closet__bulb closet__bulb--06"></i>
+                              <i class="closet__bulb closet__bulb--13"></i>
+                              <i class="closet__bulb closet__bulb--14"></i>
+                              <i class="closet__bulb closet__bulb--15"></i>
+                              <i class="closet__bulb closet__bulb--16"></i>
+                              <i class="closet__bulb closet__bulb--17"></i>
+                            </div>
+
+                            @* Geyim ekranının məqsədi sözsüz anlaşılsın deyə solda dörd fərqli geyim silueti göstərilir. *@
+                            <div class="closet__wardrobe">
+                              <div class="closet__rail"></div>
+                              <div class="closet__garment closet__garment--tee">
+                                <span class="closet__hanger"></span>
+                                <span class="closet__cloth closet__cloth--tee"></span>
+                              </div>
+                              <div class="closet__garment closet__garment--dress">
+                                <span class="closet__hanger"></span>
+                                <span class="closet__cloth closet__cloth--dress"></span>
+                              </div>
+                              <div class="closet__garment closet__garment--jacket">
+                                <span class="closet__hanger"></span>
+                                <span class="closet__cloth closet__cloth--jacket"></span>
+                              </div>
+                              <div class="closet__garment closet__garment--scarf">
+                                <span class="closet__hanger"></span>
+                                <span class="closet__cloth closet__cloth--scarf"></span>
+                              </div>
+                            </div>
+
+                            @* Sol tərəfdəki geyimləri tarazlamaq və otağa yığcam dolab zənginliyi vermək üçün sağda rəf qurulur. *@
+                            <div class="closet__shelf">
+                              <div class="closet__hatbox closet__hatbox--large"></div>
+                              <div class="closet__hatbox closet__hatbox--small"></div>
+                              <div class="closet__shelf-board closet__shelf-board--top"></div>
+                              <div class="closet__folds">
+                                <span class="closet__fold closet__fold--one"></span>
+                                <span class="closet__fold closet__fold--two"></span>
+                                <span class="closet__fold closet__fold--three"></span>
+                                <span class="closet__fold closet__fold--four"></span>
+                              </div>
+                              <div class="closet__shelf-board closet__shelf-board--bottom"></div>
+                            </div>
+
+                            @* Sol aşağı künc uşaq otağı kimi rahat görünsün və pet sahəsi açıq qalsın deyə balaca puf kənara sıxılır. *@
+                            <div class="closet__pouf">
+                              <div class="closet__pouf-body"></div>
+                              <div class="closet__pouf-top"></div>
+                              <span class="closet__pouf-button"></span>
+                            </div>
+
+                            @* Sağ kənara yumşaq canlılıq gəlməsi və kompozisiyanın pufla tarazlanması üçün hündür bitki seçilir. *@
+                            <div class="closet__plant">
+                              <span class="closet__stem closet__stem--left"></span>
+                              <span class="closet__stem closet__stem--right"></span>
+                              <span class="closet__leaf closet__leaf--one"></span>
+                              <span class="closet__leaf closet__leaf--two"></span>
+                              <span class="closet__leaf closet__leaf--three"></span>
+                              <span class="closet__leaf closet__leaf--four"></span>
+                              <span class="closet__leaf closet__leaf--five"></span>
+                              <div class="closet__pot"></div>
+                              <div class="closet__pot-rim"></div>
+                            </div>
+
+                            @* Başlıq sahəsi sakit qalsın, amma otaqda isti tavan işığı hiss edilsin deyə lampanın həcmi sağda və aşağıda açılır. *@
+                            <div class="closet__lamp">
+                              <div class="closet__lamp-canopy"></div>
+                              <div class="closet__lamp-cord"></div>
+                              <div class="closet__lamp-shade"></div>
+                              <div class="closet__lamp-bulb"></div>
+                            </div>
+
+                            @* Kənarlar səhnə pərdəsi kimi yumşalsın və bütün ekran geyinmə kabinəsinə çevrilsin deyə pərdələr çərçivə yaradır. *@
+                            <div class="closet__rod"></div>
+                            <div class="closet__curtain closet__curtain--left"></div>
+                            <div class="closet__curtain closet__curtain--right"></div>
+                        </div>
+
+                        @* Pet güzgünün qarşısındadır: taxılan paltar elə həmin an,
+                           elə həmin yerdə görünür. *@
+                        <div class="closet__pet">
+                            <PetAvatar Stage="_pet.Stage" Mood="_pet.Mood" Species="@_pet.Species" Name="@_pet.Name"
+                                       Accessories="_pet.EquippedAccessories" ReactionClass="@_reaction" />
+                        </div>
+                    </div>
+                    <div class="closet__bar">
+                        <button class="overlay-close" @onclick="CloseCloset" aria-label="@Loc.T("Otaqdan çıx", "Leave the room")">✕</button>
+
+                        @if (EquippedCount > 0)
+                        {
+                            <button class="closet__clear" disabled="@_busy" @onclick="ClearAccessoriesAsync">
+                                Hamısını çıxart
+                            </button>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_actionError))
+                    {
+                        <div class="closet__error">@_actionError</div>
+                    }
+
+                    @* Növü dəyişmək də şəxsiləşdirmədir və yeri elə buradır: rəfin
+                       üstündə kiçik sıra. Yaş, statlar və açılmış əşyalar dəyişmir —
+                       yalnız görünüş. *@
+                    <div class="closet__species">
+                        @foreach (var option in DisplayNames.SpeciesOptions(Loc))
+                        {
+                            var key = option.Key;
+
+                            <button class="closet__species-pick @(_pet.Species == key ? "closet__species-pick--on" : null)"
+                                    disabled="@(_busy || _pet.Species == key)"
+                                    aria-pressed="@(_pet.Species == key)"
+                                    aria-label="@option.Label"
+                                    @onclick="() => ChangeSpeciesAsync(key)">
+                                <PetAvatar Species="@key" Stage="PetStage.Baby" Mood="PetMood.Happy" Name="@option.Label" />
+                            </button>
+                        }
+                    </div>
+
+                    @* Rəf ekranın altında lentdir: bir toxunuş geyindirir,
+                       ikincisi çıxarır. Kilidli əşya gizlədilmir — uşaq şərti
+                       görməlidir. *@
+                    <div class="closet__tray">
+                        @foreach (var accessory in _pet.Accessories)
+                        {
+                            var item = accessory;
+
+                            <button class="closet__item @(item.IsUnlocked ? null : "closet__item--locked") @(item.IsEquipped ? "closet__item--on" : null)"
+                                    disabled="@(_busy || !item.IsUnlocked)"
+                                    aria-pressed="@item.IsEquipped"
+                                    @onclick="() => ToggleAccessoryAsync(item)">
+                                <span class="closet__icon" aria-hidden="true">@(item.IsUnlocked ? item.Icon : "🔒")</span>
+                                <span class="closet__name">@item.Name</span>
+                                <span class="closet__meta">@AccessoryMeta(item)</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+
+            @* ===== Yemək otağı =====
+               Yem vermək əvvəl kartın içindəki siyahı idi: pet yuxarıdakı balaca
+               səhnədə qalır, yemlər isə aşağıdakı ağ qutuda dururdu — uşaq ikisini
+               bir səhnə kimi görmürdü və "yemi ağzına apar" göstərişi boşluqda
+               asılı qalırdı. İndi digər üç qulluq işi ilə eyni sistemdədir. *@
+            @if (_mode == CareMode.Feed)
+            {
+                <div class="kitchen" role="dialog" aria-modal="true" aria-label="@Loc.T("Yemək otağı", "Dining room")">
+                    <div class="kitchen__room" data-room>
+                        <div class="kitchen__decor" aria-hidden="true">
+                            <div class="kitchen__wall">
+                              <div class="kitchen__wall-pattern"></div>
+                            </div>
+
+                            <div class="kitchen__shelf">
+                              <div class="kitchen__jar kitchen__jar--one"></div>
+                              <div class="kitchen__jar kitchen__jar--two"></div>
+                              <div class="kitchen__jar kitchen__jar--three"></div>
+                              <div class="kitchen__shelf-board"></div>
+                            </div>
+
+                            <div class="kitchen__window">
+                              <div class="kitchen__window-view">
+                                <div class="kitchen__sun"></div>
+                                <div class="kitchen__window-hill"></div>
+                              </div>
+                            </div>
+
+                            <div class="kitchen__lamp">
+                              <div class="kitchen__lamp-cord"></div>
+                              <div class="kitchen__lamp-shade"></div>
+                              <div class="kitchen__lamp-glow"></div>
+                            </div>
+
+                            <div class="kitchen__skirting"></div>
+                            <div class="kitchen__floor">
+                              <div class="kitchen__floor-tiles"></div>
+                            </div>
+                            <div class="kitchen__rug"></div>
+
+                            <div class="kitchen__cupboard">
+                              <div class="kitchen__pot"></div>
+                              <div class="kitchen__cupboard-top"></div>
+                              <div class="kitchen__cupboard-body">
+                                <div class="kitchen__cupboard-door"></div>
+                                <div class="kitchen__cupboard-door"></div>
+                              </div>
+                            </div>
+                        </div>
+
+                        @* MouthOpen burada da lazımdır: yem ağıza yaxınlaşanda pet
+                           ağzını açır və uşaq harada buraxacağını görür. *@
+                        <div class="kitchen__pet">
+                            <PetAvatar Stage="_pet.Stage" Mood="_pet.Mood" Species="@_pet.Species" Name="@_pet.Name"
+                                       Accessories="_pet.EquippedAccessories"
+                                       MouthOpen="MouthOpen" ReactionClass="@_reaction" />
+                        </div>
+
+                        @* Qab pet-in ÖNÜNDƏDİR — pəncələr onun arxasında qalır. *@
+                        <div class="kitchen__front" aria-hidden="true">
+                            <svg class="kitchen__bowl" viewBox="0 0 128 50" fill="none">
+                                <ellipse cx="64" cy="44" rx="58" ry="6" fill="rgba(96,74,46,0.18)" />
+                                <path d="M10 14 H118 C120 32 106 44 84 46 H44 C22 44 8 32 10 14 Z"
+                                      fill="var(--kt-wood)" stroke="var(--kt-wood-edge)" stroke-width="5" stroke-linejoin="round" />
+                                <ellipse cx="64" cy="14" rx="56" ry="12" fill="var(--kt-wood-lift)" stroke="var(--kt-wood-edge)" stroke-width="5" />
+                                <ellipse cx="64" cy="15" rx="42" ry="7" fill="#8A5A2A" opacity="0.35" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    @* Cüzdan otağın İÇİNDƏ göstərilir. Üst panel burada gizlidir
+                       (otaq tam ekrandır), yemlərin isə qiyməti var — uşaq nə
+                       qədər ulduzu olduğunu görmədən seçim edə bilməz və bağlı
+                       yemin niyə bağlı olduğunu anlamaz. *@
+                    <div class="kitchen__bar">
+                        <button class="overlay-close" @onclick="() => SetModeAsync(CareMode.None)"
+                                aria-label="@Loc.T("Yemək otağından çıx", "Leave the dining room")">✕</button>
+
+                        <span class="room-wallet" aria-label="@Loc.T($"{State.Wallet.Stars} ulduzun var", $"You have {State.Wallet.Stars} stars")">
+                            <span class="room-wallet__icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="20" height="20">
+                                    <path d="M12 3.2l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.6l6.1-.8z"
+                                          fill="var(--pp-spark)" stroke="var(--pp-spark-edge)" stroke-width="1.6"
+                                          stroke-linejoin="round" />
+                                </svg>
+                            </span>@State.Wallet.Stars
+                        </span>
+                    </div>
+
+                    @* Süfrə: yem seçimi burada, otağın öz səthində. Qiymət və təsir
+                       gizlədilmir — uşaq seçməzdən əvvəl nə xərclədiyini görür. *@
+                    <div class="kitchen__tools">
+                        <div class="kitchen__hint">@FeedHint</div>
+
+                        @* Pet doyanda süfrə bağlanır. Otaq yem veriləndən sonra
+                           AÇIQ qaldığına görə bu vacibdir: uşaq yemi ağza qədər
+                           aparıb sonda "toxdur" cavabı almamalıdır — imtina yenə
+                           də işin əvvəlində olur. *@
+                        <div class="tray tray--counter">
+                            @foreach (var food in _foods)
+                            {
+                                var canServe = !PetIsFull && State.Wallet.Stars >= food.StarCost;
+
+                                <button class="tray__item @(canServe ? null : "tray__item--locked") @(food.IsTreat ? "tray__item--treat" : null)"
+                                        disabled="@(_busy || !canServe)" title="@food.Effect"
+                                        @onpointerdown="e => StartFoodDragAsync(food, e)">
+                                    <span class="tray__icon" data-drag-id="@FoodDragId(food)" aria-hidden="true">@food.Icon</span>
+                                    <span class="tray__name">@food.Name</span>
+                                    <span class="tray__cost">⭐@food.StarCost</span>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @* ===== Hamam =====
+               Çimizdirmə də ayrıca tam ekran otaqdır: pet vannada dayanır, uşaq
+               sabunu bədəndə gəzdirir, sonra suyu. Effektləri (köpük, sıçrayış,
+               damcı, parıltı) JS barmağın getdiyi yerdə yaradır. *@
+            @if (_mode == CareMode.Bath)
+            {
+                <div class="bathroom" role="dialog" aria-modal="true" aria-label="@Loc.T("Hamam", "Bathroom")">
+                    <div class="bathroom__room" data-room>
+                        <div class="bathroom__decor" aria-hidden="true">
+                            <div class="bath__wall"></div>
+                            <div class="bath__baseboard"></div>
+                            <div class="bath__floor"></div>
+
+                            <div class="fx__steam bath__steam">
+                                <span class="fx__steam-wisp fx__steam-wisp--1"></span>
+                                <span class="fx__steam-wisp fx__steam-wisp--2"></span>
+                                <span class="fx__steam-wisp fx__steam-wisp--3"></span>
+                            </div>
+
+                            <div class="bath__hook"></div>
+                            <div class="bath__towel"></div>
+
+                            @* Divar borusu və şlanq otaq qutusu ilə EYNİ 390x620
+                               koordinat sistemində çəkilir, ona görə şlanqın ucu
+                               duş başlığının sapına piksel dəqiqliyi ilə oturur.
+                               Əvvəl ikisi ayrı-ayrı CSS qövsləri idi: aralarında
+                               boşluq qalırdı və qövsün alt ucu otağın ortasında
+                               mənası olmayan bir cizgi kimi görünürdü. *@
+                            <svg class="bath__plumbing" viewBox="0 0 390 620" fill="none">
+                                <rect x="342" y="34" width="32" height="26" rx="11"
+                                      fill="var(--pp-ink-soft)" stroke="var(--pp-ink)" stroke-width="4" />
+                                <path d="M357 62 C 375 94, 331 120, 353 164"
+                                      stroke="var(--pp-ink)" stroke-width="13" stroke-linecap="round" />
+                                <path d="M357 62 C 375 94, 331 120, 353 164"
+                                      stroke="var(--pp-ink-soft)" stroke-width="7" stroke-linecap="round" />
+                                <path d="M357 62 C 375 94, 331 120, 353 164"
+                                      stroke="var(--pp-ink)" stroke-width="7" stroke-linecap="butt"
+                                      stroke-dasharray="2 9" opacity="0.55" />
+                            </svg>
+
+                            <div class="bath__mat"></div>
+                            <div class="bath__tub-back"></div>
+                            <div class="bath__water-surface"></div>
+                        </div>
+
+                        <div class="bathroom__pet">
+                            <PetAvatar Stage="_pet.Stage" Mood="_pet.Mood" Species="@_pet.Species" Name="@_pet.Name"
+                                       Accessories="_pet.EquippedAccessories" ReactionClass="@_reaction" />
+                        </div>
+
+                        @* Vannanın ön kənarı və ördək pet-in önündədir — pet suyun
+                           İÇİNDƏ dayanır. *@
+                        <div class="bathroom__front" aria-hidden="true">
+                            <div class="bath__tub-front"></div>
+                            <div class="bath__duck">
+                                <span class="bath__duck-body"></span>
+                                <span class="bath__duck-head"></span>
+                            </div>
+                        </div>
+
+                        @* Uşağın əlinə aldığı iki əşya SƏHNƏNİN ÖZÜNDƏDİR: sabun
+                           qabında, duş divarda. Ayrıca "alət düyməsi" yoxdur —
+                           uşaq ekranda gördüyü əşyaya toxunur və JS elə həmin
+                           elementi klonlayıb barmağın arxasınca aparır
+                           (data-drag-id). Beləliklə əldəki şəkil otaqdakı ilə
+                           eynidir və uşaq nəyi tutduğunu axtarmır. *@
+                        <div class="bathroom__props">
+                            <div class="bath__soap-dish" aria-hidden="true"></div>
+
+                            <button class="@SoapClass" data-drag-id="care-soap"
+                                    disabled="@(_busy || _bathStep != BathStep.Soap)"
+                                    @onpointerdown="StartBathToolAsync"
+                                    aria-label="@Loc.T("Sabunu götür", "Pick up the soap")">
+                                <span class="bath__soap-bar" aria-hidden="true"></span>
+                            </button>
+
+                            <button class="@ShowerClass" data-drag-id="care-shower"
+                                    disabled="@(_busy || _bathStep != BathStep.Rinse)"
+                                    @onpointerdown="StartBathToolAsync"
+                                    aria-label="@Loc.T("Duşu götür", "Pick up the shower")">
+                                @* Başlıq şlanqın ucuna oturur: -20° dönmə sapı
+                                   yuxarı-sağa, su çıxan üzü isə aşağı-sola —
+                                   pet-in üstünə — çevirir. *@
+                                <svg class="bath__shower-art" viewBox="0 0 104 76" fill="none" aria-hidden="true">
+                                    <g transform="rotate(-20 52 38)">
+                                        <rect x="70" y="26" width="30" height="12" rx="6"
+                                              fill="var(--pp-ink-soft)" stroke="var(--pp-ink)" stroke-width="4" />
+                                        <ellipse cx="44" cy="49" rx="25" ry="9"
+                                                 fill="#DCEBFF" stroke="var(--pp-ink)" stroke-width="4" />
+                                        <rect x="14" y="18" width="60" height="30" rx="15"
+                                              fill="var(--pp-primary)" stroke="var(--pp-ink)" stroke-width="4" />
+                                        <rect x="21" y="23" width="46" height="9" rx="4.5"
+                                              fill="var(--pp-primary-lift)" />
+                                        <circle cx="33" cy="51" r="2.6" fill="var(--pp-ink-soft)" />
+                                        <circle cx="44" cy="52" r="2.6" fill="var(--pp-ink-soft)" />
+                                        <circle cx="55" cy="51" r="2.6" fill="var(--pp-ink-soft)" />
+                                    </g>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bathroom__bar">
+                        <button class="overlay-close" @onclick="() => SetModeAsync(CareMode.None)"
+                                aria-label="@Loc.T("Hamamdan çıx", "Leave the bathroom")">✕</button>
+                    </div>
+
+                    @* Alt panelin işi yalnız DEMƏKDİR: nə etməli və nə qədər
+                       qalıb. Alət burada deyil — o, otağın öz əşyasıdır. *@
+                    <div class="bathroom__tools">
+                        <div class="bathroom__hint">@BathHint</div>
+
+                        <div class="progress" style="height:10px;width:74%">
+                            <div class="progress__bar @(_bathStep == BathStep.Rinse ? "progress__bar--water" : null)"
+                                 style="width:@BathPercent%"></div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @* ===== Yataq otağı =====
+               Şkaf kimi ayrıca tam ekran otaq. Uşağın gördüyü iş sadədir: pet
+               yatağa uzanır, o isə lampanı söndürür. Sürükləmə yoxdur — yatmaq
+               uşaq üçün pet-i daşımaq deyil, işığın sönməsidir. *@
+            @if (_mode == CareMode.Sleep)
+            {
+                <div class="bedroom @(_lightsOff ? "bedroom--dark" : null)"
+                     role="dialog" aria-modal="true" aria-label="@Loc.T("Yataq otağı", "Bedroom")">
+                    <div class="bedroom__room" data-room>
+                        <div class="bedroom__decor" aria-hidden="true">
+                            @* Divar qatı yuxarı interfeys sahəsini boş saxlayıb naxışı aşağıdan başladır. *@
+                            <div class="bedroom__wall">
+                              <div class="bedroom__wall-pattern"></div>
+                              <div class="bedroom__night-light">
+                                <div class="bedroom__night-light-star"></div>
+                              </div>
+                            </div>
+                            <div class="bedroom__shelf"></div>
+                            <div class="bedroom__garland"></div>
+
+                            @* Pəncərə eyni quruluşda günəş, ay və ulduzların vəziyyətini dəyişməyə imkan verir. *@
+                            <div class="bedroom__window">
+                              <div class="bedroom__window-view">
+                                <div class="bedroom__sun"></div>
+                                <div class="bedroom__moon"></div>
+                                <div class="bedroom__window-star"></div>
+                                <div class="bedroom__window-star"></div>
+                                <div class="bedroom__window-star"></div>
+                                <div class="bedroom__window-star"></div>
+                                <div class="bedroom__window-hill"></div>
+                              </div>
+                            </div>
+
+                            @* Divar əşyaları otağa tanış, sakit uşaq məkanı hissi verir. *@
+                            <div class="bedroom__clock">
+                              <div class="bedroom__clock-hand bedroom__clock-hand--hour"></div>
+                              <div class="bedroom__clock-hand bedroom__clock-hand--minute"></div>
+                            </div>
+                            <div class="bedroom__picture">
+                              <div class="bedroom__picture-art">
+                                <div class="bedroom__picture-hill"></div>
+                                <div class="bedroom__picture-paw"></div>
+                              </div>
+                            </div>
+
+                            @* Döşəmə qatları dərinlik yaradır və son 16 faizi əşyasız saxlayır. *@
+                            <div class="bedroom__floor">
+                              <div class="bedroom__floor-planks"></div>
+                            </div>
+                            <div class="bedroom__skirting"></div>
+                            <div class="bedroom__rug"></div>
+                            <div class="bedroom__moonlight"></div>
+
+                            @* YATAQ — SIFIRDAN, «My Talking Tom» istinadı ilə.
+                               2026-09-06: əvvəlki altı versiya rədd edildi.
+
+                               ORTAQ SƏHV BU İDİ: hər versiyada yataq çox sayda
+                               hissədən yığılırdı — künc sütunları, dirəklər, yan tir,
+                               ayaqlar, iki yastıq, ayaq başlığı. On beş forma bir-birinin
+                               üstünə düşəndə göz onları tək əşya kimi birləşdirə bilmir.
+
+                               Talking Tom-un yatağı isə CƏMİ DÖRD yumşaq formadır:
+                               alçaq başlıq, qalın döşək, bir iri yastıq, bir örtük.
+                               Dirək yoxdur, dolama yoxdur, tir yoxdur. Bu rəsm həmin
+                               məntiqlə qurulub:
+
+                               1. BAŞLIQ alçaq və enlidir — yalnız yumşaq bir qövs.
+                                  Hündür başlıq yatağı şkafa, dirəklər isə beşiyə çevirirdi.
+                               2. DÖŞƏK yatağın əsas kütləsidir və TƏK qapalı formadır:
+                                  üst səth, ön üz və yumru künclər bir konturun içindədir.
+                                  Əvvəl üç ayrı düzbucaqlı idi və lövhə kimi oxunurdu.
+                               3. AYAQLAR kiçikdir — yatağı yerdən qaldırmaqdan başqa
+                                  işi yoxdur; iri ayaq gözü yatağın kütləsindən yayındırır.
+                               4. YASTIQ təkdir və pet-in ARXASINDADIR. İki yastıq
+                                  pet-in yanlarında duranda siluet divana çevrilirdi.
+
+                               ÖLÇÜ MƏHDUDİYYƏTİ: döşəyin üst səthi x 28..272, y 118..176
+                               sahəsini doldurmalıdır — pet-in pəncələri oraya oturur,
+                               yorğanın mövqeyi də ona bağlıdır. *@
+                            <svg class="bedroom__bed" viewBox="0 0 300 268" fill="none" aria-hidden="true">
+                                <ellipse cx="150" cy="246" rx="132" ry="14" fill="var(--bd-shadow-strong)" opacity="0.5" />
+
+                                @* Baş və ayaq tərəfindəki başlıqlar — döşəyin arxasında. *@
+                                <rect x="4" y="30" width="54" height="184" rx="22" fill="var(--bd-frame-lift)" stroke="var(--bd-frame-main)" stroke-width="5" />
+                                <rect x="15" y="46" width="32" height="118" rx="15" fill="none" stroke="var(--bd-frame-main)" stroke-width="4" opacity="0.45" />
+                                <rect x="250" y="106" width="40" height="108" rx="18" fill="var(--bd-frame-lift)" stroke="var(--bd-frame-main)" stroke-width="5" />
+                                <rect x="260" y="120" width="20" height="58" rx="10" fill="none" stroke="var(--bd-frame-main)" stroke-width="4" opacity="0.45" />
+
+                                @* Ayaqlar və çərçivə. *@
+                                <rect x="42" y="214" width="24" height="30" rx="9" fill="var(--bd-frame-main)" />
+                                <rect x="234" y="214" width="24" height="30" rx="9" fill="var(--bd-frame-main)" />
+                                <rect x="22" y="186" width="256" height="42" rx="15" fill="var(--bd-frame-main)" />
+                                <rect x="22" y="186" width="256" height="13" rx="6.5" fill="var(--bd-frame-lift)" opacity="0.6" />
+
+                                @* Döşək: əvvəl ön üzü, üstündən üst səthi. *@
+                                <rect x="28" y="150" width="244" height="44" rx="18" fill="var(--bd-sheet-shade)" stroke="var(--bd-sheet-edge)" stroke-width="4" />
+                                <rect x="28" y="118" width="244" height="58" rx="22" fill="var(--bd-sheet)" stroke="var(--bd-sheet-edge)" stroke-width="4" />
+
+                                @* Yastıq BAŞ tərəfdədir — pet-in oturduğu yerdən kənarda.
+                                   Əvvəl pet-in altında qalır və ağ ləkə kimi oxunurdu. *@
+                                <g transform="rotate(-6 78 142)">
+                                    <rect x="36" y="114" width="84" height="52" rx="24" fill="#FFFFFF" stroke="var(--bd-sheet-edge)" stroke-width="4" />
+                                    <path d="M54 130 C66 124 90 124 102 130" stroke="var(--bd-sheet-edge)" stroke-width="4" stroke-linecap="round" opacity="0.65" />
+                                </g>
+                            </svg>
+
+                            @* Dolab lampanı yatağa yaxın və uşaq üçün aydın toxunma mövqeyində saxlayır. *@
+                            <div class="bedroom__nightstand">
+                              <div class="bedroom__nightstand-top"></div>
+                              <div class="bedroom__nightstand-body">
+                                <div class="bedroom__nightstand-drawer"></div>
+                              </div>
+                              <div class="bedroom__nightstand-leg"></div>
+                              <div class="bedroom__nightstand-leg"></div>
+                            </div>
+                            <div class="bedroom__lamp">
+                              <div class="bedroom__lamp-glow"></div>
+                              <div class="bedroom__lamp-shade"></div>
+                              <div class="bedroom__lamp-stem"></div>
+                              <div class="bedroom__lamp-pull"></div>
+                              <div class="bedroom__lamp-base"></div>
+                            </div>
+
+                            @* Kiçik döşəmə əşyaları pet qutusuna və aşağı idarə zolağına toxunmadan səhnəni tamamlayır. *@
+                            <div class="bedroom__toy-chest">
+                              <div class="bedroom__toy-chest-lid"></div>
+                              <div class="bedroom__toy-chest-body"></div>
+                              <div class="bedroom__toy-chest-lock"></div>
+                            </div>
+                            <div class="bedroom__slippers">
+                              <div class="bedroom__slipper"></div>
+                              <div class="bedroom__slipper"></div>
+                            </div>
+
+                            @* CSS yuxu fiqurları qaranlıq vəziyyətdə görünmək üçün əvvəlcədən eyni quruluşa daxildir. *@
+                            <div class="bedroom__sleep-mark bedroom__sleep-mark--one"></div>
+                            <div class="bedroom__sleep-mark bedroom__sleep-mark--two"></div>
+                            <div class="bedroom__sleep-mark bedroom__sleep-mark--three"></div>
+                        </div>
+
+                        @* İşıq sönəndə əhval Sleepy olur: PetAvatar gözləri yumur
+                           və "Zzz" özü çəkir. *@
+                        <div class="bedroom__pet @(_inBed ? "bedroom__pet--in-bed" : null)">
+                            <PetAvatar Stage="_pet.Stage" Mood="@(_lightsOff ? PetMood.Sleepy : _pet.Mood)"
+                                       Species="@_pet.Species" Name="@_pet.Name"
+                                       Accessories="_pet.EquippedAccessories" ReactionClass="@_reaction" />
+                        </div>
+
+                        @* Yorğan pet-in ÖNÜNDƏDİR — "yatağa girdi" hissini məhz bu
+                           verir. Dekorun içində ola bilməz: dekor öz yığın
+                           kontekstindədir (`isolation: isolate`), yəni oradakı heç
+                           nə pet-in üstünə çıxa bilmir.
+
+                           Element həmişə render olunur, amma pet yatağa çatana qədər
+                           şəffafdır: pet hələ döşəmədə dayanarkən yorğan onun
+                           belindən keçərdi. *@
+                        <svg class="bedroom__quilt @(_inBed ? "bedroom__quilt--tucked" : null)"
+                             viewBox="0 0 242 60" fill="none" aria-hidden="true">
+                            <path d="M20 13 C80 2 162 2 222 13 C232 15 238 23 238 32 V38 C238 49 229 58 218 58 H24 C13 58 4 49 4 38 V32 C4 23 10 15 20 13 Z"
+                                  fill="var(--bd-quilt)" stroke="var(--bd-quilt-edge)" stroke-width="5" stroke-linejoin="round" />
+
+                            @* Qatlanmış mələfə: yorğanla döşəyin arasındakı ağ zolaq. *@
+                            <path d="M20 13 C80 2 162 2 222 13 C229 14 234 19 235 26 C172 12 70 12 7 26 C8 19 13 14 20 13 Z"
+                                  fill="var(--bd-sheet)" stroke="var(--bd-sheet-edge)" stroke-width="4" stroke-linejoin="round" />
+
+                            <path d="M13 41 C76 31 166 31 229 41" stroke="var(--bd-quilt-lift)" stroke-width="5" stroke-linecap="round" opacity="0.75" />
+                            <path d="M68 30 V54 M121 27 V54 M174 30 V54" stroke="var(--bd-quilt-edge)" stroke-width="4" stroke-linecap="round" opacity="0.35" />
+                        </svg>
+
+
+                        <button class="bedroom__lampbtn" disabled="@(_busy || _lightsOff || !_inBed)"
+                                @onclick="ToggleLightsAsync"
+                                aria-label="@(_lightsOff ? Loc.T("İşıq sönüb", "The light is off") : Loc.T("İşığı söndür", "Turn off the light"))"></button>
+                    </div>
+
+                    <div class="bedroom__bar">
+                        <button class="overlay-close" @onclick="() => SetModeAsync(CareMode.None)"
+                                aria-label="@Loc.T("Otaqdan çıx", "Leave the room")">✕</button>
+                    </div>
+
+                    <div class="bedroom__hint">@SleepHint</div>
+                </div>
+            }
+        }
+    }
+</LoadingState>
+
+@code {
+    private enum CareMode { None, Feed, Bath, Sleep }
+
+    /// <summary>Çimizdirmə iki addımlıdır: əvvəlcə sabunlamaq, sonra su ilə yaxalamaq.</summary>
+    private enum BathStep { Soap, Rinse }
+
+    private PetDto? _pet;
+    private bool _loading = true;
+    private bool _busy;
+    private string? _error;
+    private string? _actionError;
+    private string? _message;
+    private string? _reaction;
+    private List<PetAccessoryDto> _newAccessories = [];
+
+    private CareMode _mode = CareMode.None;
+
+    /// <summary>Paltar dəyişmə otağı açıqdır — tam ekran, qulluq rejimlərindən ayrı.</summary>
+    private bool _closetOpen;
+
+    /// <summary>Pet yatağa uzanıb — rejim açılan kimi, sürükləmə olmadan.</summary>
+    private bool _inBed;
+
+    /// <summary>Lampa söndürülüb: otaq qaralır və pet yatır.</summary>
+    private bool _lightsOff;
+    private BathStep _bathStep = BathStep.Soap;
+
+    /// <summary>
+    /// Alət uşağın əlindədir — otaqdakı əşya gizlənir, yoxsa sabun eyni anda
+    /// həm qabda, həm barmağın altında görünür.
+    /// </summary>
+    private bool _toolHeld;
+    private string _dragItem = string.Empty;
+    private string _zone = "none";
+    private int _latherPercent;
+    private int _rinsePercent;
+
+    private List<PetFoodDto> _foods = [];
+    private PetFoodDto? _dragFood;
+
+    /// <summary>Son porsiyadan sonra pet-in dediyi söz — yemək otağının sətrində qalır.</summary>
+    private string? _feedMessage;
+
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<Care>? _self;
+
+    private int UnlockedCount => _pet?.Accessories.Count(a => a.IsUnlocked) ?? 0;
+
+    private int EquippedCount => _pet?.Accessories.Count(a => a.IsEquipped) ?? 0;
+
+    private string AccessoryMeta(PetAccessoryDto accessory) => accessory switch
+    {
+        { IsUnlocked: false } => accessory.Requirement,
+        { IsEquipped: true } => Loc.T("Taxılıb", "Worn"),
+        _ => Loc.T("Taxmaq üçün toxun", "Tap to wear")
+    };
+
+    /// <summary>
+    /// Tam ekran otaqlardan biri açıqdır — səhnə və altındakı idarəetmə
+    /// qatı çəkilmir.
+    /// </summary>
+    private bool IsRoomOpen => _closetOpen || _mode is CareMode.Feed or CareMode.Bath or CareMode.Sleep;
+
+    private bool MouthOpen => _zone == "mouth" && _dragItem == "feed";
+
+
+    private string? BubbleText => _message ?? _pet?.Message;
+
+    /// <summary>Ən ucuz porsiya — dock düyməsindəki "⭐2+" nişanı.</summary>
+    private int CheapestFoodCost => _foods.Count > 0 ? _foods.Min(f => f.StarCost) : 5;
+
+    /// <summary>Pet toxdur — süfrə bağlanır (serverdəki hədd ilə eyni).</summary>
+    private bool PetIsFull => Refuses(CareMode.Feed) is not null;
+
+    /// <summary>
+    /// Süfrənin üstündəki yeganə mətn sətri. Otaq yem veriləndən sonra da açıq
+    /// qaldığına görə nəticə də buradan danışır — səhnədəki baloncuq otaqda
+    /// görünmür. Sıra: xəta → əldəki yemin təsiri → pet-in cavabı → göstəriş.
+    /// </summary>
+    private string FeedHint
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(_actionError))
+                return _actionError;
+
+            if (_dragFood is not null)
+                return $"{_dragFood.Name} · {_dragFood.Effect}";
+
+            if (PetIsFull)
+                return Refuses(CareMode.Feed)!;
+
+            if (!string.IsNullOrWhiteSpace(_feedMessage))
+                return _feedMessage;
+
+            return State.Wallet.Stars < CheapestFoodCost
+                ? Loc.T($"Ən ucuz yem {CheapestFoodCost} ulduzdur — bir tapşırıq həll edib qazan!", $"The cheapest snack costs {CheapestFoodCost} stars — solve a task to earn some!")
+                : Loc.T($"Yemi {_pet?.Name}-ın ağzına apar", $"Bring the food to {_pet?.Name}'s mouth");
+        }
+    }
+
+    private string SleepHint => !_inBed
+        ? Loc.T($"{_pet?.Name} yatağa uzanır…", $"{_pet?.Name} is lying down…")
+        : _lightsOff
+            ? Loc.T($"{_pet?.Name} yuxuya getdi — sakit ol!", $"{_pet?.Name} fell asleep — stay quiet!")
+            : Loc.T("Lampaya toxun və işığı söndür", "Tap the lamp and turn off the light");
+
+    private string BathHint => _bathStep == BathStep.Soap
+        ? Loc.T($"Sabunu götür və {_pet?.Name}-ın üstündə gəzdir", $"Grab the soap and rub it over {_pet?.Name}")
+        : Loc.T($"Duşu götür və {_pet?.Name}-ın köpüyünü yu", $"Grab the shower and rinse {_pet?.Name}'s foam away");
+
+    /// <summary>Zolaq addıma uyğun faizi göstərir: əvvəlcə köpük, sonra yaxalama.</summary>
+    private int BathPercent => _bathStep == BathStep.Soap ? _latherPercent : _rinsePercent;
+
+    /// <summary>JS-in gözlədiyi rejim açarları: köpük və yaxalama.</summary>
+    private const string ToolSoap = "soap";
+    private const string ToolWater = "water";
+
+    private string BathTool => _bathStep == BathStep.Soap ? ToolSoap : ToolWater;
+
+    private string BathToolDragId => _bathStep == BathStep.Soap ? "care-soap" : "care-shower";
+
+    /// <summary>
+    /// Otaqdakı əşyanın sinfi. Növbəsi çatan əşya yüngülcə "nəfəs alır" —
+    /// uşaq mətni oxumadan da hansına toxunacağını görür; əldə tutulanda isə
+    /// yerində qalmır (kölgəsi artıq barmağın altındadır).
+    /// </summary>
+    private string SoapClass => PropClass(BathStep.Soap, "bath__soap");
+
+    private string ShowerClass => PropClass(BathStep.Rinse, "bath__shower");
+
+    private string PropClass(BathStep step, string name)
+    {
+        var classes = $"bath__prop {name}";
+
+        if (_bathStep != step)
+            return classes;
+
+        return _toolHeld ? $"{classes} bath__prop--held" : $"{classes} bath__prop--ready";
+    }
+
+    /// <summary>JS sürüklənən şəkli bu id ilə tapıb klonlayır.</summary>
+    private static string FoodDragId(PetFoodDto food) => $"food-{food.Code}";
+
+    private int HatchPercent => _pet is null || _pet.HatchStarCost <= 0
+        ? 0
+        : Math.Clamp(State.Wallet.Stars * 100 / _pet.HatchStarCost, 0, 100);
+
+    private static string FillClass(int value) => value switch
+    {
+        >= 60 => "vitals__fill--good",
+        >= 30 => "vitals__fill--warn",
+        _ => "vitals__fill--low"
+    };
+
+    /// <summary>
+    /// Ev ekranındakı qulluq kafelləri birbaşa rejim açır: <c>care?mode=bath</c>.
+    /// Dəyərlər: <c>feed</c>, <c>bath</c>, <c>sleep</c>, <c>closet</c>.
+    /// </summary>
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "mode")]
+    public string? ModeQuery { get; set; }
+
+    private bool _modeQueryApplied;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _self = DotNetObjectReference.Create(this);
+            _module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/PetPal.App.Ui/js/petCare.js");
+            await _module.InvokeVoidAsync("init", _self);
+        }
+
+        // Otaqlar hər renderdən sonra ekrana oturdulur: rejim dəyişəndə,
+        // pəncərə ölçüsü dəyişəndə və ilk açılışda eyni yol işləyir.
+        if (_module is not null)
+            await _module.InvokeVoidAsync("fitRooms");
+
+        await TryApplyModeQueryAsync();
+    }
+
+    /// <summary>
+    /// Sorğudakı rejimi bir dəfə tətbiq edir. İlk render pet yüklənməzdən əvvəl
+    /// baş verə bilər, ona görə hər renderdən sonra yoxlanılır: şərt həm modulun,
+    /// həm də pet-in hazır olmasıdır (rejim JS dinləyicilərinə bağlıdır).
+    /// </summary>
+    private async Task TryApplyModeQueryAsync()
+    {
+        if (_modeQueryApplied || _module is null || _pet is null)
+            return;
+
+        _modeQueryApplied = true;
+
+        // Yumurta rejimində qulluq səhnələri yoxdur — orada tək bir iş var.
+        if (!_pet.IsHatched || string.IsNullOrWhiteSpace(ModeQuery))
+            return;
+
+        switch (ModeQuery.ToLowerInvariant())
+        {
+            case "feed":
+                await SetModeAsync(CareMode.Feed);
+                break;
+            case "bath":
+                await SetModeAsync(CareMode.Bath);
+                break;
+            case "sleep":
+                await SetModeAsync(CareMode.Sleep);
+                break;
+            case "closet":
+                // Şkaf tam ekran otaqdır — rejim deyil, üstdən açılan səhnə.
+                await OpenClosetAsync();
+                break;
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        var result = await Api.GetPetAsync();
+
+        _loading = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _pet = result.Value;
+        State.ApplyPet(_pet);
+
+        var wallet = await Api.GetWalletAsync();
+        if (wallet.Succeeded && wallet.Value is not null)
+            State.ApplyWallet(wallet.Value);
+
+        // Yemək kataloqu statikdir — bir dəfə yüklənir və ekran boyu qalır.
+        if (_foods.Count == 0)
+        {
+            var foods = await Api.GetPetFoodsAsync();
+            if (foods.Succeeded && foods.Value is not null)
+                _foods = foods.Value;
+        }
+    }
+
+    private void GoToGames() => Navigation.NavigateTo("play");
+
+    /// <summary>
+    /// Şkaf rejim deyil, tam ekran otaqdır. Açılmazdan əvvəl işləyən qulluq
+    /// rejimi bağlanır: yoxsa arxada qalan JS dinləyiciləri (sabun, yataq)
+    /// otağın içindəki toxunuşları da tutardı.
+    /// </summary>
+    /// <summary>
+    /// Yuxu artıq sürükləmə deyil: rejim açılan kimi pet yatağa uzanır, uşağın
+    /// tək işi lampanı söndürməkdir. Səbəb uşağın öz təcrübəsidir — yatmaq
+    /// yatağa daşınmaq deyil, işığın sönməsidir.
+    /// </summary>
+    private async Task LiePetDownAsync()
+    {
+        _inBed = false;
+        _lightsOff = false;
+        StateHasChanged();
+
+        // Bir kadr gözləyirik ki, CSS keçidi başlanğıc vəziyyətdən işləsin:
+        // eyni renderdə qoyulan sinif animasiyasız "tullanma" verir.
+        await Task.Delay(80);
+
+        _inBed = true;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Lampa bir dəfə işləyir: söndü, otaq qaraldı, pet yatdı. Sorğu
+    /// animasiyadan SONRA gedir ki, uşaq nəticəni səhnədə görsün, sonra
+    /// mesajda oxusun.
+    /// </summary>
+    /// <summary>
+    /// Növü dəyişir. Server yalnız görünüşü yeniləyir və tam pet-i qaytarır,
+    /// ona görə ekran öz təxminini deyil, serverin dediyini göstərir.
+    /// </summary>
+    private async Task ChangeSpeciesAsync(string species)
+    {
+        if (_busy || _pet is null || _pet.Species == species)
+            return;
+
+        _busy = true;
+        _actionError = null;
+        StateHasChanged();
+
+        var result = await Api.ChangeSpeciesAsync(species);
+
+        _busy = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _actionError = result.Error;
+            StateHasChanged();
+            return;
+        }
+
+        _pet = result.Value;
+        State.ApplyPet(_pet);
+        StateHasChanged();
+    }
+
+    private async Task ToggleLightsAsync()
+    {
+        if (_busy || _lightsOff || !_inBed)
+            return;
+
+        _lightsOff = true;
+        StateHasChanged();
+
+        await Task.Delay(900);
+        await RunCareAsync(CareAction.Sleep, "sleep");
+
+        await Task.Delay(1600);
+
+        if (_mode == CareMode.Sleep)
+            await SetModeAsync(CareMode.None);
+    }
+
+    private async Task OpenClosetAsync()
+    {
+        await SetModeAsync(CareMode.None);
+        _actionError = null;
+        _closetOpen = true;
+    }
+
+    private void CloseCloset()
+    {
+        _closetOpen = false;
+        _actionError = null;
+    }
+
+    /// <summary>Rejim dəyişəndə köhnə rejimin JS dinləyiciləri mütləq söndürülür.</summary>
+    private async Task SetModeAsync(CareMode mode)
+    {
+        var next = _mode == mode ? CareMode.None : mode;
+
+        await StopCurrentModeAsync();
+
+        _mode = CareMode.None;
+        _actionError = null;
+        _feedMessage = null;
+        _latherPercent = 0;
+        _rinsePercent = 0;
+        _bathStep = BathStep.Soap;
+        _toolHeld = false;
+        _dragFood = null;
+        _inBed = false;
+        _lightsOff = false;
+
+        // Mükafat banneri yalnız YENİ otaq açılanda silinir: otaqda açılan əşya
+        // uşaq özü çıxandan sonra ekranda görünməlidir.
+        if (next != CareMode.None)
+            _newAccessories = [];
+
+        // Pet onsuz da tox/təmizdirsə səhnə açılmır: uşaq bütün işi görüb sonda
+        // serverdən "lazım deyil" cavabı almamalıdır.
+        if (Refuses(next) is { } refusal)
+        {
+            _actionError = refusal;
+            StateHasChanged();
+            return;
+        }
+
+        _mode = next;
+
+        // Səhnə rejim sinfini alsın deyə əvvəlcə render edirik, sonra JS bağlanır.
+        StateHasChanged();
+        await Task.Yield();
+
+        if (_module is null)
+            return;
+
+        switch (_mode)
+        {
+            case CareMode.Bath:
+                await _module.InvokeVoidAsync("startBath");
+                break;
+            case CareMode.Sleep:
+                await LiePetDownAsync();
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Serverin qulluq şərtləri ilə eyni hədlər (<c>PetService.CareAsync</c>) —
+    /// fərq yalnız odur ki, imtina işin əvvəlində, sonunda deyil.
+    /// </summary>
+    private string? Refuses(CareMode mode) => (mode, _pet) switch
+    {
+        (CareMode.Feed, { Fullness: >= 95 } pet) => Loc.T($"{pet.Name} indi toxdur.", $"{pet.Name} is full right now."),
+        (CareMode.Bath, { Cleanliness: >= 95 } pet) => Loc.T($"{pet.Name} onsuz da tərtəmizdir.", $"{pet.Name} is already spotless."),
+        (CareMode.Sleep, { Energy: >= 95 } pet) => Loc.T($"{pet.Name} tamamilə oyaqdır.", $"{pet.Name} is wide awake."),
+        _ => null
+    };
+
+    private async Task StopCurrentModeAsync()
+    {
+        if (_module is null)
+            return;
+
+        switch (_mode)
+        {
+            case CareMode.Bath:
+                await _module.InvokeVoidAsync("stopBath");
+                break;
+        }
+    }
+
+    private async Task StartFoodDragAsync(PetFoodDto food, PointerEventArgs e)
+    {
+        if (_busy || _module is null || PetIsFull || State.Wallet.Stars < food.StarCost)
+            return;
+
+        _feedMessage = null;
+
+        _dragFood = food;
+        await StartItemDragAsync("feed", food.Icon, FoodDragId(food), e);
+    }
+
+    /// <summary>
+    /// Sabun və su sürüklənib buraxılan əşya deyil — barmağın arxasınca gedir və
+    /// pet-in üstündən keçdiyi yerə təsir edir, ona görə ayrıca JS rejimi var.
+    /// </summary>
+    private async Task StartBathToolAsync(PointerEventArgs e)
+    {
+        if (_busy || _module is null)
+            return;
+
+        _actionError = null;
+        _toolHeld = true;
+
+        await _module.InvokeVoidAsync(
+            "startBathTool", BathTool, BathToolDragId, e.PointerId, e.ClientX, e.ClientY);
+    }
+
+    /// <summary>Barmaq qalxdı (və ya addım bitdi) — əşya öz yerinə qayıdır.</summary>
+    [JSInvokable]
+    public Task OnBathToolReleased()
+    {
+        _toolHeld = false;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task StartItemDragAsync(string key, string icon, string visualId, PointerEventArgs e)
+    {
+        if (_busy || _module is null)
+            return;
+
+        _actionError = null;
+        _dragItem = key;
+
+        await _module.InvokeVoidAsync("startDrag", key, icon, visualId, e.PointerId, e.ClientX, e.ClientY);
+    }
+
+    [JSInvokable]
+    public Task OnZoneChange(string zone)
+    {
+        _zone = zone;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public Task OnLatherProgress(int percent)
+    {
+        _latherPercent = percent;
+
+        // Bütün bədən sabunlandı — panel özü suya keçir, düymə lazım deyil.
+        if (percent >= 100)
+            _bathStep = BathStep.Rinse;
+
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public Task OnRinseProgress(int percent)
+    {
+        _rinsePercent = percent;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public async Task OnRinsed()
+    {
+        await RunCareAsync(CareAction.Clean, "clean");
+        await SetModeAsync(CareMode.None);
+    }
+
+    [JSInvokable]
+    public async Task OnDrop(string itemKey, string zone)
+    {
+        var food = _dragFood;
+
+        _dragItem = string.Empty;
+        _dragFood = null;
+        _zone = "none";
+
+
+        if (zone == "none")
+        {
+            StateHasChanged();
+            return;
+        }
+
+        if (itemKey == "feed" && zone != "mouth")
+        {
+            _actionError = Loc.T($"Yemi {_pet?.Name}-ın ağzına apar.", $"Bring the food to {_pet?.Name}'s mouth.");
+            StateHasChanged();
+            return;
+        }
+
+        await RunCareAsync(CareAction.Feed, "feed", food?.Code);
+
+        // Otaq ÖZÜ bağlanmır: uşaq nə qədər istəyirsə yedizdirir və ✕ ilə özü
+        // çıxır. Əvvəl otaq burada bağlanırdı — uşaq yemi ağıza aparan kimi
+        // eşiyə atılırdı, pet-in cavabını görmürdü və ikinci porsiya üçün otağı
+        // yenidən açmalı olurdu.
+        _feedMessage = _actionError is null ? _message : null;
+        StateHasChanged();
+    }
+
+    private async Task RunCareAsync(CareAction action, string reactionKey, string? food = null)
+    {
+        _busy = true;
+        _actionError = null;
+        _reaction = $"pet--{reactionKey}";
+        StateHasChanged();
+
+        var result = await Api.CareAsync(action, food);
+
+        _busy = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _reaction = null;
+            _actionError = result.Error;
+            StateHasChanged();
+            return;
+        }
+
+        _pet = result.Value.Pet;
+        _message = result.Value.Message;
+        _newAccessories = result.Value.NewAccessories;
+        State.ApplyPet(_pet);
+
+        if (result.Value.StarsSpent > 0)
+        {
+            var wallet = await Api.GetWalletAsync();
+            if (wallet.Succeeded && wallet.Value is not null)
+                State.ApplyWallet(wallet.Value);
+        }
+
+        StateHasChanged();
+
+        await Task.Delay(700);
+        _reaction = null;
+        StateHasChanged();
+    }
+
+    private Task ToggleAccessoryAsync(PetAccessoryDto accessory)
+    {
+        if (_pet is null || !accessory.IsUnlocked)
+            return Task.CompletedTask;
+
+        var codes = _pet.EquippedAccessories.ToList();
+
+        if (!codes.Remove(accessory.Code))
+            codes.Add(accessory.Code);
+
+        return SaveLookAsync(codes);
+    }
+
+    private Task ClearAccessoriesAsync() => SaveLookAsync([]);
+
+    /// <summary>
+    /// Görünüş serverdə saxlanılır ki, telefon dəyişəndə də qalsın. Cavab tam
+    /// pet-i qaytarır — ekran serverin dediyi vəziyyəti göstərir, öz təxminini yox.
+    /// </summary>
+    private async Task SaveLookAsync(List<string> codes)
+    {
+        _busy = true;
+        _actionError = null;
+        StateHasChanged();
+
+        var result = await Api.EquipAccessoriesAsync(codes);
+
+        _busy = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _actionError = result.Error;
+            StateHasChanged();
+            return;
+        }
+
+        _pet = result.Value;
+        State.ApplyPet(_pet);
+        StateHasChanged();
+    }
+
+    private async Task HatchAsync()
+    {
+        _busy = true;
+        _actionError = null;
+
+        var result = await Api.HatchPetAsync();
+
+        _busy = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _actionError = result.Error;
+            return;
+        }
+
+        _pet = result.Value.Pet;
+        _message = result.Value.Message;
+        _reaction = "pet--hatch";
+        State.ApplyPet(_pet);
+
+        var wallet = await Api.GetWalletAsync();
+        if (wallet.Succeeded && wallet.Value is not null)
+            State.ApplyWallet(wallet.Value);
+
+        StateHasChanged();
+        await Task.Delay(900);
+        _reaction = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is not null)
+        {
+            try
+            {
+                await _module.InvokeVoidAsync("dispose");
+                await _module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Səhifə bağlanarkən körpü artıq qapanmış ola bilər.
+            }
+        }
+
+        _self?.Dispose();
+    }
+}

@@ -1,0 +1,326 @@
+@implements IDisposable
+@inject Loc Loc
+@inject AppState State
+
+@* Ulduz qaçışı: pet üç zolaqda qaçır, qarşıdan qapı dəsti gəlir və hər qapı
+   yığılan ulduza təsir edir — +3, ×2, −4.
+
+   Uşaq burada HESABLAMIR, MÜQAYİSƏ edir: hansı qapı daha çox verir? Qərar
+   qapı yaxınlaşana qədər verilməlidir, ona görə oyun sürət deyil, "tez
+   qiymətləndirmə" məşqidir. Mənfi qapı bir cana başa gəlir — o, səhv deyil,
+   TƏLƏdir və rəngi ilə özünü elan edir.
+
+   Qapının rəngi ƏMƏLİYYATIN NÖVÜNÜ deyir (vurma yaşıl, toplama bənövşəyi,
+   çıxma moruq), hansının daha sərfəli olduğunu yox — yoxsa seçim düşünmədən
+   edilərdi.
+
+   Hərəkət tamamilə CSS-dədir: qapılar mərkəzdən doğulur və yaxınlaşdıqca
+   zolaqlara ayrılır. C# yalnız dəsti qurur və vaxtı gələndə nəticəni yazır. *@
+
+<GameShell Title="@Loc.T("Ulduz qaçışı", "Star Run")"
+           Round="_wave" RoundTotal="WaveCount"
+           Lives="_lives" Hit="_hit" Over="_over"
+           Rule="@Loc.T("Ən çox ulduz gətirən qapıdan keç", "Take the gate that gives the most stars")" RuleTone="spark"
+           TimerPercent="TimerPercent"
+           ScoreValue="@_stars.ToString()"
+           ScoreLabel="@Loc.T("ulduz yığıldı", "stars collected")">
+
+    <Backdrop>
+        <div class="gsbg gsbg--sky">
+            <div class="gsbg__hill"></div>
+        </div>
+    </Backdrop>
+
+    <ChildContent>
+        <div class="run">
+            <svg class="run__road" viewBox="0 0 390 560" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M150 0h90l190 560H-40z" fill="var(--pp-card-soft)" />
+                <path d="M180 0L96 560" stroke="var(--pp-card)" stroke-width="8" stroke-dasharray="30 34" />
+                <path d="M210 0L294 560" stroke="var(--pp-card)" stroke-width="8" stroke-dasharray="30 34" />
+            </svg>
+
+            @foreach (var gate in _gates)
+            {
+                var current = gate;
+
+                <div @key="current.Key" class="run__gate run__gate--@current.Tone @(current.Taken ? "run__gate--taken" : null)"
+                     style="--dx:@(current.Lane * 50 - 50)px; --dur:@(ApproachMs)ms"
+                     aria-hidden="true">@current.Label</div>
+            }
+
+            <div class="run__pet" style="--lane:@(_lane - 1)">
+                <PetAvatar Species="@Species" Stage="@Stage" Mood="PetMood.Excited" Name="@PetName" />
+            </div>
+
+            <button class="gs__steer gs__steer--left" type="button"
+                    aria-label="@Loc.T("Sola keç", "Move left")" disabled="@(_lane == 0)" @onclick="() => Steer(-1)">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M14 5l-7 7 7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </button>
+
+            <button class="gs__steer gs__steer--right" type="button"
+                    aria-label="@Loc.T("Sağa keç", "Move right")" disabled="@(_lane == 2)" @onclick="() => Steer(1)">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M10 5l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </button>
+        </div>
+    </ChildContent>
+</GameShell>
+
+@code {
+    private const int WaveCount = 8;
+
+    /// <summary>Qapının uzaqdan pet-ə çatma müddəti — CSS animasiyası ilə eynidir.</summary>
+    private const int ApproachMs = 3200;
+
+    private const int StartingLives = 3;
+    private const int StartingStars = 6;
+
+    /// <summary>×2 qapısı yalnız bu həddin altında görünür — yoxsa rəqəmlər uşağın oxuya bilməyəcəyi qədər böyüyür.</summary>
+    private const int MultiplyCeiling = 26;
+
+    private enum GateKind { Add, Multiply }
+
+    private sealed class Gate
+    {
+        public required int Key { get; init; }
+        public required int Lane { get; init; }
+        public required GateKind Kind { get; init; }
+        public required int Amount { get; init; }
+        public required string Label { get; init; }
+        public required string Tone { get; init; }
+        public bool Taken { get; set; }
+
+        public int Apply(int stars) =>
+            Kind == GateKind.Multiply ? Math.Max(0, stars * Amount) : Math.Max(0, stars + Amount);
+    }
+
+    [Parameter] public EventCallback<(int Score, int DurationMs)> OnFinished { get; set; }
+
+    private readonly Random _random = new();
+    private readonly List<Gate> _gates = [];
+
+    private int _wave;
+    private int _lane = 1;
+    private int _stars = StartingStars;
+    private int _correct;
+
+    private int _lives = StartingLives;
+    private bool _hit;
+    private bool _over;
+    private bool _done;
+    private bool _busy;
+    private int _nextKey;
+    private int _shownPercent = -1;
+
+    private bool _finished;
+
+    private DateTime _startedAt;
+    private DateTime _waveEndsAt;
+    private System.Timers.Timer? _timer;
+
+    private string Species => State.Pet?.Species ?? "fox";
+    private PetStage Stage => State.Pet?.Stage ?? PetStage.Child;
+    private string PetName => State.Pet?.Name ?? "Pet";
+
+    private int TimerPercent
+    {
+        get
+        {
+            var left = (_waveEndsAt - DateTime.UtcNow).TotalMilliseconds;
+            return Math.Clamp((int)(left * 100 / ApproachMs), 0, 100);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        _startedAt = DateTime.UtcNow;
+        NextWave();
+
+        _timer = new System.Timers.Timer(200);
+        _timer.Elapsed += OnTick;
+        _timer.Start();
+    }
+
+    private void Steer(int direction)
+    {
+        if (_done)
+            return;
+
+        _lane = Math.Clamp(_lane + direction, 0, 2);
+    }
+
+    private void NextWave()
+    {
+        _wave++;
+        _waveEndsAt = DateTime.UtcNow.AddMilliseconds(ApproachMs);
+        _gates.Clear();
+
+        // Dəst həmişə bir vurma/böyük toplama, bir kiçik toplama və bir çıxma
+        // daşıyır: seçim varsa, "ən çox" sualının mənası var.
+        List<(GateKind Kind, int Amount)> ops;
+
+        var attempts = 0;
+        do
+        {
+            ops =
+            [
+                _stars is > 1 and < MultiplyCeiling && _random.Next(3) == 0
+                    ? (GateKind.Multiply, 2)
+                    : (GateKind.Add, _random.Next(4, 8)),
+                (GateKind.Add, _random.Next(1, 4)),
+                (GateKind.Add, -_random.Next(2, 6))
+            ];
+
+            attempts++;
+        }
+        // Bərabər nəticə verən iki qapı "hansı daha çoxdur" sualını mənasız edir.
+        while (attempts < 8 && ops.Select(o => Result(o.Kind, o.Amount)).Distinct().Count() < 3);
+
+        var lanes = new[] { 0, 1, 2 }.OrderBy(_ => _random.Next()).ToList();
+
+        for (var i = 0; i < ops.Count; i++)
+        {
+            var (kind, amount) = ops[i];
+
+            _gates.Add(new Gate
+            {
+                Key = ++_nextKey,
+                Lane = lanes[i],
+                Kind = kind,
+                Amount = amount,
+                Label = kind == GateKind.Multiply ? $"×{amount}" : amount < 0 ? $"−{Math.Abs(amount)}" : $"+{amount}",
+                Tone = kind == GateKind.Multiply ? "good" : amount < 0 ? "bad" : "fair"
+            });
+        }
+
+        _gates.Sort((a, b) => a.Lane.CompareTo(b.Lane));
+    }
+
+    private int Result(GateKind kind, int amount) =>
+        kind == GateKind.Multiply ? Math.Max(0, _stars * amount) : Math.Max(0, _stars + amount);
+
+    private async void OnTick(object? sender, System.Timers.ElapsedEventArgs e)
+    {
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                if (_done || _busy)
+                    return;
+
+                if (DateTime.UtcNow >= _waveEndsAt)
+                {
+                    await ResolveAsync();
+                    return;
+                }
+
+                // Zolaq dəyişməsi öz render-ini gətirir; burada yalnız vaxt zolağı yenilənir.
+                var percent = TimerPercent;
+                if (_shownPercent == percent)
+                    return;
+
+                _shownPercent = percent;
+                StateHasChanged();
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+            // Oyun bağlananda taymer son bir dəfə işə düşə bilər.
+        }
+    }
+
+    /// <summary>
+    /// Qapı pet-ə çatdı: seçilən zolağın əməliyyatı tətbiq olunur. Ən çox
+    /// verən qapı seçilibsə bal yazılır; mənfi qapı isə bir cana başa gəlir.
+    /// </summary>
+    private async Task ResolveAsync()
+    {
+        _busy = true;
+
+        var chosen = _gates.FirstOrDefault(g => g.Lane == _lane);
+        if (chosen is null)
+        {
+            _busy = false;
+            return;
+        }
+
+        chosen.Taken = true;
+
+        var best = _gates.Max(g => g.Apply(_stars));
+        var isBest = chosen.Apply(_stars) == best;
+
+        if (isBest)
+            _correct++;
+
+        var lost = chosen.Apply(_stars) < _stars;
+        _stars = chosen.Apply(_stars);
+
+        StateHasChanged();
+        await Task.Delay(420);
+
+        if (lost && !await LoseLifeAsync())
+            return;
+
+        if (_wave >= WaveCount)
+        {
+            await FinishAsync();
+            return;
+        }
+
+        NextWave();
+        _busy = false;
+        StateHasChanged();
+    }
+
+    private async Task<bool> LoseLifeAsync()
+    {
+        _lives--;
+        _hit = true;
+        StateHasChanged();
+
+        await Task.Delay(420);
+        _hit = false;
+
+        if (_lives > 0)
+        {
+            StateHasChanged();
+            return true;
+        }
+
+        _over = true;
+        StateHasChanged();
+
+        await Task.Delay(900);
+        await FinishAsync();
+        return false;
+    }
+
+    private async Task FinishAsync()
+    {
+        if (_finished)
+            return;
+
+        _finished = true;
+        _done = true;
+        _timer?.Stop();
+
+        // Bal yığılan ulduzdan yox, DOĞRU SEÇİMDƏN gəlir: ×2 qapısı bəxtdən
+        // asılı olaraq rəqəmi şişirdə bilər, seçimin keyfiyyəti isə şişmir.
+        var score = Math.Clamp(_correct * 100 / WaveCount, 0, 100);
+        var duration = (int)Math.Clamp((DateTime.UtcNow - _startedAt).TotalMilliseconds, 0, 1_800_000);
+
+        await OnFinished.InvokeAsync((score, duration));
+    }
+
+    public void Dispose()
+    {
+        if (_timer is null)
+            return;
+
+        _timer.Elapsed -= OnTick;
+        _timer.Dispose();
+    }
+}

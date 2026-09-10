@@ -1,0 +1,204 @@
+{
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Ekranlar"
+    },
+    {
+      "id": "page-2",
+      "name": "Sistem"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Ev — otaq və oyun avtomatı",
+      "page": "page-1"
+    },
+    {
+      "file": "Oyren.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Öyrən",
+      "page": "page-1"
+    },
+    {
+      "file": "Yem.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Otaq · Yem",
+      "page": "page-1"
+    },
+    {
+      "file": "Dunya.dc.html",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Dünya",
+      "page": "page-1"
+    },
+    {
+      "file": "Kesf.dc.html",
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Kəşf",
+      "page": "page-1"
+    },
+    {
+      "file": "Cimizdir.dc.html",
+      "x": 0,
+      "y": 984,
+      "w": 390,
+      "h": 844,
+      "title": "Hamam — tam ekran otaq",
+      "page": "page-1"
+    },
+    {
+      "file": "YuxuIsiq.dc.html",
+      "x": 470,
+      "y": 984,
+      "w": 390,
+      "h": 844,
+      "title": "Yataq otağı — işıq yanır",
+      "page": "page-1"
+    },
+    {
+      "file": "Yuxu.dc.html",
+      "x": 940,
+      "y": 984,
+      "w": 390,
+      "h": 844,
+      "title": "Yataq otağı — işıq sönüb",
+      "page": "page-1"
+    },
+    {
+      "file": "Skaf.dc.html",
+      "x": 1410,
+      "y": 984,
+      "w": 390,
+      "h": 844,
+      "title": "Şkaf — tam ekran otaq",
+      "page": "page-1"
+    },
+    {
+      "file": "Oyunlar.dc.html",
+      "x": 1880,
+      "y": 984,
+      "w": 390,
+      "h": 844,
+      "title": "Oyunlar",
+      "page": "page-1"
+    },
+    {
+      "file": "Dostlar.dc.html",
+      "x": 0,
+      "y": 1968,
+      "w": 390,
+      "h": 844,
+      "title": "Dostlar",
+      "page": "page-1"
+    },
+    {
+      "file": "Inkisaf.dc.html",
+      "x": 470,
+      "y": 1968,
+      "w": 390,
+      "h": 844,
+      "title": "İnkişaf",
+      "page": "page-1"
+    },
+    {
+      "file": "Profil.dc.html",
+      "x": 940,
+      "y": 1968,
+      "w": 390,
+      "h": 844,
+      "title": "Profil və PIN",
+      "page": "page-1"
+    },
+    {
+      "file": "Valideyn.dc.html",
+      "x": 1410,
+      "y": 1968,
+      "w": 390,
+      "h": 844,
+      "title": "Valideyn",
+      "page": "page-1"
+    },
+    {
+      "file": "Palitra.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 880,
+      "h": 900,
+      "title": "Palitra müqayisəsi",
+      "page": "page-2"
+    },
+    {
+      "file": "Resept.dc.html",
+      "x": 960,
+      "y": 0,
+      "w": 880,
+      "h": 1040,
+      "title": "Tətbiq resepti",
+      "page": "page-2"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "brief",
+      "x": 0,
+      "y": -300,
+      "w": 640,
+      "page": "page-1",
+      "text": "AI Pets for Kids — tam oyun səthi\n\nBu kanvas artıq tətbiq olunub — koda düşən vəziyyəti göstərir.\n\nB palitrası: eyni üç rəng ailəsi, azaldılmış xroma və səth parlaqlığı. Saf ağ kart yoxdur, fon sümük rəngindədir.\n\nEv açıq hava deyil, pet-in ÖZ OTAĞIdır: divar, döşəmə, xalça və çölə baxan pəncərə. Səviyyə kartı və missiya siyahısı buradan çıxarılıb — səviyyə onsuz da HUD-dakı halqadadır, missiyalar isə Dünya ekranındadır.\n\nAlt naviqasiyanın öz fonu yoxdur: səhnə onun altından davam edir və oxunaqlığı hər ikonun öz dairəsi daşıyır.\n\n«Qulluq» bölməsi «Otaq» adlanır və paltar rəfini o daşıyır.\n\nJanr konvensiyaları My Talking Tom araşdırmasından götürülüb; heç bir markalı personaj və ya aktiv köçürülməyib."
+    },
+    {
+      "id": "row-nav",
+      "x": 2350,
+      "y": 0,
+      "w": 320,
+      "page": "page-1",
+      "text": "1-ci sıra — alt naviqasiyadakı beş bölmə.\n\nZolağın fonu yoxdur. Aktiv bölmənin ikonu dairədə dolur və qalxır; passiv dairələr kart rəngindədir ki, səhnənin üstündə də oxunsun."
+    },
+    {
+      "id": "row-care",
+      "x": 2350,
+      "y": 984,
+      "w": 340,
+      "page": "page-1",
+      "text": "2-ci sıra — Otağın rejimləri.\n\nYem səhnədə qalır: uşaq yemi qabdan götürüb pet-in ağzına aparır.\n\nÇimizdirmə, yuxu və şkaf isə AYRICA TAM EKRAN OTAQLARDIR — statlar, dok və alt naviqasiya orada görünmür. Hamamda sabun bədəndə gəzdirilir, sonra su; yataq otağında pet özü uzanır və uşaq lampanı söndürür; şkafda pet güzgünün qarşısında geyindirilir.\n\nHər üç otaq 390x620 üçün çəkilib və ekrana ENƏ görə miqyaslanır (petCare.js → fitRooms), divarlar isə yuxarı uzanır. Bu artboard-lar tətbiqin öz CSS-indən qurulur."
+    },
+    {
+      "id": "row-other",
+      "x": 1880,
+      "y": 1968,
+      "w": 340,
+      "page": "page-1",
+      "text": "3-cü sıra — qalan ekranlar.\n\nValideyn paneli qəsdən daha sakitdir: qradiyent düymə yoxdur, radiuslar kiçikdir, sayğaclar rəngsizdir. Bu ekran uşaq üçün deyil.\n\nProfil ekranında PIN düymələri 72px — 6 yaşlı barmaq üçün."
+    },
+    {
+      "id": "note-dok",
+      "x": 0,
+      "y": 900,
+      "w": 400,
+      "page": "page-1",
+      "text": "Ev ekranındakı təkrar həll olundu.\n\nƏvvəl beş kafel alt naviqasiya ilə üç bölməni təkrarlayırdı. İndi kafellər FEİLDİR — Yem, Çimizdir, Yatır, Oyna, Şkaf — bölmələr isə naviqasiyada qalır.\n\nTəmizlik 30%-dən aşağı olduğu üçün «Çimizdir» kafeli özü diqqət çəkir: moruq dolgu, moruq kənar, moruq yazı."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
+}

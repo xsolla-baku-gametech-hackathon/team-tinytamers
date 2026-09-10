@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>UIDeviceFamily</key>
+    <array>
+        <integer>1</integer>
+        <integer>2</integer>
+    </array>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>arm64</string>
+    </array>
+
+    <!-- Uşaq app-i telefonda portret rejimdə istifadə olunur; landşaft layoutu
+         mobil-first dizaynda nəzərdə tutulmayıb. iPad-də hər iki istiqamət açıqdır. -->
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+
+    <!-- "Real Life Connect" axını üçün. Bu açarlar olmadan iOS app-i
+         kamera/qalereya açılan anda dayandırır. Foto könüllüdür. -->
+    <key>NSCameraUsageDescription</key>
+    <string>Tapdığınız şeyin şəklini çəkmək üçün kameraya icazə lazımdır. Şəkil yalnız uşağın öz kolleksiyasında saxlanılır və heç kimlə paylaşılmır.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Kəşfinizə şəkil əlavə etmək üçün qalereyaya icazə lazımdır. Şəkil yalnız uşağın öz kolleksiyasında saxlanılır.</string>
+
+    <!-- Valideyn bölməsinin qapısı. Face ID PIN-in QISA YOLUdur: icazə
+         verilməsə də bölmə açılır, sadəcə PIN yazmaq lazım gəlir. -->
+    <key>NSFaceIDUsageDescription</key>
+    <string>Valideyn bölməsini PIN yazmadan açmaq üçün Face ID istifadə olunur. İstəməsəniz, PIN həmişə işləyir.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Çəkdiyiniz şəkli cihazda saxlamaq üçün icazə lazımdır.</string>
+
+    <!--
+        App Transport Security: şifrələnməmiş HTTP YALNIZ lokal development
+        ünvanlarına icazəlidir. Produksiya API-si HTTPS-dir, ona görə bu istisna
+        buraxılış build-i üçün də təhlükəsizdir.
+    -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <false/>
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>localhost</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+            </dict>
+            <key>127.0.0.1</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+            </dict>
+        </dict>
+    </dict>
+
+    <!-- Dəvət linki: petpal://friend/AB12CD
+         Link yalnız kodu formaya yazır — dostluq sorğu + valideyn təsdiqi
+         yolundan keçir, yəni linki tapan avtomatik dost olmur. -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>com.petpal.aipetsforkids.invite</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>petpal</string>
+            </array>
+        </dict>
+    </array>
+
+    <key>XSAppIconAssets</key>
+    <string>Assets.xcassets/appicon.appiconset</string>
+</dict>
+</plist>

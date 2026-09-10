@@ -1,0 +1,129 @@
+@inject Loc Loc
+
+@* Bütün mini oyunların geydiyi ortaq çərçivə.
+
+   Oyun artıq kartın içində deyil — hamam və yataq otağı kimi TAM EKRAN
+   səhnədir: üst panel, alt naviqasiya və ekranın boşluqları örtülür, oyunun
+   özü isə ekranın hər pikselini alır.
+
+   Çərçivə dörd şeyi daşıyır: üst zolaq (çıxış · ad · raund · canlar), qayda
+   sətri, vaxt zolağı və nəticə sayğacı. Oyun dəyişəndə yalnız SƏHNƏ dəyişir,
+   ona görə uşaq hər oyunda interfeysi yenidən öyrənmir.
+
+   Səhnə iki qatdır: <c>Backdrop</c> arxa fondur (səma, su, mətbəx), uşaq
+   elementləri isə <c>ChildContent</c> qatındadır. Belə olanda fon oyunun
+   məntiqindən asılı olmadan dəyişə bilir. *@
+
+<div class="gs @(Hit ? "gs--hit" : null)">
+
+    <div class="gs__backdrop" aria-hidden="true">@Backdrop</div>
+
+    <div class="gs__head">
+        <div class="gs__bar">
+            <button class="gs__exit" type="button" aria-label="@Loc.T("Oyundan çıx", "Leave the game")" @onclick="ExitAsync">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </button>
+
+            <div class="gs__badge">
+                <span class="gs__name">@Title</span>
+                @if (RoundTotal > 0)
+                {
+                    <span class="gs__dots" role="img" aria-label="@Loc.T($"{Round} / {RoundTotal} raund", $"round {Round} of {RoundTotal}")">
+                        @for (var i = 0; i < RoundTotal; i++)
+                        {
+                            <span class="gs__dot @(i < Round ? "gs__dot--done" : null)"></span>
+                        }
+                    </span>
+                }
+            </div>
+
+            <GameLives Left="@Lives" />
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Rule))
+        {
+            @* Qayda ekranda QALIR: uşaq onu yadda saxlamağa yox, tətbiq
+               etməyə məşq edir. Dəyişəndə bir dəfə döyünür. *@
+            <div class="gs__rule gs__rule--@RuleTone @(RuleChanged ? "gs__rule--new" : null)" aria-live="polite">@Rule</div>
+        }
+
+        @if (TimerPercent >= 0)
+        {
+            <div class="gs__timer">
+                <div class="gs__timer-bar @(TimerPercent <= 20 ? "gs__timer-bar--low" : null)" style="width:@TimerPercent%"></div>
+            </div>
+        }
+    </div>
+
+    <div class="gs__stage">@ChildContent</div>
+
+    <div class="gs__foot">
+        <div class="gs__score">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3.2l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.6l6.1-.8z"
+                      fill="var(--pp-spark)" stroke="var(--pp-spark-edge)" stroke-width="1.6" stroke-linejoin="round" />
+            </svg>
+            <span class="gs__score-value">@ScoreValue</span>
+            <span class="gs__score-label">@ScoreLabel</span>
+        </div>
+    </div>
+
+    @if (Over)
+    {
+        @* Canlar bitdi: qısa, aydın an. Mətn itkini yox, DAVAMI vəd edir. *@
+        <div class="gs__over">
+            <div class="gs__over-title">@Loc.T("Canlar bitdi!", "Out of lives!")</div>
+            <div class="gs__over-text">@Loc.T("Nəticən sayılır — yenidən cəhd edə bilərsən.", "Your score still counts — you can try again.")</div>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Oyunu açan ekran — çıxış düyməsi buradan gəlir.</summary>
+    [CascadingParameter] public GameHost? Host { get; set; }
+
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    /// <summary>Keçilmiş raund sayı; <c>RoundTotal</c> 0 olanda nöqtələr çəkilmir.</summary>
+    [Parameter] public int Round { get; set; }
+
+    [Parameter] public int RoundTotal { get; set; }
+
+    [Parameter] public int Lives { get; set; } = 3;
+
+    /// <summary>Oyunun qaydası — ekranın ən böyük yazısı.</summary>
+    [Parameter] public string? Rule { get; set; }
+
+    /// <summary>Qayda zolağının rəng ailəsi: primary · life · spark · alert.</summary>
+    [Parameter] public string RuleTone { get; set; } = "primary";
+
+    /// <summary>Qayda indicə dəyişib — zolaq bir dəfə döyünür.</summary>
+    [Parameter] public bool RuleChanged { get; set; }
+
+    /// <summary>0–100; mənfi dəyər zolağı tamam gizlədir (taymeri olmayan oyunlar).</summary>
+    [Parameter] public int TimerPercent { get; set; } = -1;
+
+    [Parameter] public string ScoreValue { get; set; } = "0";
+
+    [Parameter] public string ScoreLabel { get; set; } = string.Empty;
+
+    /// <summary>Can gedən an — ekran qısaca titrəyir.</summary>
+    [Parameter] public bool Hit { get; set; }
+
+    /// <summary>Canlar bitib, nəticə göndərilməyə hazırlanır.</summary>
+    [Parameter] public bool Over { get; set; }
+
+    /// <summary>Səhnənin arxa fonu — toxunuş qəbul etmir.</summary>
+    [Parameter] public RenderFragment? Backdrop { get; set; }
+
+    /// <summary>Oyunun oynanan hissəsi.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private async Task ExitAsync()
+    {
+        if (Host is not null)
+            await Host.Exit.InvokeAsync();
+    }
+}

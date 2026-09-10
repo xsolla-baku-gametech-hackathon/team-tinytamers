@@ -1,0 +1,188 @@
+<div class="pp-root" style="width: 880px; min-height: 1200px; position: relative; padding: 40px; box-sizing: border-box; background: var(--pp-bg); color: var(--pp-ink);">
+
+  <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px;">
+    <div style="font-size: 30px; font-weight: 900; line-height: 1.15;">Oyun xromu</div>
+    <div style="max-width: 620px; font-size: 14px; font-weight: 700; line-height: 1.5; color: var(--pp-ink-soft); text-wrap: pretty;">On oyunun hamısı eyni çərçivəni geyinir: üst zolaq, qayda, vaxt, nəticə. Oyun dəyişəndə yalnız SƏHNƏ dəyişir — uşaq hər dəfə interfeysi yenidən öyrənmir. Oyun artıq kartın içində deyil, hamam və yataq otağı kimi tam ekran səhnədədir.</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px;">
+
+    <!-- 1 — üst zolaq -->
+    <div style="display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 24px; background: var(--pp-card); box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+      <div style="font-size: 16px; font-weight: 900;">1 · Üst zolaq</div>
+      <div style="position: relative; height: 92px; border-radius: 18px; background: var(--sc-sky-2); overflow: hidden;">
+        <div style="position: absolute; top: 22px; left: 14px; right: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <span style="display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 999px; background: var(--pp-glass); box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-gloss);">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="var(--pp-ink-soft)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </span>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 7px 18px 8px; border-radius: 999px; background: var(--pp-glass); box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-gloss);">
+            <span style="font-size: 14px; font-weight: 900; line-height: 1;">Oyunun adı</span>
+            <span style="display: flex; align-items: center; gap: 4px;">
+              <span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-primary);"></span>
+              <span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-primary);"></span>
+              <span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-track);"></span>
+              <span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-track);"></span>
+              <span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-track);"></span>
+            </span>
+          </div>
+          <!--LIVES:3-->
+        </div>
+      </div>
+      <div style="font-size: 12.5px; font-weight: 700; line-height: 1.5; color: var(--pp-ink-soft); text-wrap: pretty;">Şüşəvari kapsullar səhnənin üstündə üzür — ayrıca başlıq zolağı yoxdur. Çıxış 46px, sol üst küncdə, həmişə eyni yerdə. Raund nöqtələri rəqəmi əvəz edir.</div>
+    </div>
+
+    <!-- 2 — canlar -->
+    <div style="display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 24px; background: var(--pp-card); box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+      <div style="font-size: 16px; font-weight: 900;">2 · Üç can</div>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <!--LIVES:3-->
+        <!--LIVES:2-->
+        <!--LIVES:1-->
+      </div>
+      <div style="font-size: 12.5px; font-weight: 700; line-height: 1.5; color: var(--pp-ink-soft); text-wrap: pretty;">İtən can həm rəngini itirir, həm kiçilir — rəng korluğunda da fərq görünür. Can gedəndə ekran 420 ms titrəyir: uşaq nə olduğunu rəqəmdən yox, hərəkətdən başa düşür. Üçüncü səhvdə oyun dayanır, amma toplanan nəticə İTMİR.</div>
+    </div>
+
+    <!-- 3 — qayda zolağı -->
+    <div style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 24px; background: var(--pp-card); box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+      <div style="font-size: 16px; font-weight: 900;">3 · Qayda zolağı</div>
+      <div style="display: flex; align-items: center; justify-content: center; min-height: 46px; padding: 8px 16px; border-radius: 20px; background: var(--pp-primary-soft);"><span style="font-size: 17px; font-weight: 900; color: var(--pp-primary-dark);">Yaddaş · sıra · söz</span></div>
+      <div style="display: flex; align-items: center; justify-content: center; min-height: 46px; padding: 8px 16px; border-radius: 20px; background: var(--pp-life-soft);"><span style="font-size: 17px; font-weight: 900; color: var(--pp-life-deep);">Təsnifat · qayda tutma</span></div>
+      <div style="display: flex; align-items: center; justify-content: center; min-height: 46px; padding: 8px 16px; border-radius: 20px; background: var(--pp-spark-soft);"><span style="font-size: 17px; font-weight: 900; color: var(--pp-spark-deep);">Sürət · sayma</span></div>
+      <div style="display: flex; align-items: center; justify-content: center; min-height: 46px; padding: 8px 16px; border-radius: 20px; background: var(--pp-alert-soft);"><span style="font-size: 17px; font-weight: 900; color: var(--pp-alert-edge);">Hədəfə çatma</span></div>
+      <div style="font-size: 12.5px; font-weight: 700; line-height: 1.5; color: var(--pp-ink-soft); text-wrap: pretty;">Ton oyunun bacarıq ailəsini bildirir. Qayda ekranda QALIR — uşaq onu yadda saxlamağa yox, tətbiq etməyə məşq edir.</div>
+    </div>
+
+    <!-- 4 — vaxt və nəticə -->
+    <div style="display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 24px; background: var(--pp-card); box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+      <div style="font-size: 16px; font-weight: 900;">4 · Vaxt və nəticə</div>
+      <div style="height: 8px; border-radius: 999px; background: var(--pp-track); overflow: hidden;">
+        <div style="width: 62%; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--pp-spark-lift) 0%, var(--pp-spark) 100%);"></div>
+      </div>
+      <div style="height: 8px; border-radius: 999px; background: var(--pp-track); overflow: hidden;">
+        <div style="width: 14%; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--pp-alert-lift) 0%, var(--pp-alert) 100%);"></div>
+      </div>
+      <div style="display: flex; justify-content: center;">
+        <div style="display: flex; align-items: center; gap: 9px; height: 46px; padding: 0 20px; border-radius: 999px; background: var(--pp-glass); box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-md), var(--pp-gloss);">
+          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M12 3.2l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.6l6.1-.8z" fill="var(--pp-spark)" stroke="var(--pp-spark-edge)" stroke-width="1.6" stroke-linejoin="round" /></svg>
+          <span style="font-size: 17px; font-weight: 900;">18</span>
+          <span style="font-size: 12px; font-weight: 800; color: var(--pp-ink-soft);">ulduz yığıldı</span>
+        </div>
+      </div>
+      <div style="font-size: 12.5px; font-weight: 700; line-height: 1.5; color: var(--pp-ink-soft); text-wrap: pretty;">Vaxt zolağı son 20%-də moruğa keçir. Nəticə sayğacı ekranın altındadır — oyunun içində deyil, üstündə üzür ki, səhnəni kəsməsin.</div>
+    </div>
+
+    <!-- 5 — canlar bitdi -->
+    <div style="display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 24px; background: var(--pp-card); box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+      <div style="font-size: 16px; font-weight: 900;">5 · Canlar bitdi</div>
+      <div style="display: grid; place-content: center; gap: 6px; justify-items: center; height: 130px; border-radius: 18px; background: rgba(38, 30, 18, 0.72); text-align: center;">
+        <span style="font-size: 22px; font-weight: 900; color: #FFFFFF;">Canlar bitdi!</span>
+        <span style="font-size: 13px; font-weight: 700; color: #FFFFFF; opacity: 0.86;">Nəticən sayılır — yenidən cəhd edə bilərsən.</span>
+      </div>
+      <div style="font-size: 12.5px; font-weight: 700; line-height: 1.5; color: var(--pp-ink-soft); text-wrap: pretty;">Qat 900 ms görünür, sonra nəticə ekranı açılır. Mətn itkini deyil, DAVAMI vəd edir — uşaq üçün oyunun sonu cəza anı olmamalıdır.</div>
+    </div>
+
+    <!-- 6 — kafel halları -->
+    <div style="display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 24px; background: var(--pp-card); box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+      <div style="font-size: 16px; font-weight: 900;">6 · Kafelin üç halı</div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 18px; background: var(--pp-card-soft); box-shadow: 0 4px 0 var(--pp-edge-neutral);">
+          <span style="display: block; height: 46px; border-radius: 12px; background: var(--pp-primary-soft);"></span>
+          <span style="font-size: 11px; font-weight: 900;">Açıq</span>
+          <span style="font-size: 10px; font-weight: 700; color: var(--pp-ink-soft);">Bacarıq yazısı</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 18px; background: var(--pp-card-soft); box-shadow: 0 4px 0 var(--pp-edge-neutral);">
+          <span style="position: relative; display: block; height: 46px; border-radius: 12px; background: var(--pp-primary-soft); filter: saturate(0.45); opacity: 0.7;"></span>
+          <span style="font-size: 11px; font-weight: 900;">Alına bilər</span>
+          <span style="font-size: 10px; font-weight: 900; color: var(--pp-spark-deep);">180 ilə aç</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 18px; background: var(--pp-card-soft); box-shadow: 0 4px 0 var(--pp-edge-neutral); opacity: 0.72;">
+          <span style="display: block; height: 46px; border-radius: 12px; background: var(--pp-primary-soft); filter: saturate(0.45); opacity: 0.7;"></span>
+          <span style="font-size: 11px; font-weight: 900;">Hələ yox</span>
+          <span style="font-size: 10px; font-weight: 900; color: var(--pp-spark-deep);">Daha 92 ulduz</span>
+        </div>
+      </div>
+      <div style="font-size: 12.5px; font-weight: 700; line-height: 1.5; color: var(--pp-ink-soft); text-wrap: pretty;">Kilidli kafel də oyunun ŞƏKLİNİ daşıyır — uşaq nə alacağını görmədən ulduz xərcləməməlidir. Kilid şəkli sönükləşdirir, gizlətmir.</div>
+    </div>
+  </div>
+
+  <!-- Oyun → bacarıq → rəng -->
+  <div style="margin-top: 24px; padding: 22px; border-radius: 24px; background: var(--pp-card); box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+    <div style="margin-bottom: 14px; font-size: 16px; font-weight: 900;">7 · On oyun, on bacarıq</div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 28px;">
+
+      <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--pp-border);">
+        <span style="width: 14px; height: 14px; flex-shrink: 0; border-radius: 5px; background: var(--pp-primary);"></span>
+        <span style="width: 132px; flex-shrink: 0; font-size: 13px; font-weight: 900;">Yaddaş cütləri</span>
+        <span style="font-size: 12px; font-weight: 700; color: var(--pp-ink-soft);">Yaddaş və diqqət</span>
+        <span style="margin-left: auto; font-size: 12px; font-weight: 900; color: var(--pp-life-deep);">açıq</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--pp-border);">
+        <span style="width: 14px; height: 14px; flex-shrink: 0; border-radius: 5px; background: var(--sc-sky-1);"></span>
+        <span style="width: 132px; flex-shrink: 0; font-size: 13px; font-weight: 900;">Ulduz qaçışı</span>
+        <span style="font-size: 12px; font-weight: 700; color: var(--pp-ink-soft);">Sürətli qərar, müqayisə</span>
+        <span style="margin-left: auto; font-size: 12px; font-weight: 900; color: var(--pp-spark-deep);">180</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--pp-border);">
+        <span style="width: 14px; height: 14px; flex-shrink: 0; border-radius: 5px; background: var(--pp-spark);"></span>
+        <span style="width: 132px; flex-shrink: 0; font-size: 13px; font-weight: 900;">Sürətli hesab</span>
+        <span style="font-size: 12px; font-weight: 700; color: var(--pp-ink-soft);">Zehni hesablama</span>
+        <span style="margin-left: auto; font-size: 12px; font-weight: 900; color: var(--pp-life-deep);">açıq</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--pp-border);">
+        <span style="width: 14px; height: 14px; flex-shrink: 0; border-radius: 5px; background: var(--pp-alert);"></span>
+        <span style="width: 132px; flex-shrink: 0; font-size: 13px; font-weight: 900;">Meyvə kəs</span>
+        <span style="font-size: 12px; font-weight: 700; color: var(--pp-ink-soft);">Cəmi qurmaq</span>
+        <span style="margin-left: auto; font-size: 12px; font-weight: 900; color: var(--pp-spark-deep);">240</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--pp-border);">
+        <span style="width: 14px; height: 14px; flex-shrink: 0; border-radius: 5px; background: var(--pp-life);"></span>
+        <span style="width: 132px; flex-shrink: 0; font-size: 13px; font-weight: 900;">Baloncuq ovu</span>
+        <span style="font-size: 12px; font-weight: 700; color: var(--pp-ink-soft);">Qayda tutma</span>
+        <span style="margin-left: auto; font-size: 12px; font-weight: 900; color: var(--pp-life-deep);">açıq</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--pp-border);">
+        <span style="width: 14px; height: 14px; flex-shrink: 0; border-radius: 5px; background: var(--pp-life-lift);"></span>
+        <span style="width: 132px; flex-shrink: 0; font-size: 13px; font-weight: 900;">Səbət tut</span>
+        <span style="font-size: 12px; font-weight: 700; color: var(--pp-ink-soft);">Təsnifat, göz-əl</span>
+        <span style="margin-left: auto; font-size: 12px; font-weight: 900; color: var(--pp-spark-deep);">300</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--pp-border);">
+        <span style="width: 14px; height: 14px; flex-shrink: 0; border-radius: 5px; background: var(--pp-alert-lift);"></span>
+        <span style="width: 132px; flex-shrink: 0; font-size: 13px; font-weight: 900;">Rəng sırası</span>
+        <span style="font-size: 12px; font-weight: 700; color: var(--pp-ink-soft);">İşlək yaddaş</span>
+        <span style="margin-left: auto; font-size: 12px; font-weight: 900; color: var(--pp-life-deep);">açıq</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--pp-border);">
+        <span style="width: 14px; height: 14px; flex-shrink: 0; border-radius: 5px; background: var(--sc-sky-2);"></span>
+        <span style="width: 132px; flex-shrink: 0; font-size: 13px; font-weight: 900;">Bulud tullanışı</span>
+        <span style="font-size: 12px; font-weight: 700; color: var(--pp-ink-soft);">Ardıcıllıq, qanunauyğunluq</span>
+        <span style="margin-left: auto; font-size: 12px; font-weight: 900; color: var(--pp-spark-deep);">380</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0;">
+        <span style="width: 14px; height: 14px; flex-shrink: 0; border-radius: 5px; background: var(--pp-primary-lift);"></span>
+        <span style="width: 132px; flex-shrink: 0; font-size: 13px; font-weight: 900;">Hərf ovu</span>
+        <span style="font-size: 12px; font-weight: 700; color: var(--pp-ink-soft);">Söz və oxu</span>
+        <span style="margin-left: auto; font-size: 12px; font-weight: 900; color: var(--pp-spark-deep);">460</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0;">
+        <span style="width: 14px; height: 14px; flex-shrink: 0; border-radius: 5px; background: var(--pp-spark-lift);"></span>
+        <span style="width: 132px; flex-shrink: 0; font-size: 13px; font-weight: 900;">Balaca aşpaz</span>
+        <span style="font-size: 12px; font-weight: 700; color: var(--pp-ink-soft);">Sayma və tərtib</span>
+        <span style="margin-left: auto; font-size: 12px; font-weight: 900; color: var(--pp-spark-deep);">560</span>
+      </div>
+    </div>
+
+    <div style="margin-top: 16px; font-size: 12.5px; font-weight: 700; line-height: 1.5; color: var(--pp-ink-soft); text-wrap: pretty;">Mükafat düsturu dəyişmir: <strong style="color: var(--pp-ink);">ulduz = nəticə / 12</strong> (səhvsiz oyuna +2), <strong style="color: var(--pp-ink);">XP = 3 + nəticə² / 500</strong> (səhvsiz oyuna +5). Gündə üç oyun mükafatlandırılır, sonrası pulsuz oynanır. Ən yüksək oyun nəticəsi belə ən asan dərs sualından az ulduz gətirir — oyun öyrənməni əvəz etmir.</div>
+  </div>
+
+</div>

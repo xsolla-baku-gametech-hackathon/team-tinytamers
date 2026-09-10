@@ -1,0 +1,119 @@
+<div class="pp-root" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--pp-card-soft); color: var(--pp-ink);">
+
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, var(--pp-spark-soft) 0%, var(--pp-card-soft) 40%, var(--pp-bg) 100%);"></div>
+
+  <!-- Sifariş pet-dən gəlir və EKRANDA QALIR: uşaq yadda saxlamağa yox,
+       saymağa məşq edir. Dolan yuva sönür, qalan yuva boş dairədir. -->
+  <div style="position: absolute; top: 214px; left: 20px; right: 20px; display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 24px; background: var(--pp-card); box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-md); z-index: 10;">
+
+    <span style="display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 999px; background: var(--pp-spark-soft);">
+      <svg viewBox="0 0 60 60" width="52" height="52" role="img" aria-label="Pet sifariş verir">
+        <path d="M14 18l-2-11 10 6zM46 18l2-11-10 6z" fill="#F3A05A" />
+        <ellipse cx="30" cy="30" rx="21" ry="19" fill="#F3A05A" />
+        <ellipse cx="30" cy="37" rx="15" ry="11" fill="#FFF3E2" />
+        <path d="M20 27q5-7 10 0" stroke="#2B2140" stroke-width="3.4" fill="none" stroke-linecap="round" />
+        <path d="M30 27q5-7 10 0" stroke="#2B2140" stroke-width="3.4" fill="none" stroke-linecap="round" />
+        <ellipse cx="30" cy="34" rx="3.6" ry="2.8" fill="#2B2140" />
+        <path d="M25 40q5 6 10 0" stroke="#2B2140" stroke-width="2.4" fill="none" stroke-linecap="round" />
+      </svg>
+    </span>
+
+    <div style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 9px;">
+        <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+          <path d="M12 21c-6 0-10-4.6-10-9.4C2 8.4 6.5 6.4 12 6.4s10 2 10 5.2C22 16.4 18 21 12 21z" fill="var(--pp-alert-lift)" />
+          <path d="M6 6.4h12l-2.4-3.4H8.4z" fill="var(--pp-life)" />
+        </svg>
+        <span style="display: flex; align-items: center; gap: 5px;">
+          <span style="width: 13px; height: 13px; border-radius: 999px; background: var(--pp-alert);"></span>
+          <span style="width: 13px; height: 13px; border-radius: 999px; background: var(--pp-alert);"></span>
+          <span style="width: 13px; height: 13px; border-radius: 999px; border: 2.5px solid var(--pp-alert); opacity: 0.5;"></span>
+        </span>
+        <span style="margin-left: auto; font-size: 15px; font-weight: 900; color: var(--pp-ink-soft);">2 / 3</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 9px;">
+        <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+          <circle cx="12" cy="13.6" r="8.4" fill="var(--pp-alert)" />
+          <path d="M12 5.2c1.2-3.2 4-4 5.6-3.4-.6 2.6-2.8 3.8-5.6 3.4z" fill="var(--pp-life)" />
+        </svg>
+        <span style="display: flex; align-items: center; gap: 5px;">
+          <span style="width: 13px; height: 13px; border-radius: 999px; border: 2.5px solid var(--pp-spark-deep); opacity: 0.5;"></span>
+          <span style="width: 13px; height: 13px; border-radius: 999px; border: 2.5px solid var(--pp-spark-deep); opacity: 0.5;"></span>
+        </span>
+        <span style="margin-left: auto; font-size: 15px; font-weight: 900; color: var(--pp-ink-soft);">0 / 2</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Boşqab: qoyulan hər əşya burada görünür, sayı yazı ilə təkrarlanmır. -->
+  <div style="position: absolute; top: 386px; left: 50%; transform: translateX(-50%); width: 262px; height: 262px; border-radius: 999px; background: var(--pp-card); box-shadow: 0 8px 0 var(--pp-edge-neutral), var(--pp-shadow-lg); z-index: 6;"></div>
+  <div style="position: absolute; top: 414px; left: 50%; transform: translateX(-50%); width: 206px; height: 206px; border-radius: 999px; background: var(--pp-card-soft); z-index: 7;"></div>
+
+  <svg viewBox="0 0 206 206" width="206" height="206" style="position: absolute; top: 414px; left: 50%; transform: translateX(-50%); z-index: 8;" aria-hidden="true">
+    <g>
+      <path d="M74 118c-16 0-28-12-28-25 0-8 12-14 28-14s28 6 28 14c0 13-12 25-28 25z" fill="var(--pp-alert-lift)" />
+      <path d="M59 79h30l-6-9H65z" fill="var(--pp-life)" />
+      <circle cx="66" cy="94" r="2.4" fill="#FFF3E2" />
+      <circle cx="82" cy="98" r="2.4" fill="#FFF3E2" />
+    </g>
+    <g>
+      <path d="M136 140c-14 0-25-11-25-22 0-7 11-13 25-13s25 6 25 13c0 11-11 22-25 22z" fill="var(--pp-alert-lift)" />
+      <path d="M123 105h26l-5-8h-16z" fill="var(--pp-life)" />
+      <circle cx="129" cy="118" r="2.2" fill="#FFF3E2" />
+      <circle cx="143" cy="122" r="2.2" fill="#FFF3E2" />
+    </g>
+  </svg>
+
+  <!-- Sürüklənən çiyələk: kölgə boşqabda, əşya barmağın altında — hara
+       düşəcəyi əvvəlcədən görünür. -->
+  <div style="position: absolute; top: 452px; left: 214px; z-index: 12;">
+    <svg viewBox="0 0 72 78" width="72" height="78" aria-hidden="true">
+      <path d="M36 74c-16 0-28-12-28-26 0-8 12-14 28-14s28 6 28 14c0 14-12 26-28 26z" fill="var(--pp-alert)" />
+      <path d="M20 34h32l-6-10H26z" fill="var(--pp-life)" />
+      <circle cx="27" cy="50" r="2.6" fill="#FFF3E2" />
+      <circle cx="45" cy="54" r="2.6" fill="#FFF3E2" />
+      <circle cx="36" cy="44" r="2.6" fill="#FFF3E2" />
+    </svg>
+  </div>
+  <div style="position: absolute; top: 566px; left: 226px; width: 52px; height: 14px; border-radius: 999px; background: rgba(38, 30, 18, 0.16); z-index: 7;"></div>
+
+  <!-- Rəf: qab qulluq ekranındakı yem qabı ilə eyni qrammatikadadır. -->
+  <div style="position: absolute; left: 16px; right: 16px; bottom: 106px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 12px; border-radius: 26px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-md); z-index: 10;">
+
+    <span style="display: flex; align-items: center; justify-content: center; height: 74px; border-radius: 20px; background: var(--pp-alert-soft);">
+      <svg viewBox="0 0 48 52" width="42" height="46" aria-hidden="true">
+        <path d="M24 48c-11 0-19-8-19-17 0-5 8-9 19-9s19 4 19 9c0 9-8 17-19 17z" fill="var(--pp-alert)" />
+        <path d="M13 22h22l-4-7H17z" fill="var(--pp-life)" />
+      </svg>
+    </span>
+
+    <span style="display: flex; align-items: center; justify-content: center; height: 74px; border-radius: 20px; background: var(--pp-alert-soft);">
+      <svg viewBox="0 0 48 52" width="42" height="46" aria-hidden="true">
+        <circle cx="24" cy="30" r="17" fill="var(--pp-alert)" />
+        <path d="M24 13c2-6 8-8 11-7-1 5-5 7-11 7z" fill="var(--pp-life)" />
+      </svg>
+    </span>
+
+    <span style="display: flex; align-items: center; justify-content: center; height: 74px; border-radius: 20px; background: var(--pp-spark-soft);">
+      <svg viewBox="0 0 48 52" width="42" height="46" aria-hidden="true">
+        <path d="M24 46L14 20h20z" fill="var(--pp-spark)" />
+        <path d="M24 18V8M24 12l7-5M24 12l-7-5" stroke="var(--pp-life)" stroke-width="3.4" stroke-linecap="round" />
+      </svg>
+    </span>
+
+    <span style="display: flex; align-items: center; justify-content: center; height: 74px; border-radius: 20px; background: var(--pp-primary-soft);">
+      <svg viewBox="0 0 48 52" width="42" height="46" aria-hidden="true">
+        <ellipse cx="21" cy="28" rx="15" ry="10" fill="var(--pp-primary-lift)" />
+        <path d="M36 28l9-6v12z" fill="var(--pp-primary)" />
+        <circle cx="14" cy="25" r="2.4" fill="#241E38" />
+      </svg>
+    </span>
+  </div>
+
+<!--CHROME:Balaca aşpaz,2,5,3-->
+<!--RULE:Sifarişi düz hazırla,spark-->
+<!--TIMER:80-->
+<!--SCORE:4,sifariş hazır-->
+
+</div>

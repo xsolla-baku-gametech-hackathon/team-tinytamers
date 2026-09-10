@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  * { box-sizing:border-box }
+  html,body{margin:0;background:#666;font-family:Arial,sans-serif;color:#2b2140}
+  body{padding:18px;display:flex;gap:18px;align-items:flex-start}
+  .tokens{--bd-frame-main:#6F5AD8;--bd-frame-lift:#8A78E4;--bd-sheet:#FBF7EF;--bd-sheet-shade:#EDE3D2;--bd-sheet-edge:#DCD1BE;--bd-quilt:#F2B166;--bd-quilt-lift:#F9CD97;--bd-quilt-edge:#D98F3C;--bd-shadow-strong:rgba(96,74,46,.18)}
+  .panel{background:#f3e7da;padding:10px;border-radius:12px}
+  .panel h2{font-size:15px;margin:0 0 8px}
+  .large-bed{display:block;width:450px;height:402px;background:linear-gradient(#f3e7da 0 58%,#e6cba4 58%)}
+  .crop{position:relative;width:390px;height:330px;overflow:hidden;background:linear-gradient(#f3e7da 0 41%,#e6cba4 41%)}
+  .crop .bed{position:absolute;left:25px;top:12px;width:300px;height:268px;z-index:1}
+  .crop .pet{position:absolute;left:25px;top:12px;width:300px;height:268px;z-index:2}
+  .crop .quilt{position:absolute;left:72px;top:160px;width:206px;height:72px;z-index:3}
+  .quilt-large{display:block;width:412px;height:144px;margin-top:12px;background:#fbf7ef}
+</style>
+<section class="panel tokens"><h2>Yataq — 1.5×</h2><div id="bedLarge"></div><h2>Yorğan — 2×</h2><div id="quiltLarge"></div></section>
+<section class="panel tokens"><h2>Otaq qatları — dəqiq koordinat crop</h2><div class="crop"><div class="bed" id="bedScene"></div><svg class="pet" viewBox="0 0 300 268"><path d="M158 73 C122 72 100 100 99 134 C98 168 120 191 158 191 C196 191 217 168 216 134 C215 99 193 73 158 73 Z" fill="#cb9147" stroke="#422718" stroke-width="4.5"/><path d="M132 123 C132 117 140 117 140 123 C140 129 132 129 132 123 Z M176 123 C176 117 184 117 184 123 C184 129 176 129 176 123 Z" fill="#211a34"/></svg><div class="quilt" id="quiltScene"></div></div></section>
+<script>
+  const r=new XMLHttpRequest();r.open('GET','file:///C:/Users/User/Desktop/petpal/src/PetPal.App.Ui/Pages/Care.razor',false);r.send();
+  const clean=s=>s.replace(/@\*[\s\S]*?\*@/g,'');
+  const bed=clean(r.responseText.match(/<svg class="bedroom__bed"[\s\S]*?<\/svg>/)[0]);
+  let quilt=clean(r.responseText.match(/<svg class="bedroom__quilt[\s\S]*?<\/svg>/)[0]);
+  quilt=quilt.replace(/<svg class="bedroom__quilt[\s\S]*?viewBox=/,'<svg viewBox=');
+  bedLarge.innerHTML=bed.replace('<svg class="bedroom__bed"','<svg class="large-bed"');
+  quiltLarge.innerHTML=quilt.replace('<svg ','<svg class="quilt-large" ');
+  bedScene.innerHTML=bed;quiltScene.innerHTML=quilt;
+</script>

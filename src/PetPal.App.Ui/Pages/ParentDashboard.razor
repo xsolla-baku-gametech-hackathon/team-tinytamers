@@ -1,0 +1,996 @@
+@page "/parent"
+@inject ParentApiClient ParentApi
+@inject AppSession Session
+@inject IShareService Share
+@inject AchievementCard Card
+@inject IBiometricGate Biometrics
+@inject ITokenStore Tokens
+@inject NavigationManager Navigation
+@inject Loc Loc
+
+@* Valideyn paneli.
+
+   QAPI. Əvvəl burada vurma sualı vardı və yalnız KLİENTDƏ yoxlanılırdı. İki
+   səbəbdən işləmirdi: sual app-in Öyrən bölməsində uşağa öyrətdiyi şeydir, və
+   valideyn tokeni uşaq oynayarkən yaddaşda qalır — yəni həmin lokal `bool`
+   bütün valideyn API-sinin qarşısında dururdu.
+
+   İndi qapı PIN-dir və yoxlama SERVERDƏDİR (POST /api/parent/gate/unlock),
+   sürət limiti ilə. Cihazda barmaq izi varsa, PIN-i hər dəfə yazmamaq üçün
+   qısa yol təklif olunur — amma o, PIN-in əvəzi deyil: uğursuz olanda ekran
+   PIN-ə qayıdır. *@
+
+<h1 class="visually-hidden-title">@Loc.T("Valideyn bölməsi", "Parent area")</h1>
+
+@if (!_unlocked)
+{
+    <div class="card">
+        <h2 class="card__title">👨‍👩‍👧 @Loc.T("Valideyn bölməsi", "Parent area")</h2>
+
+        @if (_gateStatus is null)
+        {
+            <p class="card__subtitle">@Loc.T("Yoxlanılır…", "Checking…")</p>
+        }
+        else if (!_gateStatus.HasPin)
+        {
+            @* PIN hələ yoxdur: bölmə BAĞLIDIR və açılışın yeganə yolu PIN
+               qurmaqdır. Kimlik hesab parolu ilə təsdiqlənir — uşaq onu bilmir. *@
+            <p class="card__subtitle">
+                @Loc.T("Bu bölmə valideyn PIN-i ilə qorunur. Davam etmək üçün hesab parolunuzla bir PIN qurun.",
+                       "This area is protected by a parent PIN. Set one with your account password to continue.")
+            </p>
+
+            <label class="field">
+                <span class="field__label">@Loc.T("Hesab parolu", "Account password")</span>
+                <input class="field__input" type="password" @bind="_password" />
+            </label>
+
+            <label class="field">
+                <span class="field__label">@Loc.T("Yeni 4 rəqəmli PIN", "New 4-digit PIN")</span>
+                <input class="field__input" type="password" inputmode="numeric" maxlength="4" @bind="_newPin" />
+            </label>
+
+            @if (!string.IsNullOrWhiteSpace(_gateError))
+            {
+                <div class="alert alert--error">@_gateError</div>
+            }
+
+            <button class="btn btn--primary btn--block" disabled="@_gateBusy" @onclick="SetPinAsync">
+                @Loc.T("PIN-i qur və davam et", "Set PIN and continue")
+            </button>
+        }
+        else
+        {
+            <p class="card__subtitle">@Loc.T("Davam etmək üçün valideyn PIN-ini yazın.", "Type the parent PIN to continue.")</p>
+
+            <label class="field">
+                <span class="field__label">@Loc.T("PIN", "PIN")</span>
+                <input class="field__input" type="password" inputmode="numeric" maxlength="4"
+                       @bind="_pin" @bind:event="oninput" @onkeydown="PinKeyDownAsync" />
+            </label>
+
+            @if (!string.IsNullOrWhiteSpace(_gateError))
+            {
+                <div class="alert alert--error">@_gateError</div>
+            }
+
+            <button class="btn btn--primary btn--block" disabled="@_gateBusy" @onclick="UnlockAsync">
+                @Loc.T("Davam et", "Continue")
+            </button>
+
+            @if (_biometricsAvailable)
+            {
+                <button class="btn btn--ghost btn--block" style="margin-top:10px"
+                        disabled="@_gateBusy" @onclick="UnlockWithBiometricsAsync">
+                    @Loc.T("👆 Barmaq izi ilə aç", "👆 Unlock with biometrics")
+                </button>
+            }
+        }
+    </div>
+}
+else
+{
+    <LoadingState IsLoading="_loading" Error="@_error" OnRetry="LoadAsync">
+        @if (_dashboard is not null)
+        {
+            <div class="card">
+                <h2 class="card__title">@_dashboard.ChildDisplayName</h2>
+                <p class="card__subtitle">@Loc.T("Bugünkü fəaliyyət", "Today's activity")</p>
+
+                <div class="metrics" style="margin-top:14px">
+                    <div class="metric">
+                        <div class="metric__value">@_dashboard.TasksDoneToday</div>
+                        <div class="metric__label">@Loc.T("Tapşırıq", "Tasks")</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric__value">@_dashboard.AccuracyPercentToday%</div>
+                        <div class="metric__label">@Loc.T("Dəqiqlik", "Accuracy")</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric__value">@_dashboard.MinutesToday<span style="font-size:13px">@Loc.T("dəq", "min")</span></div>
+                        <div class="metric__label">@Loc.T("Ekran vaxtı", "Screen time")</div>
+                    </div>
+                </div>
+            </div>
+
+            @* Valideyn panelində məzmun çoxdur və uzunluğu məlumatdan asılıdır —
+               ekran sürüşmür, yalnız bu hissə öz qutusunda sürüşür. *@
+            <div class="list-scroll">
+
+            <h2 class="section-title">@Loc.T("Son 7 gün", "Last 7 days")</h2>
+            <div class="card">
+                <div class="chart">
+                    @foreach (var point in _dashboard.Last7Days)
+                    {
+                        <div class="chart__col">
+                            <div class="chart__bar" style="height:@BarHeight(point.TasksDone)%"></div>
+                            <div class="chart__label">@point.Date.ToString("dd.MM")</div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <h2 class="section-title">@Loc.T("Bacarıq analitikası", "Skill analytics")</h2>
+            <div class="card">
+                @foreach (var skill in _dashboard.Skills)
+                {
+                    <div style="margin-bottom:12px">
+                        <div class="progress__row">
+                            <span>@DisplayNames.Skill(Loc, skill.Skill) @(skill.IsFocusArea ? Loc.T("· diqqət tələb edir", "· needs attention") : null)</span>
+                            <span>@skill.MasteryPercent%</span>
+                        </div>
+                        <div class="progress" style="height:11px">
+                            <div class="progress__bar" style="width:@skill.MasteryPercent%"></div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <h2 class="section-title">@Loc.T("Müşahidələr", "Observations")</h2>
+            <div class="card">
+                @foreach (var insight in _dashboard.Insights)
+                {
+                    <div class="insight">
+                        <span class="insight__icon" aria-hidden="true">💡</span>
+                        <span>@insight</span>
+                    </div>
+                }
+            </div>
+
+            @* Panelin qalan hissəsi rəqəmdir; kəşflər isə uşağın ekrandan
+               KƏNARDA nə etdiyini göstərir — valideyn üçün ən konkret hissə
+               budur. Siyahı uşağın öz ekranındakı ilə eynidir. *@
+            <h2 class="section-title">@Loc.T("Kəşflər", "Discoveries") (@_discoveries.Count)</h2>
+            <DiscoveryList Items="_discoveries"
+                           LoadPhoto="LoadPhotoAsync"
+                           EmptyText="@Loc.T("Hələ kəşf qeyd olunmayıb.", "No discoveries recorded yet.")" />
+
+            @* Dil profil yaradılanda seçilir, amma orada bitmir: ailə dil
+               öyrənir, uşaq böyüyür. Seçim burada, valideyn bölməsindədir —
+               uşaq onu təsadüfən dəyişməsin. *@
+            <h2 class="section-title">@Loc.T("App-in dili", "App language")</h2>
+            <div class="card">
+                <p class="card__subtitle">
+                    @Loc.T("Seçilən dil hər şeyə aiddir: suallar, missiyalar, pet replikaları və ekran yazıları. Yaş, ulduzlar və açılmış əşyalar dəyişmir.",
+                           "The chosen language covers everything: questions, missions, pet lines and screen text. Age, stars and unlocked items stay as they are.")
+                </p>
+
+                <div class="langpick">
+                    @foreach (var option in LanguageOptions)
+                    {
+                        var code = option.Code;
+
+                        <button class="langpick__item @(IsCurrentLanguage(code) ? "langpick__item--on" : null)"
+                                disabled="@(_savingLanguage || IsCurrentLanguage(code))"
+                                aria-pressed="@IsCurrentLanguage(code)"
+                                @onclick="() => ChangeLanguageAsync(code)">
+                            <span class="langpick__flag" aria-hidden="true">@option.Flag</span>
+                            <span class="langpick__name">@option.Name</span>
+                            @if (IsCurrentLanguage(code))
+                            {
+                                <span class="langpick__check" aria-hidden="true">✓</span>
+                            }
+                        </button>
+                    }
+                </div>
+
+                @if (_languageSaved)
+                {
+                    <div class="alert alert--info" style="margin-top:12px">
+                        @Loc.T("Dil dəyişdi.", "Language changed.")
+                    </div>
+                }
+            </div>
+
+            @* Söhbət valideyn üçün ƏN HƏSSAS bölmədir: uşağın yazdığı mətn
+               model serverinə gedir. Ona görə burada üç şey birlikdə dayanır —
+               nə baş verdiyinin izahı, açar, və uşağın nə yazdığının tam
+               siyahısı. Açar standart olaraq BAĞLIDIR. *@
+            <h2 class="section-title">@Loc.T("Pet ilə söhbət", "Chat with the pet")</h2>
+            <div class="card">
+                <p class="card__subtitle">
+                    @Loc.T("Açıq olanda uşaq pet-ə yazır və pet cavab verir. Uşağın yazdığı mətn cavabı yaratmaq üçün model xidmətinə göndərilir — ona görə söhbət standart olaraq bağlıdır və bütün yazışma aşağıda görünür.",
+                           "When this is on, your child writes to the pet and the pet replies. What your child types is sent to a model service to produce the reply — that is why chat is off by default and the whole conversation is shown below.")
+                </p>
+
+                <button class="btn @(_chatEnabled ? "btn--ghost" : "btn--primary") btn--block"
+                        disabled="@_savingChat" @onclick="ToggleChatAsync">
+                    @(_savingChat
+                        ? Loc.T("Yadda saxlanılır…", "Saving…")
+                        : _chatEnabled
+                            ? Loc.T("Söhbəti bağla", "Turn chat off")
+                            : Loc.T("Söhbəti aç", "Turn chat on"))
+                </button>
+
+                @if (_chatLog is not null)
+                {
+                    <p class="card__subtitle" style="margin-top:12px">
+                        @Loc.T($"Bu gün {_chatLog.MessagesToday}/{_chatLog.MessagesPerDay} mesaj.",
+                               $"{_chatLog.MessagesToday}/{_chatLog.MessagesPerDay} messages today.")
+                    </p>
+
+                    @if (_chatLog.Turns.Count == 0)
+                    {
+                        <div class="alert alert--info" style="margin-top:8px">
+                            @Loc.T("Hələ söhbət olmayıb.", "No conversation yet.")
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="chatlog">
+                            @foreach (var turn in _chatLog.Turns)
+                            {
+                                <div class="chatlog__row @(turn.FromChild ? "chatlog__row--child" : null)">
+                                    <span class="chatlog__who">
+                                        @(turn.FromChild ? _dashboard.ChildDisplayName : Loc.T("Pet", "Pet"))
+                                    </span>
+                                    <span class="chatlog__text">@turn.Text</span>
+                                    @if (turn.BlockedReason is not null)
+                                    {
+                                        @* Filtr bu mesajı saxlayıb — valideyn pet-in niyə
+                                           mövzunu dəyişdiyini görməlidir. *@
+                                        <span class="chatlog__flag">@BlockedLabel(turn.BlockedReason)</span>
+                                    }
+                                    <span class="chatlog__time">@turn.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+
+            @* Arena söhbətdən FƏRQLİDİR: burada sərbəst mətn yoxdur və üçüncü
+               tərəf serverə heç nə getmir, ona görə standart olaraq AÇIQDIR.
+               Rəqib hovuzu isə standart olaraq hamıdır — daraltmaq valideynin
+               könüllü seçimidir. *@
+            <h2 class="section-title">@Loc.T("Bilik Arenası", "Knowledge Arena")</h2>
+            <div class="card">
+                <p class="card__subtitle">
+                    @Loc.T("Uşaq başqa bir uşaqla eyni 5 sualı həll edir. Yazışma yoxdur, tanımadığı rəqibin əsl adı görünmür — yalnız pet adı, avatar və səviyyə. Uşaq uşağı axtara bilmir, rəqibi server seçir.",
+                           "Your child solves the same 5 questions as another child. There is no messaging and an unknown rival's real name is never shown — only a pet name, avatar and level. Children cannot search for each other; the server picks the rival.")
+                </p>
+
+                <button class="btn @(_arenaEnabled ? "btn--ghost" : "btn--primary") btn--block"
+                        disabled="@_savingArena" @onclick="() => SaveArenaAsync(!_arenaEnabled, _arenaFriendsOnly)">
+                    @(_savingArena
+                        ? Loc.T("Yadda saxlanılır…", "Saving…")
+                        : _arenaEnabled
+                            ? Loc.T("Yarışı bağla", "Turn the arena off")
+                            : Loc.T("Yarışı aç", "Turn the arena on"))
+                </button>
+
+                @if (_arenaEnabled)
+                {
+                    @* Açar düymədir, checkbox deyil: panelin qalan hissəsi də
+                       düymələrlə idarə olunur və valideyn "yadda saxla" axtarmır. *@
+                    <button class="btn btn--quiet btn--block" style="margin-top:12px"
+                            disabled="@_savingArena" @onclick="() => SaveArenaAsync(true, !_arenaFriendsOnly)">
+                        @(_arenaFriendsOnly
+                            ? Loc.T("✓ Yalnız dostlarla yarışır", "✓ Duels friends only")
+                            : Loc.T("Yalnız dostlarla yarışsın", "Duel friends only"))
+                    </button>
+
+                    <p class="card__subtitle" style="margin-top:8px">
+                        @(_arenaFriendsOnly
+                            ? Loc.T("Rəqib yalnız sizin təsdiqlədiyiniz dostlardan seçilir. Dost yoxdursa arena boş qala bilər.",
+                                    "Rivals come only from friends you approved. With no friends, the arena may stay empty.")
+                            : Loc.T("Rəqib bütün istifadəçilər arasından seçilir — bu, standart davranışdır.",
+                                    "Rivals come from all users — this is the default."))
+                    </p>
+                }
+            </div>
+
+            @* Dostluq sorğusu uşağın SOSİAL əlaqəsidir, ona görə qərarı valideyn
+               verir. Uşaq kodu yaza bilər, amma dostluq bu siyahıdakı təsdiqlə
+               işə düşür — o vaxta qədər nə dost siyahısında görünür, nə arena
+               hovuzuna girir, nə də komanda missiyasına dəvət ala bilir. *@
+            @* Paylaşım QƏSDƏN valideyn bölməsindədir. Uşağa xam paylaşma vərəqi
+               vermək telefondakı bütün tətbiqlərə qapı açmaqdır — söhbətdə beş
+               qatlı filtr qurub sonra belə bir çıxış vermək ziddiyyət olardı.
+               Uşaq ekranında paylaşım yalnız «kodu göstər» formasındadır. *@
+            @if (Share.IsSupported)
+            {
+                <h2 class="section-title">@Loc.T("Paylaş", "Share")</h2>
+                <div class="card">
+                    <p class="card__subtitle">
+                        @Loc.T("Dəvəti və nailiyyət kartını siz paylaşırsınız. Kartda uşağın əsl adı yoxdur — yalnız pet adı.",
+                               "You are the one who shares. The card never carries your child's real name — only the pet's.")
+                    </p>
+
+                    <div class="friendcode" style="margin-top:12px">@_dashboard.FriendCode</div>
+
+                    <button class="btn btn--primary btn--block" style="margin-top:12px"
+                            disabled="@_sharing" @onclick="ShareInviteAsync">
+                        @Loc.T("🔗 Dəvəti paylaş", "🔗 Share the invite")
+                    </button>
+
+                    <button class="btn btn--reward btn--block" style="margin-top:10px"
+                            disabled="@_sharing" @onclick="ShareCardAsync">
+                        @(_sharing
+                            ? Loc.T("Hazırlanır…", "Preparing…")
+                            : Loc.T("🏅 Nailiyyət kartını paylaş", "🏅 Share the achievement card"))
+                    </button>
+
+                    @if (_shareNote is not null)
+                    {
+                        <div class="alert alert--info" style="margin-top:12px">@_shareNote</div>
+                    }
+                </div>
+            }
+
+
+            @* PIN-i dəyişmək bölmənin İÇİNDƏDİR: bura girmək üçün onsuz da PIN
+               (və ya biometrika) tələb olunub, yəni kimlik təsdiqlənib. Yenə də
+               cari PIN soruşulur — açıq qalmış sessiyada başqası PIN-i sakitcə
+               dəyişməməlidir. Unudulubsa, hesab parolu da qəbul edilir. *@
+            <h2 class="section-title">@Loc.T("Valideyn PIN-i", "Parent PIN")</h2>
+            <div class="card">
+                <p class="card__subtitle">
+                    @Loc.T("Bu PIN valideyn bölməsinin qapısıdır. Uşağın profil PIN-i ilə eyni olmasın.",
+                           "This PIN guards the parent area. Don't make it the same as a child's profile PIN.")
+                </p>
+
+                <label class="field">
+                    <span class="field__label">@Loc.T("Cari PIN", "Current PIN")</span>
+                    <input class="field__input" type="password" inputmode="numeric" maxlength="4" @bind="_currentPin" />
+                </label>
+
+                <label class="field">
+                    <span class="field__label">@Loc.T("Yeni PIN", "New PIN")</span>
+                    <input class="field__input" type="password" inputmode="numeric" maxlength="4" @bind="_changePin" />
+                </label>
+
+                @if (!string.IsNullOrWhiteSpace(_pinChangeNote))
+                {
+                    <div class="alert @(_pinChanged ? "alert--info" : "alert--error")">@_pinChangeNote</div>
+                }
+
+                <button class="btn btn--primary btn--block" disabled="@_gateBusy" @onclick="ChangePinAsync">
+                    @Loc.T("PIN-i dəyiş", "Change PIN")
+                </button>
+
+                @* Barmaq izi qısa yolu QOŞULMALIDIR, avtomatik gəlmir. Səbəb:
+                   ailə planşetində uşağın da barmaq izi qeydiyyatda ola bilər —
+                   bu, valideynin öz riskini bilərək qəbul etdiyi seçimdir. *@
+                @if (_biometricsSupported)
+                {
+                    <div style="height:1px;background:var(--pp-border);margin:16px 0"></div>
+
+                    <p class="card__subtitle">
+                        @Loc.T("Barmaq izi ilə açmaq PIN-i hər dəfə yazmaqdan xilas edir. Cihazda uşağınızın barmaq izi qeydiyyatdadırsa, bunu qoşmayın.",
+                               "Unlocking with biometrics saves typing the PIN. If your child's fingerprint is enrolled on this device, leave it off.")
+                    </p>
+
+                    @if (_biometricsAvailable)
+                    {
+                        <button class="btn btn--ghost btn--block" disabled="@_gateBusy" @onclick="DisableBiometricsAsync">
+                            @Loc.T("✓ Barmaq izi qoşulub — söndür", "✓ Biometrics on — turn off")
+                        </button>
+                    }
+                    else
+                    {
+                        <label class="field">
+                            <span class="field__label">@Loc.T("Təsdiq üçün cari PIN", "Current PIN to confirm")</span>
+                            <input class="field__input" type="password" inputmode="numeric" maxlength="4" @bind="_biometricPin" />
+                        </label>
+
+                        <button class="btn btn--ghost btn--block" disabled="@_gateBusy" @onclick="EnableBiometricsAsync">
+                            @Loc.T("Barmaq izi ilə açmağı qoş", "Turn on biometric unlock")
+                        </button>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(_biometricNote))
+                    {
+                        <div class="alert @(_biometricsAvailable ? "alert--info" : "alert--error")">@_biometricNote</div>
+                    }
+                }
+            </div>
+
+            <h2 class="section-title">@Loc.T("Ekran vaxtı balansı", "Screen-time balance")</h2>
+            <div class="card">
+                @if (_saved)
+                {
+                    <div class="alert alert--info">@Loc.T("Tənzimləmələr yadda saxlanıldı.", "Settings saved.")</div>
+                }
+
+                <label class="field">
+                    <span class="field__label">@Loc.T("Gündəlik tapşırıq hədəfi", "Daily task goal")</span>
+                    <input class="field__input" type="number" min="1" max="50" @bind="_settings.DailyGoalTarget" />
+                </label>
+
+                <label class="field">
+                    <span class="field__label">@Loc.T("Gündəlik ekran limiti (dəqiqə)", "Daily screen limit (minutes)")</span>
+                    <input class="field__input" type="number" min="5" max="240" @bind="_settings.DailyMinutesLimit" />
+                </label>
+
+                <label class="field">
+                    <span class="field__label">@Loc.T("Yuxu rejimi başlanğıcı (saat)", "Bedtime starts (hour)")</span>
+                    <input class="field__input" type="number" min="0" max="23" @bind="_settings.BedtimeStartHour" />
+                </label>
+
+                <label class="field">
+                    <span class="field__label">@Loc.T("Yuxu rejimi bitişi (saat)", "Bedtime ends (hour)")</span>
+                    <input class="field__input" type="number" min="0" max="23" @bind="_settings.BedtimeEndHour" />
+                </label>
+
+                <button class="btn btn--primary btn--block" disabled="@_saving" @onclick="SaveAsync">
+                    @(_saving ? Loc.T("Yadda saxlanılır…", "Saving…") : Loc.T("Yadda saxla", "Save"))
+                </button>
+            </div>
+
+            </div>
+        }
+    </LoadingState>
+}
+
+@code {
+    private ParentDashboardDto? _dashboard;
+    private ScreenTimeSettingsDto _settings = new();
+    private readonly List<DiscoveryDto> _discoveries = [];
+
+    private ParentChatLogDto? _chatLog;
+    private bool _chatEnabled;
+    private bool _savingChat;
+
+    private bool _arenaEnabled;
+    private bool _arenaFriendsOnly;
+    private bool _savingArena;
+
+    // Dostluq sorğuları burada YOXDUR: cavabı uşaq öz Dostlar ekranında verir.
+
+    private bool _sharing;
+    private string? _shareNote;
+
+    private bool _unlocked;
+    private ParentGateStatusDto? _gateStatus;
+    private bool _gateBusy;
+    private string? _gateError;
+
+    /// <summary>Cihazda biometrika var (qoşula bilər).</summary>
+    private bool _biometricsSupported;
+
+    /// <summary>Qısa yol QOŞULUB: anbarda PIN var, yəni düymə göstərilə bilər.</summary>
+    private bool _biometricsAvailable;
+
+    private string _pin = string.Empty;
+    private string _newPin = string.Empty;
+    private string _password = string.Empty;
+
+    private bool _loading = true;
+    private bool _saving;
+    private bool _saved;
+
+    private bool _savingLanguage;
+    private bool _languageSaved;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var status = await ParentApi.GetGateStatusAsync();
+        _gateStatus = status is { Succeeded: true, Value: not null }
+            ? status.Value
+            : new ParentGateStatusDto { HasPin = false };
+
+        // Qısa yol ÜÇ şərtin hamısını tələb edir: serverdə PIN var, cihazda
+        // biometrika var, VƏ valideyn qısa yolu özü qoşub (anbarda PIN var).
+        // Sonuncusu vacibdir — yoxsa düymə hər valideynə avtomatik təklif
+        // olunardı, halbuki ailə planşetində uşağın barmaq izi qeydiyyatda ola bilər.
+        if (_gateStatus.HasPin)
+        {
+            _biometricsSupported = await Biometrics.IsAvailableAsync();
+            _biometricsAvailable = _biometricsSupported
+                && !string.IsNullOrWhiteSpace(await Tokens.GetAsync(TokenStoreKeys.ParentGatePin));
+        }
+    }
+
+    /// <summary>PIN dörd rəqəmdir — Enter gözləmədən dolduranda özü göndərilir.</summary>
+    private async Task PinKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await UnlockAsync();
+    }
+
+    private async Task UnlockAsync()
+    {
+        if (_gateBusy)
+            return;
+
+        _gateBusy = true;
+        _gateError = null;
+
+        var result = await ParentApi.UnlockGateAsync(_pin);
+
+        _gateBusy = false;
+        _pin = string.Empty;
+
+        if (!result.Succeeded)
+        {
+            // Sürət limiti serverdədir; burada yalnız serverin dediyi göstərilir.
+            _gateError = result.Error ?? Loc.T("PIN düzgün deyil.", "That PIN is not right.");
+            return;
+        }
+
+        await OpenAsync();
+    }
+
+    /// <summary>
+    /// Barmaq izi qapını AÇMIR — saxlanan PIN-i açır, PIN isə serverə göndərilir.
+    ///
+    /// <para>Əvvəlki variant biometrika uğurlu olan kimi <c>_unlocked = true</c>
+    /// edirdi və serverə heç nə soruşmurdu. Ailə planşetində uşağın barmaq izi
+    /// qeydiyyatdadırsa (adi haldır), bu, uşağın qarşısına qoyulmuş açıq
+    /// düymə demək idi — qapının bütün mənasını pozurdu. İndi zəncir belədir:
+    /// barmaq izi → anbardakı PIN → <c>/api/parent/gate/unlock</c> → açılış.
+    /// Yəni qərar həmişə serverdə qalır.</para>
+    ///
+    /// <para>Server PIN-i rədd edərsə (valideyn onu başqa cihazda dəyişib),
+    /// saxlanan nüsxə silinir və ekran adi PIN formuna qayıdır.</para>
+    /// </summary>
+    private async Task UnlockWithBiometricsAsync()
+    {
+        _gateBusy = true;
+        _gateError = null;
+
+        var recognised = await Biometrics.AuthenticateAsync(
+            Loc.T("Valideyn bölməsini açmaq üçün", "To open the parent area"));
+
+        if (!recognised)
+        {
+            _gateBusy = false;
+            _gateError = Loc.T("Tanınmadı — PIN-i yazın.", "Not recognised — type the PIN.");
+            return;
+        }
+
+        var storedPin = await Tokens.GetAsync(TokenStoreKeys.ParentGatePin);
+
+        if (string.IsNullOrWhiteSpace(storedPin))
+        {
+            _gateBusy = false;
+            _biometricsAvailable = false;
+            _gateError = Loc.T("Barmaq izi üçün PIN saxlanılmayıb — PIN-i yazın.",
+                               "No PIN is stored for biometrics — type the PIN.");
+            return;
+        }
+
+        var result = await ParentApi.UnlockGateAsync(storedPin);
+        _gateBusy = false;
+
+        if (!result.Succeeded)
+        {
+            // Saxlanan PIN köhnəlib — qısa yolu ləğv edirik, yoxsa hər dəfə
+            // eyni səhvə düşəcək.
+            await Tokens.RemoveAsync(TokenStoreKeys.ParentGatePin);
+            _biometricsAvailable = false;
+            _gateError = Loc.T("Saxlanan PIN artıq keçmir — PIN-i yazın.",
+                               "The stored PIN no longer works — type the PIN.");
+            return;
+        }
+
+        await OpenAsync();
+    }
+
+    private async Task SetPinAsync()
+    {
+        if (_gateBusy)
+            return;
+
+        _gateBusy = true;
+        _gateError = null;
+
+        var result = await ParentApi.SetGatePinAsync(_newPin, password: _password);
+
+        _gateBusy = false;
+        _password = string.Empty;
+
+        if (!result.Succeeded)
+        {
+            _gateError = result.Error;
+            return;
+        }
+
+        _gateStatus = result.Value;
+        _newPin = string.Empty;
+
+        await OpenAsync();
+    }
+
+    private async Task OpenAsync()
+    {
+        _gateError = null;
+        _unlocked = true;
+        await LoadAsync();
+    }
+
+    private string _currentPin = string.Empty;
+    private string _changePin = string.Empty;
+    private string? _pinChangeNote;
+    private bool _pinChanged;
+
+    private async Task ChangePinAsync()
+    {
+        if (_gateBusy)
+            return;
+
+        _gateBusy = true;
+        _pinChangeNote = null;
+
+        var newPin = _changePin;
+        var result = await ParentApi.SetGatePinAsync(newPin, currentPin: _currentPin);
+
+        _gateBusy = false;
+        _currentPin = string.Empty;
+        _changePin = string.Empty;
+        _pinChanged = result.Succeeded;
+
+        _pinChangeNote = result.Succeeded
+            ? Loc.T("PIN dəyişdirildi.", "The PIN was changed.")
+            : result.Error;
+
+        // Anbardakı nüsxə köhnəlməməlidir: qısa yol qoşuludursa yeni PIN yazılır,
+        // yoxsa növbəti barmaq izi cəhdi serverdən rədd cavabı alardı.
+        if (result.Succeeded && _biometricsAvailable)
+            await Tokens.SetAsync(TokenStoreKeys.ParentGatePin, newPin);
+    }
+
+    private string _biometricPin = string.Empty;
+    private string? _biometricNote;
+
+    /// <summary>
+    /// Qısa yolu qoşur. PIN əvvəlcə SERVERDƏ yoxlanılır — səhv PIN anbara
+    /// düşsəydi, qısa yol həmişə uğursuz olardı.
+    /// </summary>
+    private async Task EnableBiometricsAsync()
+    {
+        if (_gateBusy)
+            return;
+
+        _gateBusy = true;
+        _biometricNote = null;
+
+        var check = await ParentApi.UnlockGateAsync(_biometricPin);
+
+        if (!check.Succeeded)
+        {
+            _gateBusy = false;
+            _biometricNote = check.Error ?? Loc.T("PIN düzgün deyil.", "That PIN is not right.");
+            return;
+        }
+
+        // Barmaq izi elə indi bir dəfə soruşulur: valideyn qoşduğu şeyin əslində
+        // işlədiyini görməlidir.
+        var recognised = await Biometrics.AuthenticateAsync(
+            Loc.T("Barmaq izi ilə açmağı qoşmaq üçün", "To turn on biometric unlock"));
+
+        if (!recognised)
+        {
+            _gateBusy = false;
+            _biometricNote = Loc.T("Tanınmadı — qoşulmadı.", "Not recognised — not turned on.");
+            return;
+        }
+
+        await Tokens.SetAsync(TokenStoreKeys.ParentGatePin, _biometricPin);
+
+        _gateBusy = false;
+        _biometricPin = string.Empty;
+        _biometricsAvailable = true;
+        _biometricNote = Loc.T("Barmaq izi ilə açmaq qoşuldu.", "Biometric unlock is on.");
+    }
+
+    private async Task DisableBiometricsAsync()
+    {
+        _gateBusy = true;
+        await Tokens.RemoveAsync(TokenStoreKeys.ParentGatePin);
+        _gateBusy = false;
+
+        _biometricsAvailable = false;
+        _biometricNote = Loc.T("Barmaq izi ilə açmaq söndürüldü.", "Biometric unlock is off.");
+    }
+
+    private async Task LoadAsync()
+    {
+        var childId = Session.ActiveChildId;
+        if (childId is null)
+        {
+            _loading = false;
+            _error = Loc.T("Əvvəlcə uşaq profili seçin.", "Choose a child profile first.");
+            return;
+        }
+
+        _loading = true;
+        _error = null;
+
+        var result = await ParentApi.GetDashboardAsync(childId.Value);
+
+        _loading = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _dashboard = result.Value;
+        _settings = result.Value.ScreenTime;
+
+        // Kəşflər panelin əsas göstəricisi deyil: siyahı gəlməsə də panel
+        // açılmalıdır, ona görə xəta ekranı buradan qaldırılmır.
+        var discoveries = await ParentApi.GetDiscoveriesAsync(childId.Value);
+
+        _discoveries.Clear();
+        if (discoveries.Succeeded && discoveries.Value is not null)
+            _discoveries.AddRange(discoveries.Value);
+
+        // Söhbət tarixçəsi də panelin açılmasını bloklamır: gəlməsə bölmə
+        // sadəcə boş görünür.
+        _chatEnabled = result.Value.ChatEnabled;
+        _arenaEnabled = result.Value.ArenaEnabled;
+        _arenaFriendsOnly = result.Value.ArenaFriendsOnly;
+
+        var chat = await ParentApi.GetChatLogAsync(childId.Value);
+        _chatLog = chat.Succeeded ? chat.Value : null;
+
+    }
+
+    // ---------- Paylaşım ----------
+
+    /// <summary>
+    /// Dəvət linki yalnız VEB ünvanı olanda qurulur. MAUI-də səhifə yerli
+    /// ünvandan (0.0.0.0) verilir — belə linki paylaşmaq qarşı tərəfə heç nə
+    /// açmazdı, ona görə orada yalnız kod göndərilir.
+    /// </summary>
+    private string? InviteLink
+    {
+        get
+        {
+            if (_dashboard is null || string.IsNullOrWhiteSpace(_dashboard.FriendCode))
+                return null;
+
+            var baseUri = Navigation.BaseUri;
+
+            if (!baseUri.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                || baseUri.Contains("0.0.0.0")
+                || baseUri.Contains("localhost")
+                || baseUri.Contains("127.0.0.1"))
+                return null;
+
+            return $"{baseUri.TrimEnd('/')}/friends?friend={_dashboard.FriendCode}";
+        }
+    }
+
+    private async Task ShareInviteAsync()
+    {
+        if (_dashboard is null || _sharing)
+            return;
+
+        _sharing = true;
+        _shareNote = null;
+
+        var petName = string.IsNullOrWhiteSpace(_dashboard.PetName)
+            ? Loc.T("pet", "pet")
+            : _dashboard.PetName;
+
+        var text = Loc.T(
+            $"{petName} səni AI Pets for Kids-ə çağırır! Dost kodu: {_dashboard.FriendCode}",
+            $"{petName} is inviting you to AI Pets for Kids! Friend code: {_dashboard.FriendCode}");
+
+        if (InviteLink is { } link)
+            text += $"\n{link}";
+
+        await Share.ShareTextAsync(Loc.T("Dostluq dəvəti", "Friend invite"), text);
+
+        _sharing = false;
+
+        // Paylaşma vərəqi açılmasa mətn panoya düşür — istifadəçi nə baş
+        // verdiyini bilməlidir, çünki ekranda heç nə dəyişmir.
+        _shareNote = Loc.T("Dəvət hazırdır. Vərəq açılmadısa mətn panoya kopyalandı.",
+                           "The invite is ready. If no share sheet appeared, the text was copied to the clipboard.");
+    }
+
+    private async Task ShareCardAsync()
+    {
+        if (_dashboard is null || _sharing)
+            return;
+
+        _sharing = true;
+        _shareNote = null;
+
+        var data = new AchievementCardData
+        {
+            PetName = string.IsNullOrWhiteSpace(_dashboard.PetName)
+                ? Loc.T("Pet", "Pet")
+                : _dashboard.PetName,
+            Avatar = DisplayNames.Avatar(_dashboard.AvatarKey),
+            Age = _dashboard.PetLevel,
+            Stars = _dashboard.Stars,
+            Streak = _dashboard.StreakDays,
+            Caption = Loc.T("bu həftə belə böyüdü", "grew this much this week"),
+            Badges = _dashboard.BadgeCount > 0
+                ? Loc.T($"🏅 {_dashboard.BadgeCount} nişan qazanılıb", $"🏅 {_dashboard.BadgeCount} badges earned")
+                : string.Empty,
+            StatLabels = new Dictionary<string, string>
+            {
+                ["age"] = Loc.T("yaş", "age"),
+                ["stars"] = Loc.T("ulduz", "stars"),
+                ["streak"] = Loc.T("gün", "day streak")
+            }
+        };
+
+        var png = await Card.RenderAsync(data);
+
+        if (png is null)
+        {
+            _sharing = false;
+            _shareNote = Loc.T("Kart hazırlana bilmədi.", "The card could not be prepared.");
+            return;
+        }
+
+        await Share.ShareImageAsync(
+            Loc.T("Nailiyyət kartı", "Achievement card"), "petpal-card.png", png);
+
+        _sharing = false;
+        _shareNote = Loc.T("Kart hazırdır. Vərəq açılmadısa şəkil yükləndi.",
+                           "The card is ready. If no share sheet appeared, the image was downloaded.");
+    }
+
+    private Task<ApiResult<string>> LoadPhotoAsync(Guid discoveryId) =>
+        Session.ActiveChildId is { } childId
+            ? ParentApi.GetDiscoveryPhotoAsync(childId, discoveryId)
+            : Task.FromResult(ApiResult<string>.Fail(Loc.T("Əvvəlcə uşaq profili seçin.", "Choose a child profile first.")));
+
+    private async Task ToggleChatAsync()
+    {
+        var childId = Session.ActiveChildId;
+        if (childId is null)
+            return;
+
+        _savingChat = true;
+        var result = await ParentApi.UpdateChatSettingsAsync(childId.Value, !_chatEnabled);
+        _savingChat = false;
+
+        if (!result.Succeeded)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _chatEnabled = !_chatEnabled;
+
+        // Açar dəyişəndə tarixçə də yenilənir: valideyn söhbəti bağlayandan
+        // sonra da yazışmanı görməlidir.
+        var chat = await ParentApi.GetChatLogAsync(childId.Value);
+        if (chat.Succeeded)
+            _chatLog = chat.Value;
+    }
+
+    /// <summary>
+    /// Arena açarları BİRLİKDƏ yazılır: server hər iki dəyəri bir sorğuda alır,
+    /// yəni "yarışı bağla" ilə "yalnız dostlar" bir-birini üstələmir.
+    /// </summary>
+    private async Task SaveArenaAsync(bool enabled, bool friendsOnly)
+    {
+        var childId = Session.ActiveChildId;
+        if (childId is null)
+            return;
+
+        _savingArena = true;
+        var result = await ParentApi.UpdateArenaSettingsAsync(childId.Value, enabled, friendsOnly);
+        _savingArena = false;
+
+        if (!result.Succeeded)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _arenaEnabled = enabled;
+        _arenaFriendsOnly = friendsOnly;
+    }
+
+    /// <summary>Filtrin saxlama səbəbini valideynin dilinə çevirir.</summary>
+    private string BlockedLabel(string reason) => reason switch
+    {
+        "ContactInfo" => Loc.T("şəxsi məlumat", "personal detail"),
+        "Injection" => Loc.T("pet-in qaydalarını dəyişmək cəhdi", "tried to change the pet's rules"),
+        "Repetition" => Loc.T("təkrarlanan simvollar", "repeated characters"),
+        "TooLong" => Loc.T("çox uzun", "too long"),
+        _ => Loc.T("cavablanmadı", "not answered")
+    };
+
+    private async Task SaveAsync()
+    {
+        var childId = Session.ActiveChildId;
+        if (childId is null)
+            return;
+
+        _saving = true;
+        _saved = false;
+
+        var result = await ParentApi.UpdateScreenTimeAsync(childId.Value, _settings);
+
+        _saving = false;
+
+        if (!result.Succeeded)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _saved = true;
+    }
+
+    /// <summary>Dil adları hər zaman ÖZ dilində yazılır — tərcümə olunmur.</summary>
+    private static readonly (string Code, string Flag, string Name)[] LanguageOptions =
+    [
+        (Loc.Azerbaijani, "🇦🇿", "Azərbaycan dili"),
+        (Loc.English, "🇬🇧", "English")
+    ];
+
+    private bool IsCurrentLanguage(string code) =>
+        string.Equals(_dashboard?.LanguageCode ?? Loc.Language, code, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Dil serverdə uşağın profilinə yazılır (sual bankı da ondan asılıdır) və
+    /// dəyişən profil elə indi aktivdirsə, interfeys dərhal həmin dilə keçir —
+    /// valideyn nəticəni yenidən girmədən görür.
+    /// </summary>
+    private async Task ChangeLanguageAsync(string code)
+    {
+        var childId = Session.ActiveChildId;
+        if (childId is null || _savingLanguage)
+            return;
+
+        _savingLanguage = true;
+        _languageSaved = false;
+        _error = null;
+
+        var result = await ParentApi.UpdateLanguageAsync(childId.Value, code);
+
+        _savingLanguage = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        if (_dashboard is not null)
+            _dashboard.LanguageCode = result.Value.LanguageCode;
+
+        await Session.UseChildLanguageAsync(result.Value.LanguageCode);
+        _languageSaved = true;
+
+        // Panelin bir hissəsi SERVERDƏN gəlir (müşahidələr, bacarıq adları) —
+        // onlar yalnız yeni sorğuda dil dəyişir, yoxsa yarısı köhnə dildə qalır.
+        await LoadAsync();
+    }
+
+    /// <summary>Sütun hündürlüyü ən yüksək günə nisbətdə hesablanır ki, qrafik həmişə oxunaqlı olsun.</summary>
+    private int BarHeight(int tasksDone)
+    {
+        var max = _dashboard?.Last7Days.Max(p => p.TasksDone) ?? 0;
+        if (max <= 0)
+            return 3;
+
+        return Math.Clamp(tasksDone * 100 / max, 3, 100);
+    }
+}

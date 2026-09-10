@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Debug build-inə əlavə olunan manifest overlay-i (bax PetPal.App.csproj →
+    AndroidManifestOverlay). Yalnız şəbəkə konfiqurasiyasını əvəz edir ki,
+    fiziki telefonda lokal API-yə HTTP ilə qoşulmaq mümkün olsun.
+
+    tools:replace lazımdır, çünki əsas manifest artıq networkSecurityConfig
+    təyin edib — merger konfliktdə hansının qalacağını açıq bilməlidir.
+
+    Release build-i bu faylı görmür: orada yalnız HTTPS-ə icazə verən
+    network_security_config.xml qüvvədə qalır.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools">
+    <application android:networkSecurityConfig="@xml/network_security_config_debug"
+                 tools:replace="android:networkSecurityConfig" />
+</manifest>

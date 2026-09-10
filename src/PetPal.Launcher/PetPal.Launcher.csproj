@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>PetPal.Launcher</RootNamespace>
+    <!-- İstifadəçinin masaüstündə görəcəyi ad: "AI Pets for Kids.exe".
+         Kod tərəfindəki PetPal adları (namespace, dll) qəsdən dəyişməyib —
+         onlar istifadəçiyə görünmür. -->
+    <AssemblyName>AI Pets for Kids</AssemblyName>
+    <ApplicationIcon>petpal.ico</ApplicationIcon>
+    <Product>AI Pets for Kids</Product>
+    <AssemblyTitle>AI Pets for Kids</AssemblyTitle>
+    <Company>AI Pets for Kids</Company>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,33 @@
+@inject Loc Loc
+
+@* Ana ekranın "Günün hədəfi 3/5" barı. *@
+
+<div>
+    <div class="progress__row">
+        <span>@(Title ?? Loc.T("Günün hədəfi", "Daily goal"))</span>
+        <span>@Completed/@Target</span>
+    </div>
+    <div class="progress progress--goal">
+        <div class="progress__bar" style="width:@Percent%" role="progressbar"
+             aria-valuenow="@Completed" aria-valuemin="0" aria-valuemax="@Target"></div>
+    </div>
+    @if (StreakDays > 0)
+    {
+        <div class="mission__meta" style="margin-top:8px">
+            <span>🔥 @Loc.T($"{StreakDays} günlük ardıcıllıq", $"{StreakDays}-day streak")</span>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Verilməyibsə dilə uyğun standart başlıq işlədilir.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    [Parameter] public int Completed { get; set; }
+
+    [Parameter] public int Target { get; set; } = 5;
+
+    [Parameter] public int StreakDays { get; set; }
+
+    private int Percent => Target <= 0 ? 0 : Math.Clamp(Completed * 100 / Target, 0, 100);
+}

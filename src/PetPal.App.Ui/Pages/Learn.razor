@@ -1,0 +1,294 @@
+@page "/learn"
+@inject GameApiClient Api
+@inject AppState State
+@inject NavigationManager Navigation
+@inject Loc Loc
+
+@* Öyrənmə axını: sual → dərhal geri əlaqə → yekun.
+   Sual dəsti adaptivdir; uşaq bacarıq seçməsə, ən zəif sahə avtomatik gəlir. *@
+
+<h1 class="visually-hidden-title">@Loc.T("Öyrən", "Learn")</h1>
+
+<LoadingState IsLoading="_loading" Error="@_error" OnRetry="ResetAsync" LoadingText="@Loc.T("Tapşırıq hazırlanır…", "Preparing your tasks…")">
+    @if (_summary is not null)
+    {
+        @* Nişan sayı dəyişkəndir — ekran sürüşmür, yalnız bu hissə sürüşür. *@
+        <div class="list-scroll">
+        <div class="card" style="text-align:center">
+            <div style="font-size:44px" aria-hidden="true">@(_summary.AccuracyPercent >= 80 ? "🏆" : "💪")</div>
+            <h2 class="card__title">@_summary.PetMessage</h2>
+            <p class="card__subtitle">@Loc.T($"{_summary.CorrectCount} / {_summary.TotalCount} doğru · {_summary.AccuracyPercent}% dəqiqlik", $"{_summary.CorrectCount} / {_summary.TotalCount} correct · {_summary.AccuracyPercent}% accuracy")</p>
+
+            <div class="metrics" style="margin-top:16px">
+                <div class="metric">
+                    <div class="metric__value">@_summary.StarsEarned</div>
+                    <div class="metric__label">@Loc.T("Ulduz", "Stars")</div>
+                </div>
+                <div class="metric">
+                    <div class="metric__value">@_summary.XpEarned</div>
+                    <div class="metric__label">XP</div>
+                </div>
+                <div class="metric">
+                    <div class="metric__value">@_summary.PetLevel</div>
+                    <div class="metric__label">@Loc.T("Yaş", "Age")</div>
+                </div>
+            </div>
+
+            @if (_summary.SprintBonusStars > 0)
+            {
+                <div class="reward-pop">@Loc.T($"⚡ Sprint bonusu +{_summary.SprintBonusStars}", $"⚡ Sprint bonus +{_summary.SprintBonusStars}")</div>
+            }
+
+            @if (_summary.PetLeveledUp)
+            {
+                <div class="alert alert--info" style="margin-top:16px">
+                    @Loc.T($"🎉 Pet-in yaşı artdı: {DisplayNames.Stage(Loc, _summary.PetStage)}", $"🎉 Your pet grew up: {DisplayNames.Stage(Loc, _summary.PetStage)}")
+                </div>
+            }
+
+            @if (_summary.NewBadges.Count > 0)
+            {
+                <h3 class="section-title">@Loc.T("Yeni nişanlar", "New badges")</h3>
+                <div class="badges">
+                    @foreach (var badge in _summary.NewBadges)
+                    {
+                        <div class="badge-tile">
+                            <div class="badge-tile__icon" aria-hidden="true">🏅</div>
+                            <div class="badge-tile__title">@badge.Title</div>
+                        </div>
+                    }
+                </div>
+            }
+
+            <button class="btn btn--primary btn--block" style="margin-top:18px" @onclick="ResetAsync">
+                @Loc.T("Daha bir dəst", "One more set")
+            </button>
+            <a class="link-button" href="">@Loc.T("Ana ekrana qayıt", "Back to home")</a>
+        </div>
+        </div>
+    }
+    else if (_session is not null && CurrentQuestion is not null)
+    {
+        <div class="progress__row">
+            <span>@(_session.IsSprint ? Loc.T("⚡ Bilik sprinti", "⚡ Knowledge sprint") : DisplayNames.Skill(Loc, _session.Skill))</span>
+            <span>@(_index + 1) / @_session.Questions.Count</span>
+        </div>
+        <div class="progress" style="margin-bottom:18px">
+            <div class="progress__bar" style="width:@SessionPercent%"></div>
+        </div>
+
+        <div class="list-scroll">
+        <div class="card">
+            <div class="question">@CurrentQuestion.Prompt</div>
+
+            <div class="options">
+                @for (var i = 0; i < CurrentQuestion.Options.Count; i++)
+                {
+                    var index = i;
+                    <button class="option @OptionClass(index)" disabled="@(_lastResult is not null || _busy)"
+                            @onclick="() => AnswerAsync(index)">
+                        <span class="option__key" aria-hidden="true">@((char)('A' + index))</span>
+                        <span>@CurrentQuestion.Options[index]</span>
+                    </button>
+                }
+            </div>
+
+            @if (_lastResult is not null)
+            {
+                <div class="feedback @(_lastResult.IsCorrect ? "feedback--correct" : "feedback--wrong")">
+                    <div>@_lastResult.PetReaction</div>
+                    <div style="margin-top:6px;font-weight:600">@_lastResult.Explanation</div>
+                    @if (_lastResult.StarsEarned > 0)
+                    {
+                        <div class="reward-pop">⭐ +@_lastResult.StarsEarned</div>
+                    }
+                </div>
+
+                <button class="btn btn--primary btn--block" style="margin-top:16px" @onclick="NextAsync">
+                    @(IsLastQuestion ? Loc.T("Nəticəni gör", "See the result") : Loc.T("Növbəti sual", "Next question"))
+                </button>
+            }
+            else if (!string.IsNullOrWhiteSpace(CurrentQuestion.Hint))
+            {
+                <button class="btn btn--quiet btn--block" style="margin-top:14px" @onclick="() => _showHint = !_showHint">
+                    @(_showHint ? CurrentQuestion.Hint : Loc.T("💡 İpucu göstər", "💡 Show a hint"))
+                </button>
+            }
+        </div>
+        </div>
+    }
+    else
+    {
+        <div class="list-scroll">
+        <div class="card">
+            <h2 class="card__title">@Loc.T("Nə öyrənmək istəyirsən?", "What would you like to learn?")</h2>
+            <p class="card__subtitle">@Loc.T("Seçim etməsən, ən çox məşq lazım olan sahəni özümüz seçəcəyik.", "If you don't pick one, we'll choose the skill that needs the most practice.")</p>
+
+            <div class="actions" style="grid-template-columns:repeat(3,1fr)">
+                @foreach (var skill in Enum.GetValues<SkillArea>())
+                {
+                    var value = skill;
+                    <button class="action" @onclick="() => StartAsync(value)">
+                        <span class="action__icon" aria-hidden="true">@DisplayNames.SkillIcon(value)</span>
+                        <span>@DisplayNames.Skill(Loc, value)</span>
+                    </button>
+                }
+            </div>
+
+            <button class="btn btn--primary btn--block" style="margin-top:16px" @onclick="() => StartAsync(null)">
+                @Loc.T("✨ Mənə uyğun olanı seç", "✨ Pick one for me")
+            </button>
+
+            @* Arena Öyrən bölməsinin YARIŞ rejimidir — ayrıca bölmə deyil, ona
+               görə girişi elə bu kartdadır. *@
+            <button class="btn btn--ghost btn--block" style="margin-top:10px"
+                    @onclick='() => Navigation.NavigateTo("arena")'>
+                @Loc.T("🏆 Bilik Arenası — başqa uşaqla yarış", "🏆 Knowledge Arena — duel another child")
+            </button>
+        </div>
+        </div>
+    }
+</LoadingState>
+
+@code {
+    private LearningSessionDto? _session;
+    private SessionSummaryDto? _summary;
+    private AnswerResultDto? _lastResult;
+
+    private int _index;
+    private bool _loading;
+    private bool _busy;
+    private bool _showHint;
+    private string? _error;
+    private DateTime _questionShownAt = DateTime.UtcNow;
+
+    /// <summary>Ana ekrandakı sprint təklifi bura "?sprint=1" ilə yönləndirir.</summary>
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        if (uri.Query.Contains("sprint=1", StringComparison.OrdinalIgnoreCase))
+            await StartAsync(null, isSprint: true);
+    }
+
+    private QuestionDto? CurrentQuestion =>
+        _session is not null && _index < _session.Questions.Count ? _session.Questions[_index] : null;
+
+    private bool IsLastQuestion => _session is not null && _index >= _session.Questions.Count - 1;
+
+    private int SessionPercent => _session is null || _session.Questions.Count == 0
+        ? 0
+        : (_index) * 100 / _session.Questions.Count;
+
+    private async Task StartAsync(SkillArea? skill, bool isSprint = false)
+    {
+        _loading = true;
+        _error = null;
+
+        var result = await Api.StartSessionAsync(new StartSessionRequest
+        {
+            Skill = skill,
+            QuestionCount = 5,
+            IsSprint = isSprint
+        });
+
+        _loading = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _session = result.Value;
+        _summary = null;
+        _lastResult = null;
+        _index = 0;
+        _showHint = false;
+        _questionShownAt = DateTime.UtcNow;
+    }
+
+    private async Task AnswerAsync(int chosenIndex)
+    {
+        if (_session is null || CurrentQuestion is null)
+            return;
+
+        _busy = true;
+
+        var result = await Api.SubmitAnswerAsync(new SubmitAnswerRequest
+        {
+            SessionId = _session.SessionId,
+            QuestionId = CurrentQuestion.Id,
+            ChosenIndex = chosenIndex,
+            ElapsedMs = (int)Math.Clamp((DateTime.UtcNow - _questionShownAt).TotalMilliseconds, 0, 600_000)
+        });
+
+        _busy = false;
+        _chosenIndex = chosenIndex;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _lastResult = result.Value;
+        State.ApplyAnswer(_lastResult);
+    }
+
+    private int _chosenIndex = -1;
+
+    private async Task NextAsync()
+    {
+        if (_session is null)
+            return;
+
+        _lastResult = null;
+        _chosenIndex = -1;
+        _showHint = false;
+
+        if (!IsLastQuestion)
+        {
+            _index++;
+            _questionShownAt = DateTime.UtcNow;
+            return;
+        }
+
+        _loading = true;
+        var result = await Api.CompleteSessionAsync(_session.SessionId);
+        _loading = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _summary = result.Value;
+
+        var wallet = await Api.GetWalletAsync();
+        if (wallet.Succeeded && wallet.Value is not null)
+            State.ApplyWallet(wallet.Value);
+    }
+
+    private Task ResetAsync()
+    {
+        _session = null;
+        _summary = null;
+        _lastResult = null;
+        _error = null;
+        _index = 0;
+        return Task.CompletedTask;
+    }
+
+    private string? OptionClass(int index)
+    {
+        if (_lastResult is null)
+            return null;
+
+        if (index == _lastResult.CorrectIndex)
+            return "option--correct";
+
+        return index == _chosenIndex ? "option--wrong" : null;
+    }
+
+}

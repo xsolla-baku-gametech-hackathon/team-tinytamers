@@ -1,0 +1,183 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap">
+  <style>
+    /* Bu vərəq bilərəkdən neytral fondadır — nə A, nə B palitrası burada
+       özünü yaxşı göstərməsin deyə. */
+    body {
+      margin: 0;
+      font-family: 'Nunito', ui-rounded, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      --paper: #F1F0F2;
+      --panel: #FFFFFF;
+      --ink: #1C1B22;
+      --ink-soft: #5A5866;
+      --rule: #DCDAE2;
+    }
+    a { color: #4A4757; }
+    a:hover { color: #1C1B22; }
+  </style>
+</helmet>
+
+<div style="width: 880px; height: 900px; padding: 40px; background: var(--paper); color: var(--ink); display: flex; flex-direction: column; gap: 26px;">
+
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <div style="font-size: 28px; font-weight: 900; line-height: 1.1;">Palitra müqayisəsi</div>
+    <div style="font-size: 15px; font-weight: 700; line-height: 1.45; color: var(--ink-soft); max-width: 620px; text-wrap: pretty;">Hər iki istiqamətdə markup eynidir və üç rəng ailəsinin mənası dəyişmir. Fərq yalnız token dəyərlərindədir — yəni kodda dəyişəcək tək fayl <a href="#">theme.css</a> olur.</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px;">
+
+    <!-- ============ A ============ -->
+    <div style="padding: 22px; border-radius: 20px; background: var(--panel); display: flex; flex-direction: column; gap: 18px;">
+      <div style="display: flex; align-items: baseline; gap: 10px;">
+        <span style="font-size: 20px; font-weight: 900;">A</span>
+        <span style="font-size: 14px; font-weight: 800; color: var(--ink-soft);">mövcud palitra</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 12px; font-weight: 900; letter-spacing: 0.04em; color: var(--ink-soft);">BƏNÖVŞƏYİ — AĞIL</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #EDE8FF;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#EDE8FF</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #6C4CF1;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#6C4CF1</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #5334D9;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#5334D9</div></div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 12px; font-weight: 900; letter-spacing: 0.04em; color: var(--ink-soft);">YAŞIL — CANLILIQ</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #DAF5E7;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#DAF5E7</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #17B26A;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#17B26A</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #0B7A47;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#0B7A47</div></div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 12px; font-weight: 900; letter-spacing: 0.04em; color: var(--ink-soft);">NARINCI — ENERJİ</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #FFEEDA;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#FFEEDA</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #FF8A15;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#FF8A15</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #A85200;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#A85200</div></div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 12px; font-weight: 900; letter-spacing: 0.04em; color: var(--ink-soft);">MORUQ — YALNIZ SƏHV</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #FFE4EA;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#FFE4EA</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #C81E43;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#C81E43</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #8E0F2B;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#8E0F2B</div></div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 12px; font-weight: 900; letter-spacing: 0.04em; color: var(--ink-soft);">SƏTHLƏR</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #F5F2FF; box-shadow: inset 0 0 0 1px var(--rule);"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">fon #F5F2FF</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #FFFFFF; box-shadow: inset 0 0 0 1px var(--rule);"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">kart #FFFFFF</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #1B1140;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">mətn #1B1140</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ B ============ -->
+    <div style="padding: 22px; border-radius: 20px; background: var(--panel); display: flex; flex-direction: column; gap: 18px;">
+      <div style="display: flex; align-items: baseline; gap: 10px;">
+        <span style="font-size: 20px; font-weight: 900;">B</span>
+        <span style="font-size: 14px; font-weight: 800; color: var(--ink-soft);">yumşaldılmış palitra</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 12px; font-weight: 900; letter-spacing: 0.04em; color: var(--ink-soft);">BƏNÖVŞƏYİ — AĞIL</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #E9E4F7;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#E9E4F7</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #6F5AD8;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#6F5AD8</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #54419E;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#54419E</div></div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 12px; font-weight: 900; letter-spacing: 0.04em; color: var(--ink-soft);">YAŞIL — CANLILIQ</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #DCEEE4;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#DCEEE4</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #35A57A;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#35A57A</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #156F4F;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#156F4F</div></div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 12px; font-weight: 900; letter-spacing: 0.04em; color: var(--ink-soft);">NARINCI — ENERJİ</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #FAEBD6;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#FAEBD6</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #E89A3C;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#E89A3C</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #93540E;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#93540E</div></div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 12px; font-weight: 900; letter-spacing: 0.04em; color: var(--ink-soft);">MORUQ — YALNIZ SƏHV</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #F7E1E5;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#F7E1E5</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #B7304C;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#B7304C</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #8A2038;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">#8A2038</div></div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 12px; font-weight: 900; letter-spacing: 0.04em; color: var(--ink-soft);">SƏTHLƏR</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #F0EBE0; box-shadow: inset 0 0 0 1px var(--rule);"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">fon #F0EBE0</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #FBF7EF; box-shadow: inset 0 0 0 1px var(--rule);"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">kart #FBF7EF</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 44px; border-radius: 12px; background: #241E38;"></div><div style="font-size: 11px; font-weight: 800; color: var(--ink-soft);">mətn #241E38</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ÖLÇÜLƏR ============ -->
+  <div style="padding: 22px 24px; border-radius: 20px; background: var(--panel); display: flex; flex-direction: column; gap: 14px;">
+    <div style="font-size: 15px; font-weight: 900;">Ölçülmüş fərq</div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: 10px 16px; font-size: 13px; font-weight: 800;">
+      <div style="color: var(--ink-soft); padding-bottom: 8px; border-bottom: 2px solid var(--rule);">Ölçü</div>
+      <div style="color: var(--ink-soft); padding-bottom: 8px; border-bottom: 2px solid var(--rule);">A</div>
+      <div style="color: var(--ink-soft); padding-bottom: 8px; border-bottom: 2px solid var(--rule);">B</div>
+
+      <div>Fonun parlaqlığı</div><div>90.1%</div><div>83.3%</div>
+      <div>Kartın parlaqlığı</div><div>100% — saf ağ</div><div>93.3%</div>
+      <div>Ən dar mətn cütü — yaşıl</div><div>4.68:1</div><div>5.09:1</div>
+      <div>Ən dar mətn cütü — narıncı</div><div>4.78:1</div><div>5.10:1</div>
+      <div>Ağ mətn / bənövşəyi dolgu</div><div>5.33:1</div><div>5.08:1</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 4px;">
+      <div style="padding: 14px 16px; border-radius: 14px; background: #F1F0F2;">
+        <div style="font-size: 13px; font-weight: 900; margin-bottom: 4px;">B nə qazandırır</div>
+        <div style="font-size: 13px; font-weight: 700; line-height: 1.5; color: var(--ink-soft); text-wrap: pretty;">Saf ağ kart yox olur və fon bir pillə tündləşir — uzun baxışda gözü yoran əsas mənbə budur. Ən dar iki mətn cütü isə əksinə yaxşılaşır.</div>
+      </div>
+      <div style="padding: 14px 16px; border-radius: 14px; background: #F1F0F2;">
+        <div style="font-size: 13px; font-weight: 900; margin-bottom: 4px;">B nə itirir</div>
+        <div style="font-size: 13px; font-weight: 700; line-height: 1.5; color: var(--ink-soft); text-wrap: pretty;">Şəkərli, parlaq «oyuncaq» hissi zəifləyir. Kiçik uşaq doymuş rəngə daha tez reaksiya verir — B sakit, amma az çağırışlıdır.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":880,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,343 @@
+@implements IDisposable
+@inject Loc Loc
+
+@* Meyvə kəs: hədəf cəm verilir (məsələn 12), meyvələr üzür, uşaq həmin cəmi
+   quran meyvələri kəsir.
+
+   Bu, "Sürətli hesab"dan başqa bacarıqdır: orada hazır cavab seçilir, burada
+   rəqəm PARÇALANIR — 12 üçün 5 və 7, yoxsa 9 və 3? Uşaq qalan fərqi hər
+   kəsikdən sonra yenidən hesablayır.
+
+   Hədəfi keçmək bir cana başa gəlir, ona görə "hər şeyi kəs" strategiyası
+   işləmir. Bomba isə formaca da fərqlidir — rəngi seçməyən uşaq da tanıyır. *@
+
+<GameShell Title="@Loc.T("Meyvə kəs", "Fruit Slice")"
+           Round="_completed" RoundTotal="RoundCount"
+           Lives="_lives" Hit="_hit" Over="_over"
+           Rule="@Loc.T($"Cəmi {_target} edən meyvələri kəs", $"Slice fruits that add up to {_target}")" RuleTone="alert"
+           RuleChanged="_ruleChanged"
+           TimerPercent="TimerPercent"
+           ScoreValue="@_completed.ToString()"
+           ScoreLabel="@Loc.T("cəm tamamlandı", "sums done")">
+
+    <Backdrop><div class="gsbg gsbg--berry"></div></Backdrop>
+
+    <ChildContent>
+        <div class="slice">
+            @* Yığılan cəm həmişə göz önündədir: uşaq nə qədər qaldığını
+               yaddaşdan yox, ekrandan oxuyur. *@
+            <div class="slice__sum" aria-live="polite">
+                @foreach (var picked in _picked)
+                {
+                    <span class="slice__chip">@picked</span>
+                    <span class="slice__sign" aria-hidden="true">+</span>
+                }
+                <span class="slice__chip slice__chip--open">?</span>
+                <span class="slice__sign" aria-hidden="true">=</span>
+                <span class="slice__target">@_target</span>
+            </div>
+
+            @foreach (var fruit in _fruits)
+            {
+                var current = fruit;
+
+                <button @key="current.Id" class="fruit fruit--@(current.IsBomb ? "bomb" : current.Color.ToString()) @FruitClass(current)"
+                        style="--x:@(current.X)%; --dur:@(current.LifetimeMs)ms; --start:@(current.StartOffsetMs)ms"
+                        disabled="@current.Gone"
+                        aria-label="@(current.IsBomb ? Loc.T("Bomba", "Bomb") : current.Value.ToString())"
+                        @onclick="() => Slice(current)">
+                    <span class="fruit__body">@(current.IsBomb ? "💣" : current.Value.ToString())</span>
+                </button>
+            }
+        </div>
+    </ChildContent>
+</GameShell>
+
+@code {
+    private const int RoundCount = 5;
+    private const int SecondsPerRound = 20;
+
+    private const int MinLifetimeMs = 6400;
+    private const int MaxLifetimeMs = 8000;
+    private const int MinSpawnGapMs = 750;
+    private const int MaxSpawnGapMs = 1250;
+    private const int MaxOnScreen = 6;
+    private const int CutFadeMs = 340;
+    private const int FlashMs = 1400;
+    private const int LaneCount = 4;
+
+    private const int StartingLives = 3;
+
+    private sealed class Fruit
+    {
+        public required int Id { get; init; }
+        public required int Value { get; init; }
+        public required int X { get; init; }
+        public required int LifetimeMs { get; init; }
+        public required int Color { get; init; }
+        public required bool IsBomb { get; init; }
+        public int StartOffsetMs { get; init; }
+        public DateTime ExpiresAt { get; set; }
+        public bool Gone { get; set; }
+        public bool WasBomb { get; set; }
+    }
+
+    [Parameter] public EventCallback<(int Score, int DurationMs)> OnFinished { get; set; }
+
+    private readonly Random _random = new();
+    private readonly List<Fruit> _fruits = [];
+    private readonly List<int> _picked = [];
+
+    private int _round;
+    private int _completed;
+    private int _target = 10;
+    private int _sum;
+
+    private int _lives = StartingLives;
+    private bool _hit;
+    private bool _over;
+    private bool _done;
+    private bool _ruleChanged;
+    private int _nextId;
+    private int _lastLane = -1;
+    private int _shownSeconds = -1;
+
+    private bool _finished;
+
+    private DateTime _startedAt;
+    private DateTime _roundEndsAt;
+    private DateTime _nextSpawnAt;
+    private DateTime _flashUntil;
+    private System.Timers.Timer? _timer;
+
+    private int SecondsLeft => Math.Max(0, (int)Math.Ceiling((_roundEndsAt - DateTime.UtcNow).TotalSeconds));
+
+    private int TimerPercent => Math.Clamp(SecondsLeft * 100 / SecondsPerRound, 0, 100);
+
+    protected override void OnInitialized()
+    {
+        _startedAt = DateTime.UtcNow;
+        StartRound();
+
+        // Səhnə boş açılmasın: ilk meyvələr artıq yoldadır.
+        for (var i = 0; i < 3; i++)
+            AddFruit(_startedAt, startedMsAgo: 1400 + i * 1500);
+
+        _timer = new System.Timers.Timer(250);
+        _timer.Elapsed += OnTick;
+        _timer.Start();
+    }
+
+    /// <summary>Yeni hədəf: meyvələrə toxunmur, yalnız cəm sıfırlanır.</summary>
+    private void StartRound()
+    {
+        _round++;
+        _target = _random.Next(8, 17);
+        _sum = 0;
+        _picked.Clear();
+        _roundEndsAt = DateTime.UtcNow.AddSeconds(SecondsPerRound);
+        _flashUntil = DateTime.UtcNow.AddMilliseconds(FlashMs);
+    }
+
+    private async void OnTick(object? sender, System.Timers.ElapsedEventArgs e)
+    {
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                if (_done)
+                    return;
+
+                var now = DateTime.UtcNow;
+                var changed = _fruits.RemoveAll(f => now >= f.ExpiresAt) > 0;
+
+                if (now >= _nextSpawnAt && _fruits.Count < MaxOnScreen)
+                {
+                    AddFruit(now);
+                    _nextSpawnAt = now.AddMilliseconds(_random.Next(MinSpawnGapMs, MaxSpawnGapMs));
+                    changed = true;
+                }
+
+                // Vaxt bitdi: raund itir, amma can getmir — gecikmək səhv deyil.
+                if (now >= _roundEndsAt)
+                {
+                    if (_round >= RoundCount)
+                    {
+                        await FinishAsync();
+                        return;
+                    }
+
+                    StartRound();
+                    changed = true;
+                }
+
+                if (_shownSeconds != SecondsLeft)
+                {
+                    _shownSeconds = SecondsLeft;
+                    changed = true;
+                }
+
+                var flashing = now < _flashUntil;
+                if (flashing != _ruleChanged)
+                {
+                    _ruleChanged = flashing;
+                    changed = true;
+                }
+
+                if (changed)
+                    StateHasChanged();
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+            // Oyun bağlananda taymer son bir dəfə işə düşə bilər.
+        }
+    }
+
+    private void AddFruit(DateTime now, int startedMsAgo = 0)
+    {
+        var lifetime = _random.Next(MinLifetimeMs, MaxLifetimeMs);
+        var remaining = _target - _sum;
+
+        // Səhnədə həmişə cəmi tamamlaya bilən bir meyvə olsun — yoxsa uşaq
+        // gözləməyə məcbur qalır və oyun onun deyil, bəxtin işinə çevrilir.
+        // Bu meyvə bomba ilə əvəzlənə bilməz, ona görə şərt bombadan ƏVVƏL yoxlanılır.
+        var needsCloser = remaining is > 0 and <= 9
+            && !_fruits.Any(f => !f.Gone && !f.IsBomb && f.Value == remaining);
+
+        // Hər altıncı meyvə bombadır: qayda "hər şeyi kəs" olmasın.
+        var isBomb = !needsCloser && _random.Next(6) == 0;
+
+        var value = isBomb ? 0 : needsCloser ? remaining : _random.Next(1, Math.Max(2, Math.Min(10, remaining + 1)));
+
+        _fruits.Add(new Fruit
+        {
+            Id = ++_nextId,
+            Value = value,
+            X = NextLane(),
+            LifetimeMs = lifetime,
+            Color = _random.Next(4),
+            IsBomb = isBomb,
+            StartOffsetMs = -startedMsAgo,
+            ExpiresAt = now.AddMilliseconds(lifetime - startedMsAgo)
+        });
+    }
+
+    private int NextLane()
+    {
+        int lane;
+        do
+        {
+            lane = _random.Next(LaneCount);
+        }
+        while (lane == _lastLane);
+
+        _lastLane = lane;
+        return 5 + lane * 22 + _random.Next(-3, 4);
+    }
+
+    private void Slice(Fruit fruit)
+    {
+        if (fruit.Gone || _done)
+            return;
+
+        fruit.Gone = true;
+        fruit.WasBomb = fruit.IsBomb;
+        fruit.ExpiresAt = DateTime.UtcNow.AddMilliseconds(CutFadeMs);
+
+        if (fruit.IsBomb)
+        {
+            _ = LoseLifeAsync();
+            StateHasChanged();
+            return;
+        }
+
+        _sum += fruit.Value;
+        _picked.Add(fruit.Value);
+
+        if (_sum == _target)
+        {
+            _completed++;
+            _ = CompleteRoundAsync();
+        }
+        else if (_sum > _target)
+        {
+            // Hədəfi keçmək: cəm sıfırlanır və bir can gedir.
+            _sum = 0;
+            _picked.Clear();
+            _ = LoseLifeAsync();
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task CompleteRoundAsync()
+    {
+        await Task.Delay(600);
+
+        if (_done)
+            return;
+
+        if (_round >= RoundCount)
+        {
+            await InvokeAsync(FinishAsync);
+            return;
+        }
+
+        StartRound();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoseLifeAsync()
+    {
+        _lives--;
+        _hit = true;
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(420);
+        _hit = false;
+
+        if (_lives > 0)
+        {
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _over = true;
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(900);
+        await InvokeAsync(FinishAsync);
+    }
+
+    private async Task FinishAsync()
+    {
+        if (_finished)
+            return;
+
+        _finished = true;
+        _done = true;
+        _timer?.Stop();
+
+        var score = Math.Clamp(_completed * 100 / RoundCount, 0, 100);
+        var duration = (int)Math.Clamp((DateTime.UtcNow - _startedAt).TotalMilliseconds, 0, 1_800_000);
+
+        await OnFinished.InvokeAsync((score, duration));
+    }
+
+    private static string FruitClass(Fruit fruit) => fruit switch
+    {
+        { Gone: true, WasBomb: true } => "fruit--boom",
+        { Gone: true } => "fruit--cut",
+        _ => string.Empty
+    };
+
+    public void Dispose()
+    {
+        if (_timer is null)
+            return;
+
+        _timer.Elapsed -= OnTick;
+        _timer.Dispose();
+    }
+}

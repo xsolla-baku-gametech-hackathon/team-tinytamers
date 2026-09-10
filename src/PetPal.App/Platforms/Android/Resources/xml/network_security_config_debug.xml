@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    YALNIZ DEBUG BUILD ÜÇÜN.
+
+    Fiziki telefonda test edərkən app development maşınına LAN üzərindən
+    (məs. http://192.168.0.103:5180) müraciət edir. Android şifrələnməmiş HTTP-ni
+    default olaraq bloklayır, ona görə development üçün icazə verilir.
+
+    Buraxılış build-i bu faylı İSTİFADƏ ETMİR — release-də
+    network_security_config.xml qüvvədədir və yalnız HTTPS-ə icazə verir.
+    Fayllar arasında keçid AndroidManifest.Debug.xml overlay-i ilə olur.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

@@ -1,0 +1,328 @@
+@page "/play"
+@inject GameApiClient Api
+@inject AppState State
+@inject Loc Loc
+
+<h1 class="visually-hidden-title">@Loc.T("Oyna", "Play")</h1>
+
+<LoadingState IsLoading="_loading" Error="@_error" OnRetry="LoadAsync" LoadingText="@Loc.T("Oyunlar yüklənir…", "Loading games…")">
+    @if (_result is not null)
+    {
+        @* Nəticə də tam ekrandır — oyun səthi yarıda kəsilmir. *@
+        <div class="gr">
+            <svg class="gr__confetti" viewBox="0 0 390 300" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+                <rect x="42" y="64" width="12" height="18" rx="3" fill="var(--pp-spark)" transform="rotate(-18 48 73)" />
+                <rect x="316" y="86" width="11" height="17" rx="3" fill="var(--pp-life)" transform="rotate(24 321 94)" />
+                <rect x="120" y="42" width="10" height="15" rx="3" fill="var(--pp-alert)" transform="rotate(38 125 49)" />
+                <rect x="268" y="40" width="10" height="16" rx="3" fill="var(--pp-primary)" transform="rotate(-30 273 48)" />
+                <circle cx="76" cy="132" r="6" fill="var(--pp-life-lift)" />
+                <circle cx="330" cy="158" r="5" fill="var(--pp-spark-lift)" />
+                <circle cx="196" cy="34" r="5" fill="var(--pp-primary-lift)" />
+            </svg>
+
+            <div class="gr__ring">
+                <svg viewBox="0 0 168 168" aria-hidden="true">
+                    <circle cx="84" cy="84" r="72" fill="var(--pp-card)" />
+                    <circle cx="84" cy="84" r="66" fill="none" stroke="var(--pp-track)" stroke-width="14" />
+                    <circle cx="84" cy="84" r="66" fill="none" stroke="@RingColor" stroke-width="14" stroke-linecap="round"
+                            stroke-dasharray="415" stroke-dashoffset="@RingOffset" transform="rotate(-90 84 84)" />
+                </svg>
+                <div class="gr__ring-value">
+                    <span class="gr__score">@_result.Score</span>
+                    <span class="gr__of">@Loc.T("100-dən", "of 100")</span>
+                </div>
+            </div>
+
+            <div class="gr__pet">
+                <PetAvatar Species="@_result.Pet.Species" Stage="@_result.Pet.Stage"
+                           Mood="@(_result.Score >= 60 ? PetMood.Excited : PetMood.Happy)"
+                           Name="@_result.Pet.Name" />
+            </div>
+
+            <div class="gr__message">@_result.Message</div>
+
+            <div class="gr__metrics">
+                <div class="gr__metric">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 3.2l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.6l6.1-.8z"
+                              fill="var(--pp-spark)" stroke="var(--pp-spark-edge)" stroke-width="1.6" stroke-linejoin="round" />
+                    </svg>
+                    <span class="gr__metric-value">+@_result.StarsEarned</span>
+                    <span class="gr__metric-label">@Loc.T("Ulduz", "Stars")</span>
+                </div>
+
+                <div class="gr__metric">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M4 18l5-9 4 5 3-4 4 8z" fill="var(--pp-life-soft)" stroke="var(--pp-life-deep)"
+                              stroke-width="2" stroke-linejoin="round" />
+                    </svg>
+                    <span class="gr__metric-value">+@_result.XpEarned</span>
+                    <span class="gr__metric-label">XP</span>
+                </div>
+
+                <div class="gr__metric">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="12" cy="12" r="8.6" stroke="var(--pp-primary)" stroke-width="2.2" />
+                        <path d="M12 7.4V12l3.2 2.4" stroke="var(--pp-primary-dark)" stroke-width="2.2"
+                              stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span class="gr__metric-value">@_result.Pet.Level</span>
+                    <span class="gr__metric-label">@Loc.T("Yaş", "Age")</span>
+                </div>
+            </div>
+
+            @if (_result.RewardCapped)
+            {
+                <div class="gr__note">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9" stroke="var(--pp-spark-deep)" stroke-width="2" />
+                        <path d="M12 10.6v6M12 7.4v.1" stroke="var(--pp-spark-deep)" stroke-width="2.4" stroke-linecap="round" />
+                    </svg>
+                    <span>@Loc.T("Bu günlük oyun ulduzları bitib — amma oynamağa davam edə bilərsən.", "Today's game stars are used up — but you can keep playing.")</span>
+                </div>
+            }
+
+            <div class="gr__actions">
+                <button class="btn btn--primary btn--block" @onclick="Replay">@Loc.T("Yenidən oyna", "Play again")</button>
+                <button class="btn btn--block" @onclick="Reset">@Loc.T("Başqa oyun seç", "Pick another game")</button>
+            </div>
+        </div>
+    }
+    else if (_activeGame is not null)
+    {
+        @* Oyun tam ekranı alır: üst panel və alt naviqasiya onun altında qalır.
+           Çıxış düyməsi oyunun öz çərçivəsindədir (GameShell), ona görə hər
+           oyuna ayrıca parametr ötürülmür — kaskad host kifayətdir. *@
+        <CascadingValue Value="_host" IsFixed="true">
+            @switch (_activeGame.Key)
+            {
+                case "memory-match":
+                    <MemoryMatchGame OnFinished="SubmitAsync" />
+                    break;
+                case "quick-tap":
+                    <QuickTapGame OnFinished="SubmitAsync" />
+                    break;
+                case "bubble-pop":
+                    <BubblePopGame OnFinished="SubmitAsync" />
+                    break;
+                case "color-echo":
+                    <ColorEchoGame OnFinished="SubmitAsync" />
+                    break;
+                case "star-run":
+                    <StarRunGame OnFinished="SubmitAsync" />
+                    break;
+                case "fruit-slice":
+                    <FruitSliceGame OnFinished="SubmitAsync" />
+                    break;
+                case "basket-catch":
+                    <BasketCatchGame OnFinished="SubmitAsync" />
+                    break;
+                case "cloud-jump":
+                    <CloudJumpGame OnFinished="SubmitAsync" />
+                    break;
+                case "letter-hunt":
+                    <LetterHuntGame OnFinished="SubmitAsync" />
+                    break;
+                case "chef-order":
+                    <ChefOrderGame OnFinished="SubmitAsync" />
+                    break;
+                default:
+                    @* Kataloqda olub burada halı yazılmayan açar — testlə
+                       qorunur (HerKataloqAcari_PlayEkranindaBaglanib), amma
+                       ekran hər halda boş qalmamalıdır. *@
+                    <QuickTapGame OnFinished="SubmitAsync" />
+                    break;
+            }
+        </CascadingValue>
+    }
+    else
+    {
+        <div class="card">
+            <h2 class="card__title">🎮 @Loc.T("Oyun rəfi", "Game shelf")</h2>
+            <p class="card__subtitle">@Loc.T("Hər oyun bir bacarığı məşq etdirir. Gündə 3 oyun ulduz gətirir.", "Each game trains one skill. The first 3 games a day earn stars.")</p>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_unlockError))
+        {
+            <div class="alert alert--error">@_unlockError</div>
+        }
+
+        @* Oyunlar siyahı deyil, kafel şəbəkəsidir: şəkil oyunun NƏ olduğunu
+           deyir, yazı isə yalnız təsdiqləyir. Kilidli kafel də eyni şəkli
+           daşıyır — uşaq nə alacağını görmədən ulduz xərcləməməlidir. *@
+        <div class="list-scroll">
+            <div class="games">
+                @foreach (var game in _games)
+                {
+                    var current = game;
+                    var affordable = State.Wallet.Stars >= game.UnlockStarCost;
+
+                    <button class="game-tile @(game.IsUnlocked ? null : "game-tile--locked")"
+                            title="@game.Description"
+                            disabled="@(_unlocking || (!game.IsUnlocked && !affordable))"
+                            @onclick="() => OpenAsync(current)">
+                        <span class="game-tile__art">
+                            <GamePreview Key="@game.Key" Label="@game.Title" />
+                            @if (!game.IsUnlocked)
+                            {
+                                <span class="game-tile__lock" aria-hidden="true">🔒</span>
+                            }
+                        </span>
+                        <span class="game-tile__title">@game.Title</span>
+                        <span class="game-tile__meta">
+                            @if (game.IsUnlocked)
+                            {
+                                <text>🎯 @game.SkillHint</text>
+                            }
+                            else if (affordable)
+                            {
+                                <text>@Loc.T($"⭐ {game.UnlockStarCost} ilə aç", $"⭐ Unlock for {game.UnlockStarCost}")</text>
+                            }
+                            else
+                            {
+                                <text>@Loc.T($"Daha {game.UnlockStarCost - State.Wallet.Stars} ulduz", $"{game.UnlockStarCost - State.Wallet.Stars} more stars")</text>
+                            }
+                        </span>
+                    </button>
+                }
+            </div>
+        </div>
+    }
+</LoadingState>
+
+@code {
+    private readonly List<GameCatalogItemDto> _games = [];
+
+    private GameCatalogItemDto? _activeGame;
+    private GameCatalogItemDto? _lastGame;
+    private GameResultDto? _result;
+    private GameHost? _host;
+    private bool _loading = true;
+    private bool _unlocking;
+    private string? _error;
+    private string? _unlockError;
+
+    /// <summary>Nəticə halqasının dolğunluğu: 415 tam çevrədir (r = 66).</summary>
+    private int RingOffset => _result is null ? 415 : 415 - 415 * Math.Clamp(_result.Score, 0, 100) / 100;
+
+    private string RingColor => _result?.Score >= 60 ? "var(--pp-life)" : "var(--pp-spark)";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Çıxış düyməsi oyunun çərçivəsindədir; ona görə oyun ekranı burada
+        // yalnız bir geri-çağırış alır.
+        _host = new GameHost(EventCallback.Factory.Create(this, Reset));
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        var result = await Api.GetGamesAsync();
+
+        _loading = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _games.Clear();
+        _games.AddRange(result.Value);
+
+        // Kilidli oyunun düyməsi balansdan asılıdır — cüzdan təzə olmalıdır.
+        var wallet = await Api.GetWalletAsync();
+        if (wallet.Succeeded && wallet.Value is not null)
+            State.ApplyWallet(wallet.Value);
+    }
+
+    private async Task UnlockAsync(GameCatalogItemDto game)
+    {
+        _unlocking = true;
+        _unlockError = null;
+
+        var result = await Api.UnlockGameAsync(game.Key);
+
+        _unlocking = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _unlockError = result.Error;
+            return;
+        }
+
+        _games.Clear();
+        _games.AddRange(result.Value.Catalog);
+
+        var wallet = await Api.GetWalletAsync();
+        if (wallet.Succeeded && wallet.Value is not null)
+            State.ApplyWallet(wallet.Value);
+    }
+
+    /// <summary>
+    /// Kafelin bir toxunuşu var: açıq oyun başlayır, kilidli oyun isə
+    /// açılır. Kilidin qiyməti elə kafelin üstündə yazılıb, ona görə
+    /// toxunuş "gözübağlı xərcləmə" deyil.
+    /// </summary>
+    private Task OpenAsync(GameCatalogItemDto game)
+    {
+        if (game.IsUnlocked)
+        {
+            Start(game);
+            return Task.CompletedTask;
+        }
+
+        return UnlockAsync(game);
+    }
+
+    private void Start(GameCatalogItemDto game)
+    {
+        _activeGame = game;
+        _lastGame = game;
+        _result = null;
+    }
+
+    /// <summary>Nəticə ekranından birbaşa eyni oyuna qayıtmaq.</summary>
+    private void Replay()
+    {
+        if (_lastGame is not null)
+            Start(_lastGame);
+    }
+
+    private void Reset()
+    {
+        _activeGame = null;
+        _result = null;
+    }
+
+    private async Task SubmitAsync((int Score, int DurationMs) outcome)
+    {
+        if (_activeGame is null)
+            return;
+
+        var result = await Api.SubmitGameResultAsync(new SubmitGameResultRequest
+        {
+            GameKey = _activeGame.Key,
+            Score = outcome.Score,
+            DurationMs = outcome.DurationMs
+        });
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            _activeGame = null;
+            return;
+        }
+
+        _result = result.Value;
+        _activeGame = null;
+        State.ApplyPet(_result.Pet);
+
+        var wallet = await Api.GetWalletAsync();
+        if (wallet.Succeeded && wallet.Value is not null)
+            State.ApplyWallet(wallet.Value);
+    }
+}

@@ -1,0 +1,44 @@
+@* Bütün səhifələr bu kitabxanadadır — host layihə sadəcə <Routes /> render edir. *@
+@inject SessionRestorer Restorer
+@inject Loc Loc
+
+@if (_ready)
+{
+    <Router AppAssembly="@typeof(Routes).Assembly">
+        <Found Context="routeData">
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(AppLayout)" />
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <LayoutView Layout="@typeof(EmptyLayout)">
+                <div class="state">
+                    <div class="state__icon" aria-hidden="true">🧭</div>
+                    <div>@Loc.T("Bu səhifə tapılmadı.", "This page was not found.")</div>
+                    <a class="btn btn--primary" href="">@Loc.T("Ana səhifəyə qayıt", "Back to home")</a>
+                </div>
+            </LayoutView>
+        </NotFound>
+    </Router>
+}
+else
+{
+    @* Marşrutlaşdırma sessiya bərpa olunana qədər gözləyir: əks halda AppLayout
+       tokeni oxumağa macal tapmadan girişə yönləndirir və hər açılışda e-poçt
+       soruşulur. *@
+    <div class="center-screen">
+        <div class="brand">
+            <div class="brand__mark" aria-hidden="true">🦊</div>
+            <div class="brand__tagline">@Loc.T("Açılır…", "Opening…")</div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _ready;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Restorer.RestoreAsync();
+        _ready = true;
+    }
+}

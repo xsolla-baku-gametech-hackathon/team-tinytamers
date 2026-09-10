@@ -1,0 +1,559 @@
+1	file	.gitignore
+1	file	.dockerignore
+1	file	PetPal.slnx
+1	file	src/PetPal.Api/PetPal.Api.csproj
+1	file	src/PetPal.App.Ui/PetPal.App.Ui.csproj
+1	file	src/PetPal.App/PetPal.App.csproj
+1	file	src/PetPal.Launcher/PetPal.Launcher.csproj
+1	file	src/PetPal.Shared/PetPal.Shared.csproj
+1	file	src/PetPal.Web/PetPal.Web.csproj
+1	file	tests/PetPal.App.Tests/PetPal.App.Tests.csproj
+1	file	tests/PetPal.Tests/PetPal.Tests.csproj
+1	file	.github/workflows/ci.yml
+1	file	.claude/settings.json
+2	file	src/PetPal.Shared/Enums/BadgeTier.cs
+2	file	src/PetPal.Shared/Enums/CareAction.cs
+2	file	src/PetPal.Shared/Enums/DuelOutcome.cs
+2	file	src/PetPal.Shared/Enums/DuelStatus.cs
+2	file	src/PetPal.Shared/Enums/FriendshipStatus.cs
+2	file	src/PetPal.Shared/Enums/MissionStatus.cs
+2	file	src/PetPal.Shared/Enums/MissionType.cs
+2	file	src/PetPal.Shared/Enums/PetMood.cs
+2	file	src/PetPal.Shared/Enums/PetStage.cs
+2	file	src/PetPal.Shared/Enums/ProfileKind.cs
+2	file	src/PetPal.Shared/Enums/RewardKind.cs
+2	file	src/PetPal.Shared/Enums/ScreenTimeState.cs
+2	file	src/PetPal.Shared/Enums/SkillArea.cs
+2	file	src/PetPal.Shared/Enums/TeamMemberStatus.cs
+2	file	src/PetPal.Shared/Enums/WorldWeather.cs
+2	file	src/PetPal.Shared/Validation/ValidationMessages.cs
+2	file	src/PetPal.Shared/Dtos/ApiErrorResponse.cs
+2	file	src/PetPal.Api/Common/Localized.cs
+2	file	src/PetPal.Api/Common/ServiceResult.cs
+2	file	src/PetPal.Api/Common/ServiceResultExtensions.cs
+3	file	src/PetPal.Api/Entities/ApplicationRole.cs
+3	file	src/PetPal.Api/Entities/ApplicationUser.cs
+3	file	src/PetPal.Api/Entities/Badge.cs
+3	file	src/PetPal.Api/Entities/ChatTurn.cs
+3	file	src/PetPal.Api/Entities/ChildProfile.cs
+3	file	src/PetPal.Api/Entities/DailyGoal.cs
+3	file	src/PetPal.Api/Entities/DeviceToken.cs
+3	file	src/PetPal.Api/Entities/Discovery.cs
+3	file	src/PetPal.Api/Entities/Duel.cs
+3	file	src/PetPal.Api/Entities/DuelEntry.cs
+3	file	src/PetPal.Api/Entities/Friendship.cs
+3	file	src/PetPal.Api/Entities/GameResult.cs
+3	file	src/PetPal.Api/Entities/LearningSession.cs
+3	file	src/PetPal.Api/Entities/Mission.cs
+3	file	src/PetPal.Api/Entities/Pet.cs
+3	file	src/PetPal.Api/Entities/Question.cs
+3	file	src/PetPal.Api/Entities/RefreshToken.cs
+3	file	src/PetPal.Api/Entities/RewardEntry.cs
+3	file	src/PetPal.Api/Entities/SessionAnswer.cs
+3	file	src/PetPal.Api/Entities/SkillMastery.cs
+3	file	src/PetPal.Api/Entities/TeamMission.cs
+3	file	src/PetPal.Api/Entities/WorldZone.cs
+3	file	src/PetPal.Api/Data/AppDbContext.cs
+3	file	src/PetPal.Api/Data/StringListConverter.cs
+3	file	src/PetPal.Api/Hosting/DatabaseConnectionString.cs
+3	file	src/PetPal.Api/Hosting/HostRunModeParser.cs
+3	file	src/PetPal.Api/Migrations/20260804124207_InitialCreate.Designer.cs
+3	file	src/PetPal.Api/Migrations/20260804124207_InitialCreate.cs
+3	file	src/PetPal.Api/appsettings.Development.json
+3	file	src/PetPal.Api/appsettings.Production.json
+3	file	src/PetPal.Api/appsettings.json
+3	file	src/PetPal.Api/appsettings.local.sample.json
+3	file	src/PetPal.Api/PetPal.Api.http
+3	file	src/PetPal.Api/Properties/launchSettings.json
+3	write	src/PetPal.Api/Program.cs
+3	write	src/PetPal.Api/Hosting/DatabaseBootstrapper.cs
+4	file	docker-compose.yml
+4	file	src/PetPal.Api/Dockerfile
+4	file	scripts/dev/reset-db.ps1
+4	file	.env.example
+5	write	src/PetPal.Api/Rewards/RewardService.cs
+5	file	src/PetPal.Api/Rewards/BadgeRules.cs
+5	file	src/PetPal.Api/Rewards/IRewardService.cs
+5	file	src/PetPal.Api/Rewards/RewardEndpoints.cs
+5	file	src/PetPal.Shared/Dtos/Rewards/RewardDtos.cs
+5	write	src/PetPal.Api/Program.cs
+6	file	src/PetPal.Api/Missions/IMissionProgressTracker.cs
+6	file	src/PetPal.Api/Missions/IMissionService.cs
+6	file	src/PetPal.Api/Missions/MissionEndpoints.cs
+6	file	src/PetPal.Api/Missions/MissionService.cs
+6	file	src/PetPal.Api/Missions/WorldStateCalculator.cs
+6	file	src/PetPal.Shared/Dtos/Missions/MissionDtos.cs
+6	write	src/PetPal.Api/Program.cs
+7	write	src/PetPal.Api/Pets/PetEndpoints.cs
+7	file	src/PetPal.Api/Pets/IPetService.cs
+7	file	src/PetPal.Api/Pets/PetService.cs
+7	file	src/PetPal.Api/Pets/PetFoods.cs
+7	file	src/PetPal.Api/Pets/PetAccessories.cs
+7	file	src/PetPal.Api/Pets/PetProgression.cs
+7	file	src/PetPal.Shared/Dtos/Pets/PetDtos.cs
+7	write	src/PetPal.Api/Program.cs
+8	file	src/PetPal.Api/Learning/AdaptiveEngine.cs
+8	file	src/PetPal.Api/Progress/DailyGoalService.cs
+8	file	src/PetPal.Api/Progress/IDailyGoalService.cs
+8	file	src/PetPal.Api/Progress/IProgressService.cs
+8	file	src/PetPal.Api/Progress/ProgressEndpoints.cs
+8	file	src/PetPal.Api/Progress/ProgressService.cs
+8	file	src/PetPal.Api/Progress/ScreenTimeGuard.cs
+8	file	src/PetPal.Api/Progress/ScreenTimeOptions.cs
+8	file	src/PetPal.Shared/Dtos/Progress/ProgressDtos.cs
+8	file	src/PetPal.Shared/Dtos/Progress/ScreenTimeStatusDto.cs
+8	write	src/PetPal.Api/Program.cs
+9	write	src/PetPal.Api/Learning/LearningService.cs
+9	file	src/PetPal.Api/Learning/ILearningService.cs
+9	file	src/PetPal.Api/Learning/IQuestionSelector.cs
+9	file	src/PetPal.Api/Learning/LearningEndpoints.cs
+9	file	src/PetPal.Api/Learning/QuestionSelector.cs
+9	file	src/PetPal.Shared/Dtos/Learning/LearningDtos.cs
+9	write	src/PetPal.Api/Program.cs
+10	file	src/PetPal.Api/Data/Questions/AzQuestionBank.cs
+10	file	src/PetPal.Api/Data/Questions/EnQuestionBank.cs
+10	file	src/PetPal.Api/Data/Questions/MathQuestionFactory.cs
+10	file	src/PetPal.Api/Data/Questions/QuestionBank.cs
+10	file	src/PetPal.Api/Data/DbInitializer.cs
+10	file	src/PetPal.Api/Hosting/DatabaseBootstrapper.cs
+10	write	src/PetPal.Api/Program.cs
+11	file	src/PetPal.Api/Games/GameCatalog.cs
+11	file	src/PetPal.Api/Games/GameEndpoints.cs
+11	file	src/PetPal.Api/Games/GameService.cs
+11	file	src/PetPal.Api/Games/IGameService.cs
+11	file	src/PetPal.Shared/Dtos/Games/GameDtos.cs
+12	file	src/PetPal.Api/Auth/AuthEndpoints.cs
+12	file	src/PetPal.Api/Auth/AuthService.cs
+12	file	src/PetPal.Api/Auth/IAuthService.cs
+12	file	src/PetPal.Api/Auth/ITokenService.cs
+12	file	src/PetPal.Api/Auth/JwtOptions.cs
+12	file	src/PetPal.Api/Auth/TokenService.cs
+12	file	src/PetPal.Api/Security/AuthorizationPolicies.cs
+12	file	src/PetPal.Api/Security/FriendCodeGenerator.cs
+12	file	src/PetPal.Api/Security/PetPalClaims.cs
+12	file	src/PetPal.Api/Security/PinHasher.cs
+12	file	src/PetPal.Shared/Dtos/Auth/AuthDtos.cs
+12	file	tests/PetPal.Tests/ApiTestClient.cs
+12	file	tests/PetPal.Tests/TestWebAppFactory.cs
+12	file	tests/PetPal.Tests/AuthTests.cs
+12	file	tests/PetPal.Tests/DatabaseConnectionStringTests.cs
+12	write	src/PetPal.Api/Program.cs
+13	write	src/PetPal.Api/Home/HomeService.cs
+13	file	src/PetPal.Api/Home/HomeEndpoints.cs
+13	file	src/PetPal.Api/Home/IHomeService.cs
+13	file	src/PetPal.Shared/Dtos/Home/HomeStateDto.cs
+13	write	src/PetPal.Api/Program.cs
+14	file	src/PetPal.App.Ui/Services/AchievementCard.cs
+14	file	src/PetPal.App.Ui/Services/ApiClientBase.cs
+14	file	src/PetPal.App.Ui/Services/ApiResult.cs
+14	file	src/PetPal.App.Ui/Services/AppSession.cs
+14	file	src/PetPal.App.Ui/Services/AppState.cs
+14	file	src/PetPal.App.Ui/Services/AuthApiClient.cs
+14	file	src/PetPal.App.Ui/Services/DisplayNames.cs
+14	file	src/PetPal.App.Ui/Services/GameApiClient.cs
+14	file	src/PetPal.App.Ui/Services/IPetSpeech.cs
+14	file	src/PetPal.App.Ui/Services/IPhotoPicker.cs
+14	file	src/PetPal.App.Ui/Services/IPushTokenProvider.cs
+14	file	src/PetPal.App.Ui/Services/IShareService.cs
+14	file	src/PetPal.App.Ui/Services/ITokenStore.cs
+14	file	src/PetPal.App.Ui/Services/InviteCodeReader.cs
+14	file	src/PetPal.App.Ui/Services/LiveClient.cs
+14	file	src/PetPal.App.Ui/Services/Loc.cs
+14	file	src/PetPal.App.Ui/Services/ParentApiClient.cs
+14	file	src/PetPal.App.Ui/Services/PendingInvite.cs
+14	file	src/PetPal.App.Ui/Services/PushRegistration.cs
+14	file	src/PetPal.App.Ui/Services/ServiceCollectionExtensions.cs
+14	file	src/PetPal.App.Ui/Services/SessionRestorer.cs
+14	file	src/PetPal.App.Ui/_Imports.razor
+14	file	src/PetPal.App.Ui/Routes.razor
+14	file	tests/PetPal.App.Tests/AppStateTests.cs
+14	file	tests/PetPal.App.Tests/RazorBindingTests.cs
+15	file	src/PetPal.App.Ui/wwwroot/css/theme.css
+15	file	src/PetPal.App.Ui/Components/Layout/AppLayout.razor
+15	file	src/PetPal.App.Ui/Components/Layout/BottomNav.razor
+15	file	src/PetPal.App.Ui/Components/Layout/EmptyLayout.razor
+15	file	src/PetPal.App.Ui/Components/Layout/TopBar.razor
+15	file	src/PetPal.App.Ui/wwwroot/fonts/OFL.txt
+15	file	src/PetPal.App.Ui/wwwroot/fonts/nunito-latin-ext.woff2
+15	file	src/PetPal.App.Ui/wwwroot/fonts/nunito-latin.woff2
+15	file	tests/PetPal.App.Tests/StyleSheetTests.cs
+15	css	Karkas
+15	css	Üst panel
+15	css	Alt naviqasiya
+15	css	Kartlar
+15	css	Düymələr
+15	css	Formalar
+15	css	Progress
+15	css	Vəziyyət ekranları
+15	css	Animasiyalar
+15	css	Sətir daxilindəki düymələr
+16	file	src/PetPal.App.Ui/Pages/Login.razor
+16	file	src/PetPal.App.Ui/Pages/Register.razor
+16	file	src/PetPal.App.Ui/Components/Shared/LoadingState.razor
+17	file	src/PetPal.App.Ui/Pages/Profiles.razor
+17	css	Profil seçimi
+17	css	PIN klaviaturası
+17	css	Pet növünün seçimi
+18	file	src/PetPal.App.Ui/Pages/Home.razor
+18	file	src/PetPal.App.Ui/Components/Shared/PetGauge.razor
+18	file	src/PetPal.App.Ui/Components/Shared/StatBar.razor
+18	file	src/PetPal.App.Ui/Components/Shared/GoalBar.razor
+18	css	Tam ekranlı səhnə (Ev)
+18	css	Səhnə qəhrəmanı
+18	css	Fəaliyyət düymələri (Learn / Play / Care / Explore)
+18	css	Danışıq balonu
+18	css	Stat barlar (care ekranı)
+19	file	src/PetPal.App.Ui/Components/Shared/PetAvatar.razor
+19	file	src/PetPal.App.Ui/Components/Shared/PetBody.razor
+19	file	src/PetPal.App.Ui/wwwroot/css/pet.css
+19	css	Pet səhnəsi
+20	file	src/PetPal.Api/Migrations/20260816172305_PetHatching.Designer.cs
+20	file	src/PetPal.Api/Migrations/20260816172305_PetHatching.cs
+20	file	tests/PetPal.Tests/PetProgressionTests.cs
+21	file	src/PetPal.App.Ui/Pages/Care.razor
+21	file	tests/PetPal.Tests/PetCareTests.cs
+21	file	tests/PetPal.App.Tests/CareScreenMarkupTests.cs
+21	css	Qulluq səhnəsi
+21	css	Qulluq dock-u
+21	css	Qulluq ölçərləri (halqa)
+22	file	src/PetPal.App.Ui/wwwroot/js/petCare.js
+23	css	Yem qabı
+23	css	Yemək otağı
+24	css	Yataq otağı
+24	css	Yataq
+24	css	Hamam
+24	css	Pet-in otağı (Ev)
+25	file	src/PetPal.Api/Migrations/20260818213932_PetAccessoryEquipping.Designer.cs
+25	file	src/PetPal.Api/Migrations/20260818213932_PetAccessoryEquipping.cs
+25	file	tests/PetPal.Tests/PetAccessoryTests.cs
+25	css	Paltar dəyişmə otağı
+25	css	Şkafda növ seçimi
+26	file	src/PetPal.App.Ui/Components/Shared/GameShell.razor
+26	file	src/PetPal.App.Ui/Components/Shared/GameLives.razor
+26	file	src/PetPal.App.Ui/Components/Shared/GameHost.cs
+26	file	src/PetPal.App.Ui/Components/Shared/GamePreview.razor
+26	file	src/PetPal.App.Ui/Pages/Play.razor
+26	file	tests/PetPal.App.Tests/GameMarkupTests.cs
+26	file	tests/PetPal.Tests/GameAndSprintTests.cs
+26	css	Oyun HUD-u (maketdən)
+26	css	Oyun çərçivəsi
+26	css	Səhnə fonları
+26	css	Oyun canları
+26	css	Oyun nəticəsi
+26	css	Oyun kafelləri
+27	file	src/PetPal.Api/Migrations/20260817165842_UnlockableGames.Designer.cs
+27	file	src/PetPal.Api/Migrations/20260817165842_UnlockableGames.cs
+28	file	src/PetPal.App.Ui/Components/Shared/MemoryMatchGame.razor
+28	css	Yaddaş cütləri
+29	file	src/PetPal.App.Ui/Components/Shared/QuickTapGame.razor
+29	css	Sürətli hesab
+30	file	src/PetPal.App.Ui/Components/Shared/BubblePopGame.razor
+30	file	tests/PetPal.App.Tests/BubblePopMarkupTests.cs
+30	css	Baloncuq ovu
+31	file	src/PetPal.App.Ui/Components/Shared/ColorEchoGame.razor
+31	css	Rəng sırası
+32	file	src/PetPal.App.Ui/Components/Shared/StarRunGame.razor
+32	css	Ulduz qaçışı
+33	file	src/PetPal.App.Ui/Components/Shared/FruitSliceGame.razor
+33	css	Meyvə kəs
+34	file	src/PetPal.App.Ui/Components/Shared/BasketCatchGame.razor
+34	css	Səbət tut
+35	file	src/PetPal.App.Ui/Components/Shared/CloudJumpGame.razor
+35	css	Bulud tullanışı
+36	file	src/PetPal.App.Ui/Components/Shared/LetterHuntGame.razor
+36	css	Hərf ovu
+37	file	src/PetPal.App.Ui/Components/Shared/ChefOrderGame.razor
+37	file	src/PetPal.App.Ui/wwwroot/js/gameDrag.js
+37	css	Oyunda sürüklənən əşya
+37	css	Balaca aşpaz
+38	file	src/PetPal.App.Ui/Pages/Learn.razor
+38	file	tests/PetPal.Tests/LearningFlowTests.cs
+38	file	tests/PetPal.Tests/AdaptiveEngineTests.cs
+38	file	tests/PetPal.Tests/QuestionBankTests.cs
+38	css	Sual
+39	file	src/PetPal.App.Ui/Pages/ProgressPage.razor
+39	file	src/PetPal.App.Ui/Components/Shared/MissionRow.razor
+39	css	Missiya sətri
+39	css	Nişanlar
+40	file	src/PetPal.App.Ui/Pages/World.razor
+40	file	tests/PetPal.Tests/WorldStateTests.cs
+40	file	tests/PetPal.Tests/WorldMissionTests.cs
+40	css	Xəritə başlığı (Dünya)
+40	css	Dünya zonaları
+41	file	src/PetPal.Api/Migrations/20260804143902_LocalizationGamesAndScreenTime.Designer.cs
+41	file	src/PetPal.Api/Migrations/20260804143902_LocalizationGamesAndScreenTime.cs
+41	file	tests/PetPal.Tests/LocalizationTests.cs
+41	file	tests/PetPal.App.Tests/LocTests.cs
+42	file	src/PetPal.Api/Discoveries/DiscoveryContentType.cs
+42	file	src/PetPal.Api/Discoveries/DiscoveryEndpoints.cs
+42	file	src/PetPal.Api/Discoveries/DiscoveryOptions.cs
+42	file	src/PetPal.Api/Discoveries/DiscoveryPhotoKey.cs
+42	file	src/PetPal.Api/Discoveries/DiscoveryService.cs
+42	file	src/PetPal.Api/Discoveries/IDiscoveryPhotoStore.cs
+42	file	src/PetPal.Api/Discoveries/IDiscoveryService.cs
+42	file	src/PetPal.Api/Discoveries/LocalDiscoveryPhotoStore.cs
+42	file	src/PetPal.Api/Discoveries/S3DiscoveryPhotoStore.cs
+42	file	src/PetPal.Shared/Dtos/Discovery/DiscoveryDtos.cs
+42	file	tests/PetPal.Tests/DiscoveryAndSocialTests.cs
+42	write	src/PetPal.Api/Program.cs
+43	file	src/PetPal.App.Ui/Pages/Explore.razor
+43	file	src/PetPal.App.Ui/Components/Shared/DiscoveryList.razor
+43	file	tests/PetPal.App.Tests/ExploreScreenMarkupTests.cs
+43	css	Kəşf kolleksiyası
+43	css	Kəşf formasının şəkil önizləməsi
+44	file	src/PetPal.Api/Ai/AiOptions.cs
+44	file	src/PetPal.Api/Ai/AiPetVoiceGenerator.cs
+44	file	src/PetPal.Api/Ai/ChatGuard.cs
+44	file	src/PetPal.Api/Ai/IPetChatService.cs
+44	file	src/PetPal.Api/Ai/IPetVoiceGenerator.cs
+44	file	src/PetPal.Api/Ai/OpenAiChat.cs
+44	file	src/PetPal.Api/Ai/PetChatOptions.cs
+44	file	src/PetPal.Api/Ai/PetChatPrompt.cs
+44	file	src/PetPal.Api/Ai/PetChatService.cs
+44	file	src/PetPal.Api/Ai/PetVoicePrompt.cs
+44	file	src/PetPal.Api/Ai/RuleBasedPetVoiceGenerator.cs
+44	file	tests/PetPal.Tests/PetVoiceAiTests.cs
+44	file	src/PetPal.Api/Home/HomeService.cs
+44	write	src/PetPal.Api/Program.cs
+45	file	src/PetPal.Api/Migrations/20260822194315_PetChat.Designer.cs
+45	file	src/PetPal.Api/Migrations/20260822194315_PetChat.cs
+45	file	src/PetPal.Shared/Dtos/Pets/PetChatDtos.cs
+45	file	tests/PetPal.Tests/PetChatTests.cs
+46	file	src/PetPal.App.Ui/Pages/Chat.razor
+47	file	src/PetPal.Api/Pets/PetVoice.cs
+47	file	src/PetPal.Api/Pets/PetEndpoints.cs
+48	file	src/PetPal.Api/Realtime/IPresenceTracker.cs
+48	file	src/PetPal.Api/Realtime/LiveHub.cs
+48	file	src/PetPal.Api/Realtime/LiveNotifier.cs
+48	file	src/PetPal.Api/Realtime/PresenceTracker.cs
+48	write	src/PetPal.Api/Program.cs
+49	write	src/PetPal.Api/Social/SocialService.cs
+49	file	src/PetPal.Api/Social/ISocialService.cs
+49	file	src/PetPal.Api/Social/SocialEndpoints.cs
+49	file	src/PetPal.Shared/Dtos/Social/SocialDtos.cs
+49	write	src/PetPal.Api/Program.cs
+50	file	src/PetPal.Api/Migrations/20260906110727_SocialConsentAndPresence.Designer.cs
+50	file	src/PetPal.Api/Migrations/20260906110727_SocialConsentAndPresence.cs
+50	file	tests/PetPal.Tests/SocialRegressionTests.cs
+51	file	src/PetPal.App.Ui/Pages/Friends.razor
+51	file	src/PetPal.App.Ui/Components/Shared/FriendsPanel.razor
+51	css	Dostlar
+51	css	Onlayn nişanı
+52	file	src/PetPal.Api/Notifications/FirebaseAccessToken.cs
+52	file	src/PetPal.Api/Notifications/FirebaseNotificationSender.cs
+52	file	src/PetPal.Api/Notifications/INotificationSender.cs
+52	file	src/PetPal.Api/Notifications/INotificationService.cs
+52	file	src/PetPal.Api/Notifications/NotificationEndpoints.cs
+52	file	src/PetPal.Api/Notifications/NotificationOptions.cs
+52	file	src/PetPal.Api/Notifications/NotificationSchedule.cs
+52	file	src/PetPal.Api/Notifications/NotificationService.cs
+52	file	src/PetPal.Shared/Dtos/Notifications/NotificationDtos.cs
+52	file	src/PetPal.Api/Migrations/20260906114150_DeviceTokens.Designer.cs
+52	file	src/PetPal.Api/Migrations/20260906114150_DeviceTokens.cs
+52	file	tests/PetPal.Tests/NotificationAndStorageTests.cs
+52	file	src/PetPal.Api/Social/SocialService.cs
+52	write	src/PetPal.Api/Program.cs
+53	file	src/PetPal.Api/Learning/Arena/ArenaEndpoints.cs
+53	file	src/PetPal.Api/Learning/Arena/ArenaLeague.cs
+53	file	src/PetPal.Api/Learning/Arena/ArenaMatchmaker.cs
+53	file	src/PetPal.Api/Learning/Arena/ArenaOptions.cs
+53	file	src/PetPal.Api/Learning/Arena/ArenaRatingEngine.cs
+53	file	src/PetPal.Api/Learning/Arena/ArenaService.cs
+53	file	src/PetPal.Api/Learning/Arena/ArenaStandings.cs
+53	file	src/PetPal.Api/Learning/Arena/IArenaService.cs
+53	file	src/PetPal.Api/Migrations/20260822212159_BilikArenasi.Designer.cs
+53	file	src/PetPal.Api/Migrations/20260822212159_BilikArenasi.cs
+53	file	src/PetPal.Api/Migrations/20260822214506_ArenaMesqRejimi.Designer.cs
+53	file	src/PetPal.Api/Migrations/20260822214506_ArenaMesqRejimi.cs
+53	file	src/PetPal.Shared/Dtos/Learning/ArenaDtos.cs
+53	file	tests/PetPal.Tests/ArenaTests.cs
+53	write	src/PetPal.Api/Program.cs
+54	file	src/PetPal.Api/Migrations/20260823083227_ArenaSuretBonusu.Designer.cs
+54	file	src/PetPal.Api/Migrations/20260823083227_ArenaSuretBonusu.cs
+54	file	tests/PetPal.Tests/ArenaLeagueTests.cs
+54	file	src/PetPal.Api/Rewards/RewardService.cs
+54	file	src/PetPal.Api/Learning/LearningService.cs
+55	file	src/PetPal.Api/Migrations/20260823094112_SinxronDuel.Designer.cs
+55	file	src/PetPal.Api/Migrations/20260823094112_SinxronDuel.cs
+55	file	src/PetPal.App.Ui/Pages/Arena.razor
+55	css	Hesab lövhəsi
+55	css	Duel gedərkən rəqib zolağı
+55	css	Sual-sual müqayisə
+55	css	Rəqib axtarışı
+55	css	Başlanğıc geri sayımı
+55	css	Nəticənin hökmü
+55	css	Cavabdan sonrakı fasilə
+55	css	Həftəlik liqa
+55	css	Arena tabları: Yarış · Dostlar
+56	file	src/PetPal.Api/Parent/IParentService.cs
+56	file	src/PetPal.Api/Parent/ParentEndpoints.cs
+56	file	src/PetPal.Api/Parent/ParentService.cs
+56	file	src/PetPal.Shared/Dtos/Parent/ParentDtos.cs
+56	file	src/PetPal.App.Ui/Pages/ParentDashboard.razor
+56	file	tests/PetPal.Tests/ParentDashboardTests.cs
+56	file	tests/PetPal.Tests/ScreenTimeTests.cs
+56	file	tests/PetPal.App.Tests/AppSessionTests.cs
+56	css	Valideyn paneli
+56	css	Ekran vaxtı blok ekranı
+56	css	Sprint təklifi
+56	css	Dil seçimi (valideyn bölməsi)
+56	file	src/PetPal.Api/Program.cs
+56	file	src/PetPal.App.Ui/wwwroot/css/app.css
+57	file	src/PetPal.App.Ui/wwwroot/js/appFrame.js
+57	file	src/PetPal.App.Ui/wwwroot/js/share.js
+57	file	tests/PetPal.App.Tests/ResponsiveLayoutTests.cs
+58	file	src/PetPal.Web/Dockerfile
+58	file	src/PetPal.Web/Program.cs
+58	file	src/PetPal.Web/Services/BrowserPetSpeech.cs
+58	file	src/PetPal.Web/Services/BrowserPhotoPicker.cs
+58	file	src/PetPal.Web/Services/BrowserShareService.cs
+58	file	src/PetPal.Web/Services/LocalStorageTokenStore.cs
+58	file	src/PetPal.Web/nginx-init-api-base-url.sh
+58	file	src/PetPal.Web/nginx.conf.template
+58	file	src/PetPal.Web/wwwroot/appsettings.json
+58	file	src/PetPal.Web/wwwroot/index.html
+58	file	src/PetPal.Web/wwwroot/js/petSpeech.js
+58	file	src/PetPal.Web/wwwroot/js/photoPicker.js
+58	file	railway.web.json
+58	file	tests/PetPal.App.Tests/WebHostCacheTests.cs
+59	file	src/PetPal.App/App.xaml
+59	file	src/PetPal.App/App.xaml.cs
+59	file	src/PetPal.App/AppConfig.cs
+59	file	src/PetPal.App/Components/_Imports.razor
+59	file	src/PetPal.App/MainPage.xaml
+59	file	src/PetPal.App/MainPage.xaml.cs
+59	file	src/PetPal.App/MauiProgram.cs
+59	file	src/PetPal.App/Platforms/Android/AndroidManifest.Debug.xml
+59	file	src/PetPal.App/Platforms/Android/AndroidManifest.xml
+59	file	src/PetPal.App/Platforms/Android/MainActivity.cs
+59	file	src/PetPal.App/Platforms/Android/MainApplication.cs
+59	file	src/PetPal.App/Platforms/Android/Resources/values/colors.xml
+59	file	src/PetPal.App/Platforms/Android/Resources/xml/network_security_config.xml
+59	file	src/PetPal.App/Platforms/Android/Resources/xml/network_security_config_debug.xml
+59	file	src/PetPal.App/Platforms/MacCatalyst/AppDelegate.cs
+59	file	src/PetPal.App/Platforms/MacCatalyst/Entitlements.plist
+59	file	src/PetPal.App/Platforms/MacCatalyst/Info.plist
+59	file	src/PetPal.App/Platforms/MacCatalyst/Program.cs
+59	file	src/PetPal.App/Platforms/Windows/App.xaml
+59	file	src/PetPal.App/Platforms/Windows/App.xaml.cs
+59	file	src/PetPal.App/Platforms/Windows/Package.appxmanifest
+59	file	src/PetPal.App/Platforms/Windows/app.manifest
+59	file	src/PetPal.App/Platforms/iOS/AppDelegate.cs
+59	file	src/PetPal.App/Platforms/iOS/Info.plist
+59	file	src/PetPal.App/Platforms/iOS/Program.cs
+59	file	src/PetPal.App/Platforms/iOS/Resources/PrivacyInfo.xcprivacy
+59	file	src/PetPal.App/Properties/launchSettings.json
+59	file	src/PetPal.App/Resources/AppIcon/appicon.svg
+59	file	src/PetPal.App/Resources/AppIcon/appiconfg.svg
+59	file	src/PetPal.App/Resources/Fonts/OpenSans-Regular.ttf
+59	file	src/PetPal.App/Resources/Raw/AboutAssets.txt
+59	file	src/PetPal.App/Resources/Splash/splash.svg
+59	file	src/PetPal.App/Services/MauiPetSpeech.cs
+59	file	src/PetPal.App/Services/MauiPhotoPicker.cs
+59	file	src/PetPal.App/Services/MauiShareService.cs
+59	file	src/PetPal.App/Services/MauiTokenStore.cs
+59	file	src/PetPal.App/wwwroot/index.html
+59	file	src/PetPal.Launcher/AccentBar.cs
+59	file	src/PetPal.Launcher/AiDetector.cs
+59	file	src/PetPal.Launcher/LauncherLog.cs
+59	file	src/PetPal.Launcher/LauncherText.cs
+59	file	src/PetPal.Launcher/Program.cs
+59	file	src/PetPal.Launcher/SplashWindow.cs
+59	file	src/PetPal.Launcher/StartupSequence.cs
+59	file	src/PetPal.Launcher/petpal.ico
+59	file	scripts/dev/bootcamp-bring.sh
+59	file	scripts/dev/build-android.ps1
+59	file	scripts/dev/publish-windows.ps1
+59	file	scripts/dev/run-android.ps1
+59	file	scripts/dev/run-app-windows.ps1
+59	file	scripts/dev/start-api.ps1
+60	file	docs/ADAPTIVE_LEARNING.md
+60	file	docs/AI_PET.md
+60	file	docs/ARCHITECTURE.md
+60	file	docs/BOOTCAMP_REPLAY.md
+60	file	docs/BUILD_AND_RUN.md
+60	file	docs/DESIGN_SYSTEM.md
+60	file	docs/GAME_LOOP.md
+60	file	docs/PARENT_SAFETY.md
+60	file	docs/RAILWAY_DEPLOYMENT.md
+60	file	docs/ROADMAP.md
+60	file	docs/TEST_CHECKLIST.md
+60	file	README.md
+60	file	railway.api.json
+60	file	scripts/railway/set-variables.ps1
+60	file	scripts/railway/smoke-test.ps1
+60	file	src/PetPal.Api/Migrations/AppDbContextModelSnapshot.cs
+60	file	design-canvas/Cimizdir.dc.html
+60	file	design-canvas/Dostlar.dc.html
+60	file	design-canvas/Dunya.dc.html
+60	file	design-canvas/Inkisaf.dc.html
+60	file	design-canvas/Kesf.dc.html
+60	file	design-canvas/Main.dc.html
+60	file	design-canvas/Oyren.dc.html
+60	file	design-canvas/Oyunlar.dc.html
+60	file	design-canvas/Palitra.dc.html
+60	file	design-canvas/Profil.dc.html
+60	file	design-canvas/Resept.dc.html
+60	file	design-canvas/Skaf.dc.html
+60	file	design-canvas/Valideyn.dc.html
+60	file	design-canvas/Yem.dc.html
+60	file	design-canvas/Yuxu.dc.html
+60	file	design-canvas/YuxuIsiq.dc.html
+60	file	design-canvas/ai-pets-oyun-sethi.html
+60	file	design-canvas/ai-pets-palitra-secimi.html
+60	file	design-canvas/canvas.json
+60	file	design-canvas/src/bath.body.html
+60	file	design-canvas/src/build.mjs
+60	file	design-canvas/src/closet.body.html
+60	file	design-canvas/src/explore.body.html
+60	file	design-canvas/src/feed.body.html
+60	file	design-canvas/src/friends.body.html
+60	file	design-canvas/src/home.body.html
+60	file	design-canvas/src/learn.body.html
+60	file	design-canvas/src/parent.body.html
+60	file	design-canvas/src/play.body.html
+60	file	design-canvas/src/profile.body.html
+60	file	design-canvas/src/progress.body.html
+60	file	design-canvas/src/sleep.body.html
+60	file	design-canvas/src/tokens.a.css
+60	file	design-canvas/src/tokens.b.css
+60	file	design-canvas/src/world.body.html
+60	file	design-canvas/v1-arxiv/Care.dc.html
+60	file	design-canvas/v1-arxiv/Kit.dc.html
+60	file	design-canvas/v1-arxiv/Learn.dc.html
+60	file	design-canvas/v1-arxiv/Main.dc.html
+60	file	design-canvas/v1-arxiv/Play.dc.html
+60	file	design-canvas/v1-arxiv/World.dc.html
+60	file	design-canvas/v1-arxiv/ai-pets-game-surface.html
+60	file	design-canvas/v1-arxiv/canvas.json
+60	file	design-games/Aspaz.dc.html
+60	file	design-games/Baloncuq.dc.html
+60	file	design-games/Herfler.dc.html
+60	file	design-games/Hesab.dc.html
+60	file	design-games/Kes.dc.html
+60	file	design-games/Main.dc.html
+60	file	design-games/Netice.dc.html
+60	file	design-games/Qacis.dc.html
+60	file	design-games/RengSirasi.dc.html
+60	file	design-games/Sebet.dc.html
+60	file	design-games/Sistem.dc.html
+60	file	design-games/Tullanis.dc.html
+60	file	design-games/Yaddas.dc.html
+60	file	design-games/ai-pets-mini-oyunlar.html
+60	file	design-games/canvas.json
+60	file	design-games/src/bubble.body.html
+60	file	design-games/src/build.mjs
+60	file	design-games/src/catch.body.html
+60	file	design-games/src/chef.body.html
+60	file	design-games/src/echo.body.html
+60	file	design-games/src/hub.body.html
+60	file	design-games/src/jump.body.html
+60	file	design-games/src/letters.body.html
+60	file	design-games/src/memory.body.html
+60	file	design-games/src/quick.body.html
+60	file	design-games/src/result.body.html
+60	file	design-games/src/run.body.html
+60	file	design-games/src/slice.body.html
+60	file	design-games/src/system.body.html
+60	file	.tmp-visual-agent-bed.html
+60	file	debug.log

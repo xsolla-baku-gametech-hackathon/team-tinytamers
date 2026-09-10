@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: petpal-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: petpal
+    # Host portu qəsdən 5433-dür: 5432 standart Postgres portudur və maşında
+    # başqa layihənin bazası ilə toqquşa bilər. Ayrı port + ayrı konteyner adı +
+    # ayrı volume tətbiqin məlumatını tam izolyasiya edir.
+    ports:
+      - "5433:5432"
+    volumes:
+      - petpal_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d petpal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Lokal AI (pet dialoqları + adaptiv sual generasiyası üçün OpenAI-uyğun endpoint).
+  # Api tərəfdə Ai:Chat:Provider=OpenAiCompatible olduqda istifadə olunur.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: petpal-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - petpal_ollama:/root/.ollama
+
+volumes:
+  petpal_pgdata:
+  petpal_ollama:

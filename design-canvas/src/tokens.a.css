@@ -1,0 +1,54 @@
+/* İSTİQAMƏT A — mövcud theme.css tokenləri, hərfi-hərfinə. */
+--pp-primary: #6C4CF1;
+--pp-primary-dark: #5334D9;
+--pp-primary-soft: #EDE8FF;
+--pp-primary-lift: #8A6DFF;
+--pp-primary-edge: #4A2CC4;
+
+--pp-life: #17B26A;
+--pp-life-deep: #0B7A47;
+--pp-life-soft: #DAF5E7;
+--pp-life-lift: #22D07E;
+--pp-life-edge: #0B7A47;
+--pp-on-life: #06301D;
+
+--pp-spark: #FF8A15;
+--pp-spark-deep: #A85200;
+--pp-spark-soft: #FFEEDA;
+--pp-spark-lift: #FFA648;
+--pp-spark-edge: #A85200;
+--pp-on-spark: #3A1D00;
+
+--pp-alert: #C81E43;
+--pp-alert-soft: #FFE4EA;
+--pp-alert-edge: #8E0F2B;
+
+--pp-bg: #F5F2FF;
+--pp-card: #FFFFFF;
+--pp-card-soft: #FAF8FF;
+--pp-glass: rgba(255, 255, 255, 0.94);
+
+--pp-ink: #1B1140;
+--pp-ink-soft: #5F5786;
+--pp-ink-muted: #8E88AC;
+
+--pp-border: #E6E0FA;
+--pp-track: #EDE9F9;
+
+--pp-edge-neutral: rgba(76, 46, 173, 0.16);
+--pp-shadow-sm: 0 2px 8px rgba(76, 46, 173, 0.10);
+--pp-shadow-md: 0 8px 24px rgba(76, 46, 173, 0.14);
+--pp-shadow-lg: 0 16px 40px rgba(76, 46, 173, 0.20);
+--pp-gloss: inset 0 2px 0 rgba(255, 255, 255, 0.40);
+
+/* Səhnə */
+--sc-sky-1: #7FD1FF;
+--sc-sky-2: #A8E4FF;
+--sc-sky-3: #D9F4FF;
+--sc-sun: #FFD25E;
+--sc-sun-halo: #FFE9A8;
+--sc-cloud: #FFFFFF;
+--sc-hill-1: #BDEBD2;
+--sc-hill-2: #7FDCAE;
+--sc-hill-3: #3FD08A;
+--sc-hill-4: #17B26A;

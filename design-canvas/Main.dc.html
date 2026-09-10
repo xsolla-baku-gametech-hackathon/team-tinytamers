@@ -1,0 +1,2023 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap">
+  <style>
+    /* Ev — pet-in otağı, oyun avtomatı və sprint çipi ilə.
+       Aşağıdakı qaydalar tətbiqin app.css/pet.css-indən OLDUĞU KİMİ köçürülüb
+       (əl ilə yazılmayıb). Tətbiqin həmin bölmələri dəyişəndə bu artboard da
+       yenidən qurulmalıdır — kanvas kodu güzgüləyir. */
+    body {
+      margin: 0;
+      font-family: 'Nunito', ui-rounded, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* theme.css-in element sıfırlamaları: onsuz düymələr brauzerin öz çərçivəsi
+       ilə çıxır (məsələn oyun avtomatının arxasında ağ qutu). */
+    *,
+    *::before,
+    *::after { box-sizing: border-box; }
+
+    button {
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      border: none;
+      background: none;
+      padding: 0;
+    }
+
+    img,
+    svg { max-width: 100%; display: block; }
+
+    :root {
+        /* Brend */
+        --pp-primary: #6F5AD8;
+        --pp-primary-dark: #54419E;
+        --pp-primary-soft: #E9E4F7;
+    
+        /* ---- Üç rəng ailəsi ----
+         * Hər ailənin bir işi var, ona görə oxumağı hələ yaxşı bacarmayan uşaq da
+         * ekranda nə baş verdiyini rəngdən anlayır:
+         *
+         *   bənövşəyi — ağıl      : brend, öyrənmə, gem, əsas düymələr
+         *   yaşıl     — canlılıq  : pet, dünya, doğru cavab, sağlam statlar
+         *   narıncı   — enerji    : ulduz, seriya, mini oyunlar, kəşf
+         *
+         * Səhv rəngi qəsdən moruğa çalır. Narıncı "qazandın" deməkdir, ona görə
+         * səhv ondan aydın seçilməlidir: köhnə mərcan (#FF7A6B) narıncıya cəmi
+         * ~14° yaxın idi, moruq isə ~45° aralıdır.
+         */
+    
+        /* Yaşıl — canlılıq */
+        --pp-life: #35A57A;
+        --pp-life-deep: #156F4F;   /* ağ mətn daşıya bilən yeganə yaşıl — 6.1:1 */
+        --pp-life-soft: #DCEEE4;
+        --pp-on-life: #06301D;     /* parlaq yaşıl dolgunun üstündəki mətn */
+    
+        /* Narıncı — enerji */
+        --pp-spark: #E89A3C;
+        --pp-spark-deep: #93540E;  /* açıq fonda narıncı mətn — 5.0:1 */
+        --pp-spark-soft: #FAEBD6;
+        --pp-on-spark: #3A1D00;    /* narıncının üstündə ağ mətn 2.3:1 verir — istifadə olunmur */
+    
+        /* Moruq — yalnız səhv */
+        --pp-alert: #B7304C;
+        --pp-alert-soft: #F7E1E5;
+        --pp-on-alert: #FFFFFF;
+    
+        /* Səthlər */
+        --pp-bg: #F0EBE0;
+        --pp-card: #FBF7EF;
+        --pp-card-soft: #F6F1E6;
+        --pp-overlay: rgba(38, 30, 18, 0.58);
+    
+        /* Mətn */
+        --pp-ink: #241E38;
+        --pp-ink-soft: #5C5470;
+        --pp-ink-muted: #8A82A0;
+        --pp-on-primary: #FFFFFF;
+    
+        /* Sərhəd */
+        --pp-border: #E4DCCE;
+        --pp-track: #E8E2D6;
+    
+        /* Kölgə — rəngli, "oyuncaq" hissi verir */
+        --pp-shadow-sm: 0 2px 8px rgba(96, 74, 46, 0.10);
+        --pp-shadow-md: 0 8px 24px rgba(96, 74, 46, 0.13);
+        --pp-shadow-lg: 0 16px 40px rgba(96, 74, 46, 0.18);
+    
+        /* ---- Səth resepti ----
+         * Mobil oyun düymələri düz dolğu deyil: yuxarısı işıqlı ("lift"), altında
+         * isə bir neçə piksellik tünd kənar ("edge") var — həmin kənar düymənin
+         * qalınlığıdır və basılanda azalır, ona görə element fiziki hiss olunur.
+         * Yeni rəng ailəsi əlavə olunmur; hər dəyər mövcud ailənin çalarıdır.
+         */
+        --pp-primary-lift: #8A78E4;
+        --pp-primary-edge: #4E3BA8;
+        --pp-life-lift: #4FBB91;
+        --pp-life-edge: #156F4F;
+        --pp-spark-lift: #F2B166;
+        --pp-spark-edge: #93540E;
+        --pp-alert-lift: #C94764;
+        --pp-alert-edge: #8A2038;
+    
+        /* Neytral səthlərin (kart, kapsul, dok) kənarı — rəngsiz, sadəcə dərinlik. */
+        --pp-edge-neutral: rgba(96, 74, 46, 0.20);
+    
+        /* Üst kənardakı işıq zolağı — plastik parıltı hissi. */
+        --pp-gloss: inset 0 2px 0 rgba(255, 255, 255, 0.40);
+    
+        /* Forma */
+        --pp-radius-sm: 14px;
+        --pp-radius: 22px;
+        --pp-radius-lg: 30px;
+        --pp-radius-pill: 999px;
+    
+        /* Ölçü */
+        --pp-tap: 56px;
+        --pp-gutter: 18px;
+    
+        /* Cihaz safe-area */
+        --pp-safe-top: env(safe-area-inset-top, 0px);
+        --pp-safe-bottom: env(safe-area-inset-bottom, 0px);
+    
+        color-scheme: light;
+    }
+    }
+
+    .pp-root {
+      --pp-safe-top: 0px;
+      --pp-safe-bottom: 0px;
+    }
+
+    /* ==================== PET AVATAR ====================
+     * Pet tamamilə inline SVG-dir — xarici asset yoxdur, ölçüdən asılı olmayaraq
+     * kəskin görünür və mərhələ/əhval dəyişəndə anında yenilənir.
+     * ==================================================== */
+    
+    .pet {
+        width: min(210px, 62vw);
+        height: auto;
+        transform-origin: 50% 92%;
+        animation: pet-breathe 3.4s ease-in-out infinite;
+        filter: drop-shadow(0 10px 14px rgba(60, 40, 20, 0.22));
+    }
+    
+    .pet--excited { animation: pet-hop 900ms cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
+    .pet--sad,
+    .pet--sleepy { animation: pet-slow-breathe 5s ease-in-out infinite; }
+    .pet--hungry { animation: pet-wobble 2.4s ease-in-out infinite; }
+    
+    /* Quyruq həmişə yüngülcə tərpənir — pet "canlı" görünsün. */
+    .pet__tail {
+        transform-origin: 68% 72%;
+        animation: pet-wag 1.9s ease-in-out infinite;
+    }
+    
+    .pet--excited .pet__tail { animation-duration: 700ms; }
+    .pet--sad .pet__tail,
+    .pet--sleepy .pet__tail { animation-duration: 4s; }
+    
+    /* Göz qırpma — nadir və qısa, diqqəti yayındırmır. */
+    .pet__eyelid {
+        transform-origin: center;
+        animation: pet-blink 5.5s ease-in-out infinite;
+    }
+    
+    .pet--sleepy .pet__eyelid { animation: none; }
+    
+    .pet__zzz {
+        animation: pet-float 2.6s ease-in-out infinite;
+    }
+    
+    .pet__sparkle {
+        transform-origin: center;
+        animation: pet-sparkle 1.8s ease-in-out infinite;
+    }
+    
+    .pet-stage-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        padding: 5px 14px;
+        border-radius: var(--pp-radius-pill);
+        background: rgba(255, 255, 255, 0.85);
+        color: #3B2A66;
+        font-size: 12px;
+        font-weight: 800;
+    }
+    
+    /* Yaş nişanın içində ayrıca kapsuldur: mərhələ adı ilə rəqəm bir-birinə
+       qarışmasın deyə. */
+    .pet-stage-label__age {
+        padding: 2px 8px;
+        border-radius: var(--pp-radius-pill);
+        background: var(--pp-primary-soft);
+        color: var(--pp-primary-dark);
+        font-size: 11px;
+        font-weight: 900;
+    }
+    
+    @keyframes pet-breathe {
+        0%, 100% { transform: scaleY(1) scaleX(1); }
+        50% { transform: scaleY(1.025) scaleX(0.99); }
+    }
+    
+    @keyframes pet-slow-breathe {
+        0%, 100% { transform: scaleY(1) translateY(0); }
+        50% { transform: scaleY(0.985) translateY(3px); }
+    }
+    
+    @keyframes pet-hop {
+        0%, 100% { transform: translateY(0) scaleY(1); }
+        35% { transform: translateY(-14px) scaleY(1.04); }
+        55% { transform: translateY(0) scaleY(0.94); }
+        70% { transform: translateY(0) scaleY(1); }
+    }
+    
+    @keyframes pet-wobble {
+        0%, 100% { transform: rotate(0deg); }
+        30% { transform: rotate(-2.5deg); }
+        70% { transform: rotate(2.5deg); }
+    }
+    
+    @keyframes pet-wag {
+        0%, 100% { transform: rotate(-7deg); }
+        50% { transform: rotate(9deg); }
+    }
+    
+    @keyframes pet-blink {
+        0%, 92%, 100% { transform: scaleY(0); }
+        94%, 97% { transform: scaleY(1); }
+    }
+    
+    @keyframes pet-float {
+        0% { opacity: 0; transform: translate(0, 0) scale(0.8); }
+        40% { opacity: 1; }
+        100% { opacity: 0; transform: translate(10px, -22px) scale(1.1); }
+    }
+    
+    @keyframes pet-sparkle {
+        0%, 100% { opacity: 0.25; transform: scale(0.8) rotate(0deg); }
+        50% { opacity: 1; transform: scale(1.15) rotate(20deg); }
+    }
+    
+    /* Yumurta mərhələsi — hələ "yatır", yalnız yüngül tərpənir. */
+    .pet--egg {
+        animation: pet-egg-rock 3s ease-in-out infinite;
+    }
+    
+    @keyframes pet-egg-rock {
+        0%, 100% { transform: rotate(-3deg); }
+        50% { transform: rotate(3deg); }
+    }
+    
+    /* ---------- Bədənin rəngləri ----------
+       Rəsm bir dənədir, rəng isə növdən gəlir: PetAvatar SVG-nin üstündə
+       --pet-fur / --pet-belly / --pet-inner-ear dəyişənlərini qoyur, ona görə
+       eyni yol dörd növə (tülkü, pişik, əjdaha, dovşan) xidmət edir. */
+    .pet__fur { fill: var(--pet-fur, #F3A05A); }
+    .pet__belly { fill: var(--pet-belly, #FFF3E2); }
+    .pet__inner-ear { fill: var(--pet-inner-ear, #FFD3A8); }
+    
+    /* Kontur bütün mərhələlərdə eyni qalınlıqdadır — kiçik ölçüdə forma
+       yumşalmasın deyə. */
+    .pet__outline {
+        stroke: #2B2140;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    
+    .pet__eye,
+    .pet__nose { fill: #2B2140; }
+    
+    .pet__mouth {
+        fill: none;
+        stroke: #2B2140;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    
+    /* Yumulmuş və gülən gözlər xətdir, dolgu deyil. */
+    .pet__lash {
+        fill: none;
+        stroke: #2B2140;
+        stroke-width: 4;
+        stroke-linecap: round;
+    }
+    
+    /* Tam ekran otaqlarda pet öz qutusunu doldurur. Standart `.pet` eni
+       `min(210px, 62vw)`-dir — səhnə üçün doğrudur, amma otaqda qutunun ölçüsünü
+       səhnə özü seçir (güzgünün qarşısı, vanna, yataq) və pet həmin qutuya
+       oturmalıdır, yoxsa sola sürüşür və ya qutudan daşır. */
+    .bathroom__pet .pet,
+    .bedroom__pet .pet,
+    .closet__pet .pet {
+        width: 100%;
+        max-width: none;
+    }
+    
+    /* Növə xas detallar: tülkünün qulaq ucları, pişik və dovşanın bığları.
+       Bunlar tükün rəngindən asılı deyil — həmişə tünd, çünki siluetin oxunması
+       onlardan asılıdır. */
+    .pet__ear-tip { fill: #2B2140; }
+    
+    .pet__whisker {
+        fill: none;
+        stroke: #2B2140;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    
+    /* Yalnız konturla çəkilən formalar (əjdahanın silsiləsi, dovşanın qulaq
+       cizgiləri) və dovşanın ön dişləri. */
+    .pet__line { fill: none; }
+    
+    .pet__tooth {
+        stroke: #2B2140;
+        stroke-width: 1.4;
+        stroke-linejoin: round;
+    }
+    
+
+    .app-shell {
+        display: flex;
+        flex-direction: column;
+        height: 100dvh;
+        max-width: 560px;
+        margin: 0 auto;
+        background: var(--pp-bg);
+        position: relative;
+    }
+    
+    .app-main {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        padding: var(--pp-gutter);
+        /* Alt naviqasiya indi daha hündürdür (qalxan aktiv ikon üçün üst boşluq) —
+           məzmun onun altında gizlənməsin deyə boşluq da böyüyür. */
+        padding-bottom: calc(var(--pp-gutter) + 104px + var(--pp-safe-bottom));
+    }
+    
+    .app-main--plain {
+        padding-bottom: calc(var(--pp-gutter) + var(--pp-safe-bottom));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+    
+    .app-shell--immersive .topbar-shell {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        z-index: 30;
+        pointer-events: none;
+    }
+    
+    .app-shell--immersive .topbar {
+        background: none;
+        box-shadow: none;
+    }
+    
+    .app-shell--immersive .topbar-shell > *,
+    .app-shell--immersive .topbar > * {
+        pointer-events: auto;
+    }
+    
+    .topbar__menu {
+        margin: 12px var(--pp-gutter) 0;
+    }
+    
+    .app-main--immersive {
+        padding-top: 0;
+    }
+    
+    .app-main--immersive .scene--hero {
+        flex: 1 1 auto;
+    }
+    
+    .topbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: calc(10px + var(--pp-safe-top)) var(--pp-gutter) 12px;
+        background: var(--pp-card);
+        box-shadow: 0 2px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+    }
+    
+    .topbar__avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: var(--pp-radius-pill);
+        background: var(--pp-primary-soft);
+        display: grid;
+        place-items: center;
+        font-size: 22px;
+        flex-shrink: 0;
+    }
+    
+    .topbar__name {
+        font-weight: 800;
+        font-size: 17px;
+        margin-right: auto;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .topbar__actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .currency {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 13px;
+        border-radius: var(--pp-radius-pill);
+        background: var(--pp-card);
+        box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);
+        font-weight: 900;
+        font-size: 15px;
+        font-variant-numeric: tabular-nums;
+    }
+    
+    .currency__icon {
+        display: inline-flex;
+        align-items: center;
+        line-height: 1;
+        flex-shrink: 0;
+    }
+    
+    .currency--star { color: var(--pp-spark-deep); }
+    
+    .currency--gem { color: var(--pp-primary-dark); }
+    
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: var(--pp-tap);
+        padding: 0 22px;
+        border-radius: var(--pp-radius-pill);
+        font-weight: 800;
+        font-size: 16px;
+        transition: transform 120ms ease, box-shadow 160ms ease, opacity 160ms ease;
+    }
+    
+    .btn:active:not(:disabled) {
+        transform: translateY(3px);
+    }
+    
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+    }
+    
+    .btn--block {
+        display: flex;
+        width: 100%;
+    }
+    
+    .btn--primary {
+        background: linear-gradient(180deg, var(--pp-primary-lift) 0%, var(--pp-primary) 100%);
+        color: var(--pp-on-primary);
+        box-shadow: 0 5px 0 var(--pp-primary-edge), var(--pp-shadow-md), var(--pp-gloss);
+    }
+    
+    .btn--primary:active:not(:disabled) {
+        box-shadow: 0 2px 0 var(--pp-primary-edge), var(--pp-shadow-sm), var(--pp-gloss);
+    }
+    
+    .btn--ghost {
+        background: var(--pp-card);
+        color: var(--pp-primary);
+        border: 2px solid var(--pp-border);
+        box-shadow: 0 5px 0 var(--pp-edge-neutral);
+    }
+    
+    .btn--ghost:active:not(:disabled) {
+        box-shadow: 0 2px 0 var(--pp-edge-neutral);
+    }
+    
+    .btn--success {
+        background: linear-gradient(180deg, var(--pp-life-lift) 0%, var(--pp-life) 100%);
+        color: var(--pp-on-life);
+        box-shadow: 0 5px 0 var(--pp-life-edge), var(--pp-shadow-md), var(--pp-gloss);
+    }
+    
+    .btn--success:active:not(:disabled) {
+        box-shadow: 0 2px 0 var(--pp-life-edge), var(--pp-shadow-sm), var(--pp-gloss);
+    }
+    
+    .btn--reward {
+        background: linear-gradient(180deg, var(--pp-spark-lift) 0%, var(--pp-spark) 100%);
+        color: var(--pp-on-spark);
+        box-shadow: 0 5px 0 var(--pp-spark-edge), var(--pp-shadow-md), var(--pp-gloss);
+    }
+    
+    .btn--reward:active:not(:disabled) {
+        box-shadow: 0 2px 0 var(--pp-spark-edge), var(--pp-shadow-sm), var(--pp-gloss);
+    }
+    
+    .btn--quiet {
+        min-height: 44px;
+        padding: 0 14px;
+        font-size: 14px;
+        color: var(--pp-ink-soft);
+    }
+    
+    .scene {
+        position: relative;
+        border-radius: var(--pp-radius-lg);
+        padding: 18px 16px 22px;
+        overflow: hidden;
+        box-shadow: var(--pp-shadow-md);
+    }
+    
+    .scene--sunny  { --pp-sky: linear-gradient(180deg, #BEDFEE 0%, #D3E9F1 38%, #E8F1E8 58%, #E8F1E8 100%); }
+    
+    .scene--clear  { --pp-sky: linear-gradient(180deg, #C6E4F0 0%, #DBEDF4 38%, #EDF4EC 58%, #EDF4EC 100%); }
+    
+    .scene--cloudy { --pp-sky: linear-gradient(180deg, #B4C6D4 0%, #CCD9E1 38%, #E3E9E8 58%, #E3E9E8 100%); }
+    
+    .scene--rain   { --pp-sky: linear-gradient(180deg, #96A5B6 0%, #B6C2CE 38%, #D6DCDF 58%, #D6DCDF 100%); }
+    
+    .scene--storm  { --pp-sky: linear-gradient(180deg, #78838F 0%, #9AA4AE 38%, #BEC4C8 58%, #BEC4C8 100%); }
+    
+    .scene--sunny,
+    .scene--clear,
+    
+    .scene--cloudy,
+    .scene--rain,
+    
+    .scene--storm { background: var(--pp-sky); }
+    
+    .scene__sky {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+    
+    .scene__sun {
+        position: absolute;
+        top: 22px;
+        right: 26px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #EFCE7C 0%, #EFCE7C 50%, rgba(245, 227, 180, 0.55) 51%, rgba(245, 227, 180, 0.55) 100%);
+        animation: pp-sun-pulse 4s ease-in-out infinite;
+    }
+    
+    .scene__cloud {
+        position: absolute;
+        top: 20px;
+        width: 68px;
+        height: 22px;
+        border-radius: var(--pp-radius-pill);
+        background: rgba(251, 248, 242, 0.9);
+        animation: pp-drift 22s linear infinite;
+    }
+    
+    .scene__cloud--b {
+        top: 48px;
+        width: 48px;
+        height: 16px;
+        opacity: 0.7;
+        animation-duration: 30s;
+        animation-delay: -8s;
+    }
+    
+    .scene__hills {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 58%;
+        display: block;
+    }
+    
+    .scene__ground {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 54px;
+        background: linear-gradient(180deg, #77BE97 0%, #35A57A 100%);
+    }
+    
+    .hud {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px;
+        z-index: 3;
+    }
+    
+    .hud__level {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 52px;
+        padding: 0 16px 0 6px;
+        border-radius: var(--pp-radius-pill);
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 4px 0 var(--pp-edge-neutral), 0 10px 22px rgba(96, 74, 46, 0.18);
+    }
+    
+    .hud__ring {
+        position: relative;
+        width: 42px;
+        height: 42px;
+        flex-shrink: 0;
+    }
+    
+    .hud__ring-value {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 16px;
+        font-weight: 900;
+        color: var(--pp-on-primary);
+    }
+    
+    .hud__name {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 0;
+    }
+    
+    .hud__name-text {
+        font-size: 16px;
+        font-weight: 900;
+        line-height: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .hud__name-sub {
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1;
+        color: var(--pp-ink-soft);
+        font-variant-numeric: tabular-nums;
+    }
+    
+    .hud__wallet {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+    }
+    
+    .gauges {
+        position: relative;
+        z-index: 3;
+        margin: 0 14px;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+    }
+    
+    .gauge {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        padding: 9px 0 8px;
+        border-radius: var(--pp-radius);
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 3px 0 var(--pp-edge-neutral), 0 8px 16px rgba(96, 74, 46, 0.20);
+    }
+    
+    .gauge--alert {
+        box-shadow: 0 3px 0 rgba(200, 30, 67, 0.22), 0 8px 16px rgba(96, 74, 46, 0.20);
+        outline: 2.5px solid var(--pp-alert);
+        outline-offset: -2.5px;
+        animation: pp-bounce 1.8s ease-in-out infinite;
+    }
+    
+    .gauge__ring {
+        position: relative;
+        width: 40px;
+        height: 40px;
+    }
+    
+    .gauge__icon {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+    }
+    
+    .gauge__icon svg {
+        width: 19px;
+        height: 19px;
+    }
+    
+    .gauge__value {
+        font-size: 12px;
+        font-weight: 900;
+        font-variant-numeric: tabular-nums;
+    }
+    
+    .scene--hero {
+        border-radius: 0 0 var(--pp-radius-lg) var(--pp-radius-lg);
+        margin: 0 calc(-1 * var(--pp-gutter));
+        padding: calc(78px + var(--pp-safe-top)) 0 0;
+        min-height: 540px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .scene--hero .scene__pet {
+        flex: 1;
+        min-height: 260px;
+        padding-bottom: 4px;
+        z-index: 2;
+    }
+    
+    .scene--hero .scene__pet .pet {
+        width: min(300px, 78vw);
+        height: auto;
+    }
+    
+    .scene--hero .bubble {
+        position: absolute;
+        /* 128px ölçərlərin üstünə düşürdü: səhnənin üst boşluğu 78px, ölçər
+           kartı isə 79px-dir (9 + halqa 40 + 5 + rəqəm 17 + 8), yəni sıra
+           157px-də bitir. Balon ondan aşağı başlamalıdır. */
+        top: calc(166px + var(--pp-safe-top));
+        left: 26px;
+        max-width: 200px;
+        margin: 0;
+        z-index: 4;
+        border-radius: var(--pp-radius) var(--pp-radius) var(--pp-radius) 6px;
+        box-shadow: 0 4px 0 var(--pp-edge-neutral), 0 10px 22px rgba(96, 74, 46, 0.18);
+    }
+    
+    .scene--room { background: none; }
+    
+    .room {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+    }
+    
+    .scene--room {
+        --rm-wall-top: #F7EFE1;
+        --rm-wall-bottom: #F1E6D2;
+        --rm-skirting: #E0CFB2;
+        --rm-wood-top: #E6CBA4;
+        --rm-wood-bottom: #D9BA8E;
+        --rm-rug-light: #EFE0C6;
+        --rm-rug-mid: #E3CFAC;
+        --rm-rug-dark: #D6BE94;
+    }
+    
+    .scene__arcade {
+        position: absolute;
+        left: 1.5%;
+        bottom: 14%;
+        width: 24.615%;
+        aspect-ratio: 96 / 124;
+        z-index: 3;
+        transition: transform 140ms ease;
+    }
+    
+    .scene__arcade:active { transform: scale(0.94); }
+    
+    .room__decor *,
+    .room__decor *::before,
+    
+    .room__decor *::after,
+    .room__arcade *,
+    
+    .room__arcade *::before,
+    .room__arcade *::after {
+        position: absolute;
+        box-sizing: border-box;
+    }
+    
+    .room__decor {
+        position: absolute;
+        inset: 0;
+        /* Dekorun öz yığın konteksti. Onsuz içəridəki z-index-lər (xalça 6,
+           rəf 7, oyuncaq qutusu 8) səhnənin qatları ilə eyni müstəvidə
+           yarışır və pet-in ayaqlarını, sprint çipini kəsirdi. */
+        isolation: isolate;
+        z-index: 0;
+    }
+    
+    .room__wall {
+        z-index: 0;
+        inset: 0 0 44% 0;
+        width: 100%;
+        height: 56%;
+        background: linear-gradient(180deg, var(--rm-wall-top), var(--rm-wall-bottom));
+    }
+    
+    .room__wall-pattern {
+        z-index: 1;
+        top: 28%;
+        left: 0;
+        width: 62%;
+        height: 26%;
+        opacity: 0.58;
+        background-image:
+            radial-gradient(circle, var(--pp-border) 0 7%, transparent 8%),
+            radial-gradient(circle, var(--pp-primary-soft) 0 5%, transparent 6%);
+        background-position: 0 0, 7% 12%;
+        background-size: 15% 24%, 15% 24%;
+    }
+    
+    .room__floor {
+        z-index: 2;
+        top: 56%;
+        left: 0;
+        width: 100%;
+        height: 44%;
+        background: linear-gradient(180deg, var(--rm-wood-top), var(--rm-wood-bottom));
+    }
+    
+    .room__floor-grain {
+        z-index: 3;
+        top: 56%;
+        left: 0;
+        width: 100%;
+        height: 28%;
+        opacity: 0.68;
+        background-image:
+            linear-gradient(90deg,
+                transparent 0 24.5%,
+                rgba(96, 74, 46, 0.10) 24.5% 25%,
+                transparent 25% 49.5%,
+                rgba(96, 74, 46, 0.10) 49.5% 50%,
+                transparent 50% 74.5%,
+                rgba(96, 74, 46, 0.10) 74.5% 75%,
+                transparent 75% 100%),
+            repeating-linear-gradient(0deg,
+                transparent 0 23%,
+                rgba(96, 74, 46, 0.10) 23% 24%,
+                transparent 24% 48%);
+    }
+    
+    .room__skirting {
+        z-index: 4;
+        top: 54.5%;
+        left: 0;
+        width: 100%;
+        height: 3.5%;
+        background: var(--rm-skirting);
+    }
+    
+    .room__skirting-highlight {
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 15%;
+        background: var(--pp-card);
+        opacity: 0.68;
+    }
+    
+    .room__skirting-shadow {
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 18%;
+        background: rgba(96, 74, 46, 0.13);
+    }
+    
+    .room__floor-shadow {
+        z-index: 5;
+        top: 79.5%;
+        left: 5%;
+        width: 90%;
+        height: 4.5%;
+        border-radius: 50%;
+        background: radial-gradient(ellipse, rgba(96, 74, 46, 0.13) 0 42%, transparent 72%);
+    }
+    
+    .room__rug {
+        z-index: 6;
+        /* Xalça pet-in ayağının altına düşməlidir — mövqe səhnədəki
+           .scene__pet-in oturduğu yerə görə seçilib. */
+        bottom: 25%;
+        left: 16%;
+        width: 68%;
+        height: auto;
+        aspect-ratio: 265 / 93;
+        border-radius: 50%;
+        background: var(--rm-rug-dark);
+    }
+    
+    .room__rug-middle {
+        top: 8%;
+        left: 5%;
+        width: 90%;
+        height: 82%;
+        border-radius: 50%;
+        background: var(--rm-rug-light);
+    }
+    
+    .room__rug-centre {
+        top: 22%;
+        left: 13%;
+        width: 74%;
+        height: 54%;
+        border-radius: 50%;
+        background: var(--rm-rug-mid);
+    }
+    
+    .room__rug-softener {
+        top: 24%;
+        left: 17%;
+        width: 66%;
+        height: 46%;
+        border-radius: 50%;
+        background: var(--rm-rug-light);
+        opacity: 0.55;
+    }
+    
+    .room__picture {
+        z-index: 7;
+        top: 33%;
+        left: 1.5%;
+        width: 14.5%;
+        /* Səhnə uzananda əşya deyil, otaq uzanmalıdır: hündürlük eni ilə bağlıdır. */
+        height: auto;
+        aspect-ratio: 56 / 48;
+    }
+    
+    .room__picture-shadow {
+        top: 6%;
+        left: 5%;
+        width: 100%;
+        height: 100%;
+        border-radius: 12%;
+        background: rgba(96, 74, 46, 0.13);
+    }
+    
+    .room__picture-frame {
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 12%;
+        background: var(--rm-rug-dark);
+    }
+    
+    .room__picture-paper {
+        top: 9%;
+        left: 8%;
+        width: 84%;
+        height: 82%;
+        overflow: hidden;
+        border-radius: 8%;
+        background: var(--pp-card);
+    }
+    
+    .room__picture-sun {
+        top: 15%;
+        right: 15%;
+        width: 21%;
+        height: 25%;
+        border-radius: 50%;
+        background: var(--pp-spark-lift);
+    }
+    
+    .room__picture-hill-back {
+        left: -8%;
+        bottom: -8%;
+        width: 72%;
+        height: 54%;
+        border-radius: 50% 50% 0 0;
+        background: var(--pp-life-soft);
+    }
+    
+    .room__picture-hill-front {
+        right: -10%;
+        bottom: -12%;
+        width: 74%;
+        height: 48%;
+        border-radius: 50% 50% 0 0;
+        background: var(--pp-primary-soft);
+    }
+    
+    .room__shelf {
+        z-index: 7;
+        /* Rəf döşəmə xəttinə bağlanır ki, səhnə boyu sürüşməsin. */
+        bottom: 41.5%;
+        right: 1.5%;
+        width: 15%;
+        height: auto;
+        aspect-ratio: 58 / 87;
+    }
+    
+    .room__shelf-shadow {
+        right: -2%;
+        bottom: 6%;
+        width: 100%;
+        height: 13%;
+        border-radius: 20%;
+        background: rgba(96, 74, 46, 0.13);
+    }
+    
+    .room__shelf-board {
+        right: 0;
+        bottom: 10%;
+        width: 100%;
+        height: 12%;
+        border-radius: 20%;
+        background: var(--rm-rug-dark);
+    }
+    
+    .room__shelf-edge {
+        left: 5%;
+        bottom: 5%;
+        width: 90%;
+        height: 8%;
+        border-radius: 0 0 35% 35%;
+        background: var(--rm-skirting);
+    }
+    
+    .room__shelf-bracket {
+        right: 12%;
+        bottom: 0;
+        width: 11%;
+        height: 13%;
+        background: var(--rm-rug-dark);
+        clip-path: polygon(0 0, 100% 0, 50% 100%);
+    }
+    
+    .room__book-one {
+        left: 3%;
+        bottom: 22%;
+        width: 13%;
+        height: 41%;
+        border-radius: 18% 18% 6% 6%;
+        background: var(--pp-primary-soft);
+    }
+    
+    .room__book-two {
+        left: 17%;
+        bottom: 22%;
+        width: 15%;
+        height: 34%;
+        border-radius: 16% 16% 5% 5%;
+        background: var(--pp-life-soft);
+    }
+    
+    .room__book-three {
+        left: 33%;
+        bottom: 22%;
+        width: 12%;
+        height: 46%;
+        border-radius: 18% 18% 6% 6%;
+        background: var(--rm-rug-light);
+    }
+    
+    .room__shelf-toy {
+        left: 48%;
+        bottom: 23%;
+        width: 19%;
+        height: 13%;
+        border-radius: 50%;
+        background: var(--pp-primary-soft);
+    }
+    
+    .room__plant-stem {
+        right: 14%;
+        bottom: 46%;
+        width: 5%;
+        height: 31%;
+        border-radius: 40%;
+        background: var(--pp-life);
+    }
+    
+    .room__plant-leaf-left {
+        right: 18%;
+        bottom: 64%;
+        width: 22%;
+        height: 17%;
+        border-radius: 70% 15% 70% 15%;
+        transform: rotate(20deg);
+        background: var(--pp-life-soft);
+    }
+    
+    .room__plant-leaf-right {
+        right: 2%;
+        bottom: 57%;
+        width: 22%;
+        height: 17%;
+        border-radius: 15% 70% 15% 70%;
+        transform: rotate(-20deg);
+        background: var(--pp-life-lift);
+    }
+    
+    .room__plant-pot {
+        right: 4%;
+        bottom: 22%;
+        width: 31%;
+        height: 26%;
+        clip-path: polygon(6% 0, 94% 0, 80% 100%, 20% 100%);
+        background: var(--rm-rug-mid);
+    }
+    
+    .room__toybox {
+        z-index: 8;
+        right: 0.8%;
+        bottom: 16.5%;
+        width: 15.5%;
+        height: auto;
+        aspect-ratio: 60 / 65;
+    }
+    
+    .room__toybox-shadow {
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 17%;
+        border-radius: 50%;
+        background: rgba(96, 74, 46, 0.13);
+    }
+    
+    .room__toy-ball {
+        top: 2%;
+        left: 12%;
+        width: 34%;
+        height: 31%;
+        border-radius: 50%;
+        background: var(--pp-primary-soft);
+    }
+    
+    .room__toy-ball-patch {
+        top: 0;
+        left: 48%;
+        width: 31%;
+        height: 100%;
+        border-radius: 50%;
+        background: var(--pp-primary-lift);
+        opacity: 0.52;
+    }
+    
+    .room__toy-cube {
+        top: 9%;
+        right: 13%;
+        width: 27%;
+        height: 25%;
+        border-radius: 14%;
+        transform: rotate(9deg);
+        background: var(--pp-life-soft);
+    }
+    
+    .room__toybox-lid {
+        z-index: 2;
+        top: 28%;
+        left: 2%;
+        width: 96%;
+        height: 18%;
+        border-radius: 35%;
+        background: var(--rm-rug-dark);
+    }
+    
+    .room__toybox-body {
+        z-index: 1;
+        top: 36%;
+        left: 6%;
+        width: 88%;
+        height: 56%;
+        border-radius: 9% 9% 18% 18%;
+        background:
+            repeating-linear-gradient(90deg,
+                var(--rm-rug-mid) 0 14%,
+                var(--rm-rug-light) 14% 22%,
+                var(--rm-rug-mid) 22% 36%);
+    }
+    
+    .room__toybox-handle {
+        z-index: 3;
+        top: 50%;
+        left: 39%;
+        width: 22%;
+        height: 15%;
+        border-radius: 40%;
+        background: var(--rm-rug-dark);
+    }
+    
+    .room__arcade {
+        z-index: 10;
+        /* Mövqe düymədən gəlir (bax .scene__arcade): aparat otağın dekoru
+           deyil, toxunulan əşyadır. */
+        inset: 0;
+    }
+    
+    .room__arcade-spill {
+        z-index: 0;
+        left: -8%;
+        bottom: 0;
+        width: 116%;
+        height: 18%;
+        border-radius: 50%;
+        opacity: 0.42;
+        background: radial-gradient(ellipse, var(--pp-spark-lift) 0 18%, transparent 72%);
+    }
+    
+    .room__arcade-leg-left,
+    .room__arcade-leg-right {
+        z-index: 1;
+        bottom: 0;
+        width: 13%;
+        height: 10%;
+        border-radius: 12% 12% 28% 28%;
+        background: var(--pp-ink);
+    }
+    
+    .room__arcade-leg-left {
+        left: 12%;
+    }
+    
+    .room__arcade-leg-right {
+        left: 47%;
+    }
+    
+    .room__arcade-cabinet {
+        z-index: 2;
+        top: 0;
+        left: 2%;
+        width: 94%;
+        height: 93%;
+        border-radius: 13% 17% 10% 11%;
+        clip-path: polygon(7% 0, 87% 0, 100% 10%, 96% 91%, 84% 100%, 11% 100%, 0 91%, 3% 10%);
+        background: var(--pp-ink);
+    }
+    
+    .room__arcade-face {
+        z-index: 3;
+        top: 2.5%;
+        left: 5%;
+        width: 86%;
+        height: 87%;
+        border-radius: 12% 16% 9% 10%;
+        clip-path: polygon(5% 0, 88% 0, 100% 9%, 96% 91%, 83% 100%, 8% 100%, 0 91%, 2% 9%);
+        background: linear-gradient(180deg, var(--pp-primary), var(--pp-primary-dark));
+    }
+    
+    .room__arcade-side {
+        z-index: 4;
+        top: 5%;
+        right: 7%;
+        width: 24%;
+        height: 82%;
+        opacity: 0.72;
+        clip-path: polygon(38% 0, 100% 8%, 87% 91%, 28% 100%, 48% 61%);
+        background: var(--pp-primary-lift);
+    }
+    
+    .room__arcade-marquee {
+        z-index: 5;
+        top: 4.5%;
+        left: 9%;
+        width: 52%;
+        height: 6.5%;
+        border-radius: 18%;
+        background:
+            radial-gradient(circle at 18% 50%, var(--pp-card) 0 8%, transparent 9%),
+            radial-gradient(circle at 50% 50%, var(--pp-card) 0 8%, transparent 9%),
+            radial-gradient(circle at 82% 50%, var(--pp-card) 0 8%, transparent 9%),
+            var(--pp-spark-lift);
+    }
+    
+    .room__arcade-screen-halo {
+        z-index: 4;
+        top: 11%;
+        left: 5%;
+        width: 60%;
+        height: 41%;
+        border-radius: 20%;
+        opacity: 0.4;
+        background: radial-gradient(ellipse, var(--pp-primary-soft) 0 35%, transparent 72%);
+    }
+    
+    .room__arcade-screen {
+        z-index: 6;
+        top: 13%;
+        left: 7%;
+        width: 54%;
+        height: 35%;
+        border-radius: 10%;
+        overflow: hidden;
+        background: var(--pp-primary-soft);
+    }
+    
+    .room__arcade-screen-inner {
+        top: 7%;
+        left: 5%;
+        width: 90%;
+        height: 86%;
+        overflow: hidden;
+        border-radius: 8%;
+        background: linear-gradient(180deg, var(--pp-ink-soft), var(--pp-ink));
+    }
+    
+    .room__arcade-block-one,
+    .room__arcade-block-two,
+    
+    .room__arcade-block-three {
+        top: 11%;
+        width: 21%;
+        height: 14%;
+        border-radius: 14%;
+    }
+    
+    .room__arcade-block-one {
+        left: 8%;
+        background: var(--pp-spark);
+    }
+    
+    .room__arcade-block-two {
+        left: 34%;
+        background: var(--pp-primary-lift);
+    }
+    
+    .room__arcade-block-three {
+        left: 60%;
+        background: var(--pp-life-lift);
+    }
+    
+    .room__arcade-heart {
+        top: 35%;
+        left: 59%;
+        width: 20%;
+        height: 27%;
+        clip-path: polygon(0 20%, 20% 20%, 20% 0, 40% 0, 40% 20%, 60% 20%, 60% 0, 80% 0, 80% 20%, 100% 20%, 100% 60%, 80% 60%, 80% 80%, 60% 80%, 60% 100%, 40% 100%, 40% 80%, 20% 80%, 20% 60%, 0 60%);
+        background: var(--pp-spark-lift);
+    }
+    
+    .room__arcade-paddle {
+        left: 10%;
+        bottom: 12%;
+        width: 42%;
+        height: 9%;
+        border-radius: 30%;
+        background: var(--pp-primary-soft);
+    }
+    
+    .room__arcade-ball {
+        right: 17%;
+        bottom: 20%;
+        width: 8%;
+        height: 10%;
+        border-radius: 50%;
+        background: var(--pp-life-lift);
+    }
+    
+    .room__arcade-control-deck {
+        z-index: 6;
+        top: 51%;
+        left: 6%;
+        width: 56%;
+        height: 22%;
+        clip-path: polygon(3% 0, 100% 7%, 90% 100%, 7% 92%);
+        background: var(--pp-ink);
+    }
+    
+    .room__arcade-control-surface {
+        top: 8%;
+        left: 5%;
+        width: 89%;
+        height: 77%;
+        clip-path: polygon(1% 0, 100% 7%, 91% 100%, 7% 92%);
+        background: var(--pp-primary-lift);
+    }
+    
+    .room__arcade-joystick-stick {
+        z-index: 7;
+        top: 57%;
+        left: 20%;
+        width: 3%;
+        height: 11%;
+        border-radius: 35%;
+        transform: rotate(-9deg);
+        transform-origin: 50% 100%;
+        background: var(--pp-ink-soft);
+    }
+    
+    .room__arcade-joystick-ball {
+        z-index: 8;
+        top: 52%;
+        left: 13%;
+        width: 15%;
+        height: 11.5%;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, var(--pp-spark-lift) 0 19%, var(--pp-spark) 20% 66%, var(--pp-spark-deep) 67% 100%);
+    }
+    
+    .room__arcade-button-one,
+    .room__arcade-button-two {
+        z-index: 8;
+        top: 58%;
+        width: 10%;
+        height: 7.75%;
+        border-radius: 50%;
+        background: var(--pp-ink);
+    }
+    
+    .room__arcade-button-one {
+        left: 35%;
+    }
+    
+    .room__arcade-button-two {
+        left: 48%;
+    }
+    
+    .room__arcade-button-one-inner,
+    .room__arcade-button-two-inner {
+        top: 17%;
+        left: 17%;
+        width: 66%;
+        height: 66%;
+        border-radius: 50%;
+    }
+    
+    .room__arcade-button-one-inner {
+        background: var(--pp-life-lift);
+    }
+    
+    .room__arcade-button-two-inner {
+        background: var(--pp-spark-lift);
+    }
+    
+    .room__arcade-speaker {
+        z-index: 6;
+        top: 76%;
+        left: 11%;
+        width: 45%;
+        height: 10%;
+        opacity: 0.9;
+        background-image: radial-gradient(circle, var(--pp-ink) 0 24%, transparent 26%);
+        background-position: 0 0;
+        background-size: 20% 50%;
+    }
+    
+    .room__arcade-base-shine {
+        z-index: 6;
+        left: 12%;
+        bottom: 10%;
+        width: 43%;
+        height: 3%;
+        border-radius: 40%;
+        opacity: 0.62;
+        background: var(--pp-primary-lift);
+    }
+    
+    .room__window {
+        position: absolute;
+        top: calc(166px + var(--pp-safe-top));
+        right: 20px;
+        width: 118px;
+        height: 92px;
+    }
+    
+    .room__sky {
+        position: absolute;
+        inset: 0;
+        border-radius: 12px 12px 4px 4px;
+        overflow: hidden;
+        background: var(--pp-sky, linear-gradient(180deg, #BEDFEE 0%, #E8F1E8 100%));
+    }
+    
+    .room__sun {
+        position: absolute;
+        top: 12px;
+        left: 16px;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #EFCE7C 0%, #EFCE7C 52%, rgba(245, 227, 180, 0.5) 53%);
+    }
+    
+    .room__hills {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 54%;
+        display: block;
+    }
+    
+    .room__frame {
+        position: absolute;
+        inset: 0;
+        border: 5px solid #E4D3B6;
+        border-radius: 12px 12px 4px 4px;
+    }
+    
+    .room__frame::before,
+    .room__frame::after {
+        content: '';
+        position: absolute;
+        background: #E4D3B6;
+    }
+    
+    .room__frame::before {
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        transform: translateX(-2px);
+    }
+    
+    .room__frame::after {
+        left: 0;
+        right: 0;
+        top: 50%;
+        height: 4px;
+        transform: translateY(-2px);
+    }
+    
+    .room__sill {
+        position: absolute;
+        left: -8px;
+        right: -8px;
+        bottom: -9px;
+        height: 9px;
+        border-radius: 3px;
+        background: #D8C39F;
+    }
+    
+    .scene--map {
+        padding: 16px 14px 14px;
+        min-height: 190px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    
+    .scene__topline {
+        position: relative;
+        z-index: 3;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    
+    .bubble--map {
+        margin: 0;
+        max-width: 62%;
+    }
+    
+    .scene__engagement {
+        position: relative;
+        z-index: 3;
+        align-self: center;
+        padding: 6px 14px;
+        border-radius: var(--pp-radius-pill);
+        background: rgba(255, 255, 255, 0.9);
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--pp-on-life);
+        font-variant-numeric: tabular-nums;
+    }
+    
+    .scene__goal {
+        position: relative;
+        z-index: 3;
+        margin: 0 14px 14px;
+        padding: 12px 16px;
+        border-radius: 26px;
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 5px 0 var(--pp-edge-neutral), 0 12px 26px rgba(96, 74, 46, 0.18);
+    }
+    
+    .scene__pet {
+        position: relative;
+        display: grid;
+        place-items: center;
+        min-height: 190px;
+    }
+    
+    .bubble {
+        position: relative;
+        max-width: 92%;
+        margin: 0 auto 10px;
+        padding: 12px 16px;
+        border-radius: var(--pp-radius);
+        background: var(--pp-card);
+        box-shadow: var(--pp-shadow-sm);
+        font-weight: 700;
+        font-size: 14px;
+        text-align: center;
+        animation: pp-pop 300ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    
+    .bubble::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        bottom: -8px;
+        transform: translateX(-50%);
+        border: 8px solid transparent;
+        border-top-color: var(--pp-card);
+        border-bottom: 0;
+    }
+    
+    .actions {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-top: 14px;
+    }
+    
+    .actions--five {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+    }
+    
+    .action {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 78px;
+        border-radius: var(--pp-radius);
+        background: var(--pp-card);
+        box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);
+        text-decoration: none;
+        color: var(--pp-ink);
+        font-weight: 800;
+        font-size: 12px;
+        transition: transform 130ms ease, box-shadow 130ms ease;
+    }
+    
+    .action:active {
+        transform: translateY(2px);
+        box-shadow: 0 2px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);
+    }
+    
+    .action__icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        color: var(--pp-life-deep);
+    }
+    
+    .action--play .action__icon { color: var(--pp-spark-deep); }
+    
+    .action__icon svg {
+        width: 100%;
+        height: 100%;
+    }
+    
+    .action--alert {
+        background: var(--pp-alert-soft);
+        box-shadow: 0 4px 0 var(--pp-alert-edge), var(--pp-shadow-sm);
+    }
+    
+    .action--alert .action__icon,
+    .action--alert > span:last-child {
+        color: var(--pp-alert);
+    }
+    
+    @keyframes pp-closet-in {
+        from { opacity: 0; transform: scale(1.03); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    
+    .bubbles {
+        position: relative;
+        height: 260px;
+        margin-top: 12px;
+        overflow: hidden;
+        border-radius: var(--pp-radius);
+        background: linear-gradient(180deg, var(--pp-primary-soft), var(--pp-card-soft));
+    }
+    
+    .bubble-pop {
+        position: absolute;
+        left: var(--x, 50%);
+        bottom: -70px;
+        width: 56px;
+        height: 56px;
+        padding: 0;
+        background: none;
+        border: 0;
+        /* Baloncuqlar CSS ilə üzür — kadr-kadr render yoxdur. Axın raunddan asılı
+           deyil: hər baloncuq öz müddətini yaşayır və yuxarıda sönür. */
+        animation: bubble-float var(--dur, 7000ms) linear var(--start, 0ms) forwards;
+    }
+    
+    .bubble-pop__body {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: radial-gradient(circle at 32% 30%, #FFFFFF, var(--pp-gem, #8FD8F5));
+        border: 2px solid var(--pp-primary);
+        /* Baloncuğun fonu hər iki rejimdə sabit açıqdır, ona görə rəqəm də sabit
+           tünd olmalıdır: --pp-ink gecə rejimində ağarır və rəqəm tamam itirdi. */
+        color: #241A55;
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+        font-size: 21px;
+        font-weight: 900;
+    }
+    
+    .bubble-pop--gone,
+    .bubble-pop--wrong { pointer-events: none; }
+    
+    .bubble-pop--gone .bubble-pop__body { animation: bubble-burst 300ms ease forwards; }
+    
+    .bubble-pop--wrong .bubble-pop__body {
+        border-color: var(--pp-alert);
+        animation: bubble-miss 320ms ease forwards;
+    }
+    
+    .sprint {
+        position: absolute;
+        right: 14px;
+        bottom: 96px;
+        z-index: 4;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        max-width: min(238px, 70%);
+        padding: 7px 8px 7px 12px;
+        border-radius: var(--pp-radius-pill);
+        background: linear-gradient(135deg, var(--pp-primary-dark) 0%, var(--pp-primary) 100%);
+        color: var(--pp-on-primary);
+        box-shadow: 0 4px 0 var(--pp-primary-edge), var(--pp-shadow-md);
+        text-align: left;
+        animation: pp-pop 320ms cubic-bezier(0.22, 1, 0.36, 1);
+        transition: transform 130ms ease, box-shadow 130ms ease;
+    }
+    
+    .sprint:active {
+        transform: translateY(3px);
+        box-shadow: 0 1px 0 var(--pp-primary-edge), var(--pp-shadow-sm);
+    }
+    
+    .sprint__icon { font-size: 19px; line-height: 1; flex-shrink: 0; }
+    
+    .sprint__body { min-width: 0; }
+    
+    .sprint__title { display: block; font-weight: 900; font-size: 13px; line-height: 1.15; }
+    
+    .sprint__text { display: block; font-size: 10.5px; font-weight: 700; opacity: 0.92; }
+    
+    .sprint__go {
+        flex-shrink: 0;
+        padding: 8px 13px;
+        border-radius: var(--pp-radius-pill);
+        background: var(--pp-card);
+        color: var(--pp-primary-dark);
+        font-weight: 900;
+        font-size: 12.5px;
+    }
+    
+    @keyframes pp-spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    @keyframes pp-pop {
+        from { opacity: 0; transform: translateY(8px) scale(0.94); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    
+    @keyframes pp-bounce {
+        0% { transform: scale(0.4); opacity: 0; }
+        60% { transform: scale(1.18); opacity: 1; }
+        100% { transform: scale(1); }
+    }
+    
+    @keyframes pp-sun-pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.08); }
+    }
+    
+    @keyframes pp-drift {
+        from { transform: translateX(-90px); }
+        to { transform: translateX(560px); }
+    }
+  </style>
+</helmet>
+<div class="pp-root" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--pp-bg); color: var(--pp-ink);">
+  <div class="app-shell app-shell--immersive">
+  <div class="topbar-shell">
+  <header class="topbar">
+    <div class="hud__level">
+      <div class="hud__ring"><svg viewBox="0 0 44 44" width="42" height="42"><circle cx="22" cy="22" r="18" fill="none" stroke="var(--pp-track)" stroke-width="6"/><circle cx="22" cy="22" r="18" fill="none" stroke="var(--pp-primary)" stroke-width="6" stroke-linecap="round" stroke-dasharray="113" stroke-dashoffset="70" transform="rotate(-90 22 22)"/><circle cx="22" cy="22" r="14" fill="var(--pp-primary)"/></svg><div class="hud__ring-value">3</div></div>
+      <div class="hud__name"><div class="hud__name-text">Elif</div><div class="hud__name-sub">37 / 200 XP</div></div>
+    </div>
+    <div class="topbar__actions"><span class="currency currency--star">⭐ 294</span><span class="currency currency--gem">💎 8</span><button class="btn btn--quiet">☰</button></div>
+  </header>
+  </div>
+  <main class="app-main app-main--immersive">
+    <section class="scene scene--hero scene--room">
+      <div class="room" aria-hidden="true">
+  <div class="room__decor">
+      <div class="room__wall"></div>
+      <div class="room__wall-pattern"></div>
+  
+      <div class="room__floor"></div>
+      <div class="room__floor-grain"></div>
+      <div class="room__skirting">
+        <span class="room__skirting-highlight"></span>
+        <span class="room__skirting-shadow"></span>
+      </div>
+      <div class="room__floor-shadow"></div>
+  
+      <div class="room__rug">
+        <span class="room__rug-middle"></span>
+        <span class="room__rug-centre"></span>
+        <span class="room__rug-softener"></span>
+      </div>
+  
+      <div class="room__picture">
+        <span class="room__picture-shadow"></span>
+        <span class="room__picture-frame"></span>
+        <span class="room__picture-paper">
+          <span class="room__picture-sun"></span>
+          <span class="room__picture-hill-back"></span>
+          <span class="room__picture-hill-front"></span>
+        </span>
+      </div>
+  
+      <div class="room__shelf">
+        <span class="room__shelf-shadow"></span>
+        <span class="room__shelf-board"></span>
+        <span class="room__shelf-edge"></span>
+        <span class="room__shelf-bracket"></span>
+        <span class="room__book-one"></span>
+        <span class="room__book-two"></span>
+        <span class="room__book-three"></span>
+        <span class="room__shelf-toy"></span>
+        <span class="room__plant-stem"></span>
+        <span class="room__plant-leaf-left"></span>
+        <span class="room__plant-leaf-right"></span>
+        <span class="room__plant-pot"></span>
+      </div>
+  
+      <div class="room__toybox">
+        <span class="room__toybox-shadow"></span>
+        <span class="room__toy-ball">
+          <span class="room__toy-ball-patch"></span>
+        </span>
+        <span class="room__toy-cube"></span>
+        <span class="room__toybox-lid"></span>
+        <span class="room__toybox-body"></span>
+        <span class="room__toybox-handle"></span>
+      </div>
+  
+  </div>
+  
+  <div class="room__window">
+      <div class="room__sky">
+              <div class="room__sun"></div>
+          <svg class="room__hills" viewBox="0 0 160 60" preserveAspectRatio="none">
+              <path d="M0 22c26-14 50-14 76 0 22 12 50 12 84-4v42H0z" fill="#A5D3B7" />
+              <path d="M0 34c30-10 56-6 82 6 20 9 44 8 78-4v24H0z" fill="#77BE97" />
+              <path d="M0 46c34-6 62 2 88 10 16 5 38 4 72-4v8H0z" fill="#35A57A" />
+          </svg>
+      </div>
+      <div class="room__frame"></div>
+      <div class="room__sill"></div>
+  </div>
+  
+        <div class="room__window">
+          <div class="room__sky">
+            <div class="room__sun"></div>
+            <svg class="room__hills" viewBox="0 0 160 60" preserveAspectRatio="none">
+              <path d="M0 22c26-14 50-14 76 0 22 12 50 12 84-4v42H0z" fill="#A5D3B7" />
+              <path d="M0 34c30-10 56-6 82 6 20 9 44 8 78-4v24H0z" fill="#77BE97" />
+              <path d="M0 46c34-6 62 2 88 10 16 5 38 4 72-4v8H0z" fill="#35A57A" />
+            </svg>
+          </div>
+          <div class="room__frame"></div>
+          <div class="room__sill"></div>
+        </div>
+      </div>
+  
+  <button class="scene__arcade" aria-label="Oyunlar">
+      <span class="room__arcade" aria-hidden="true">
+        <span class="room__arcade-spill"></span>
+        <span class="room__arcade-leg-left"></span>
+        <span class="room__arcade-leg-right"></span>
+        <span class="room__arcade-cabinet"></span>
+        <span class="room__arcade-face"></span>
+        <span class="room__arcade-side"></span>
+        <span class="room__arcade-marquee"></span>
+        <span class="room__arcade-screen-halo"></span>
+        <span class="room__arcade-screen">
+          <span class="room__arcade-screen-inner">
+            <span class="room__arcade-block-one"></span>
+            <span class="room__arcade-block-two"></span>
+            <span class="room__arcade-block-three"></span>
+            <span class="room__arcade-heart"></span>
+            <span class="room__arcade-paddle"></span>
+            <span class="room__arcade-ball"></span>
+          </span>
+        </span>
+        <span class="room__arcade-control-deck">
+          <span class="room__arcade-control-surface"></span>
+        </span>
+        <span class="room__arcade-joystick-stick"></span>
+        <span class="room__arcade-joystick-ball"></span>
+        <span class="room__arcade-button-one">
+          <span class="room__arcade-button-one-inner"></span>
+        </span>
+        <span class="room__arcade-button-two">
+          <span class="room__arcade-button-two-inner"></span>
+        </span>
+        <span class="room__arcade-speaker"></span>
+        <span class="room__arcade-base-shine"></span>
+      </span>
+  </button>
+  
+      <div class="gauges">
+  <div class="gauge"><div class="gauge__ring"><svg viewBox="0 0 44 44" width="40" height="40"><circle cx="22" cy="22" r="17" fill="none" stroke="#E8E2D6" stroke-width="5.5"/><circle cx="22" cy="22" r="17" fill="none" stroke="#E89A3C" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="107" stroke-dashoffset="30" transform="rotate(-90 22 22)"/></svg></div><span class="gauge__value">78%</span></div>
+  <div class="gauge"><div class="gauge__ring"><svg viewBox="0 0 44 44" width="40" height="40"><circle cx="22" cy="22" r="17" fill="none" stroke="#E8E2D6" stroke-width="5.5"/><circle cx="22" cy="22" r="17" fill="none" stroke="#E89A3C" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="107" stroke-dashoffset="30" transform="rotate(-90 22 22)"/></svg></div><span class="gauge__value">78%</span></div>
+  <div class="gauge"><div class="gauge__ring"><svg viewBox="0 0 44 44" width="40" height="40"><circle cx="22" cy="22" r="17" fill="none" stroke="#E8E2D6" stroke-width="5.5"/><circle cx="22" cy="22" r="17" fill="none" stroke="#E89A3C" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="107" stroke-dashoffset="30" transform="rotate(-90 22 22)"/></svg></div><span class="gauge__value">78%</span></div>
+  <div class="gauge"><div class="gauge__ring"><svg viewBox="0 0 44 44" width="40" height="40"><circle cx="22" cy="22" r="17" fill="none" stroke="#E8E2D6" stroke-width="5.5"/><circle cx="22" cy="22" r="17" fill="none" stroke="#E89A3C" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="107" stroke-dashoffset="30" transform="rotate(-90 22 22)"/></svg></div><span class="gauge__value">78%</span></div>
+        <div class="gauge"><div class="gauge__ring"></div></div>
+      </div>
+      <div class="bubble">Qayıtdın! Gəl maraqlı bir şey öyrənək, Elif!</div>
+      <div class="scene__pet">
+        <div class="pet-wrap">
+          <svg class="pet" viewBox="0 0 200 200" style="--pet-fur:#F3A05A;--pet-belly:#FFF3E2;--pet-inner-ear:#FFD3A8">
+  <path class="pet__fur pet__outline pet__tail" d="M115 127 C123 102 142 84 157 90 C173 97 173 121 163 140 C153 158 133 164 118 149 C113 143 112 134 115 127 Z"/>
+  <path class="pet__belly pet__outline pet__tail" d="M151 88 C161 88 170 96 172 107 C173 118 168 130 162 140 C160 123 152 108 138 99 C142 93 146 90 151 88 Z"/>
+  <rect class="pet__fur pet__outline" x="74" y="131" width="20" height="28" rx="10"/>
+  <rect class="pet__fur pet__outline" x="106" y="131" width="20" height="28" rx="10"/>
+  <ellipse class="pet__fur pet__outline" cx="70" cy="116" rx="8" ry="21"/>
+  <ellipse class="pet__fur pet__outline" cx="130" cy="116" rx="8" ry="21"/>
+  <ellipse class="pet__fur pet__outline" cx="100" cy="119" rx="31" ry="33"/>
+  <ellipse class="pet__belly" cx="100" cy="122" rx="18" ry="27"/>
+  <ellipse class="pet__belly" cx="70" cy="130" rx="6" ry="7"/>
+  <ellipse class="pet__belly" cx="130" cy="130" rx="6" ry="7"/>
+  <ellipse class="pet__belly pet__outline" cx="84" cy="158" rx="12" ry="4"/>
+  <ellipse class="pet__belly pet__outline" cx="116" cy="158" rx="12" ry="4"/>
+  <ellipse class="pet__fur pet__outline" cx="100" cy="72" rx="40" ry="33"/>
+  <path class="pet__fur pet__outline" d="M60 72 C60 66 61 62 63 58 C57 46 57 26 62 14 C75 22 80 34 81 48 C87 42 93 39 100 39 C107 39 113 42 119 48 C120 34 125 22 138 14 C143 26 143 46 137 58 C139 62 140 66 140 72 C140 82 136 91 130 96 C136 99 133 104 124 102 C117 104 109 105 100 105 C91 105 83 104 76 102 C67 104 64 99 70 96 C64 91 60 82 60 72 Z"/>
+  <path class="pet__inner-ear" d="M59 50 C59 39 60 25 62 16 C69 22 75 32 77 44 C71 40 64 43 59 50 Z"/>
+  <path class="pet__inner-ear" d="M141 50 C141 39 140 25 138 16 C131 22 125 32 123 44 C129 40 136 43 141 50 Z"/>
+  <path class="pet__ear-tip" d="M58 28 C59 22 60 17 62 14 C67 17 71 22 74 28 C69 25 63 25 58 28 Z"/>
+  <path class="pet__ear-tip" d="M142 28 C141 22 140 17 138 14 C133 17 129 22 126 28 C131 25 137 25 142 28 Z"/>
+  <path class="pet__belly" d="M84 81 Q92 78 100 86 Q108 78 116 81 Q114 90 100 97 Q86 90 84 81 Z"/>
+  <circle class="pet__nose" cx="100" cy="86" r="3.6"/>
+  <circle class="pet__eye" cx="84" cy="71" r="8"/><circle class="pet__eye" cx="116" cy="71" r="8"/>
+  <circle cx="86.4" cy="68.3" r="2.24" fill="#FFFFFF"/><circle cx="118.4" cy="68.3" r="2.24" fill="#FFFFFF"/>
+  <path class="pet__mouth" d="M91 90 Q100 100 109 90"/></svg>
+        </div>
+      </div>
+      <div class="scene__goal">
+        <div class="goal"><div class="goal__row"><span class="goal__title">Bugünkü hədəf</span><span class="goal__count">0/5</span></div><div class="progress progress--goal"><div class="progress__bar" style="width:0%"></div></div></div>
+      </div>
+  
+      <button class="sprint">
+        <span class="sprint__icon">⚡</span>
+        <span class="sprint__body">
+          <span class="sprint__title">Bilik sprinti</span>
+          <span class="sprint__text">3 sual · +15 ulduz</span>
+        </span>
+        <span class="sprint__go">Başla</span>
+      </button>
+    </section>
+  
+    <div class="actions actions--five">
+      <a class="action" href="#"><span class="action__icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3.5 11h17a8.5 8.5 0 0 1-17 0z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span><span>Yem</span></a>
+      <a class="action" href="#"><span class="action__icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="10" width="12" height="9.5" rx="3" stroke="currentColor" stroke-width="2"/></svg></span><span>Çimizdir</span></a>
+      <a class="action" href="#"><span class="action__icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 19v-9.5M3 13.5h13a4.5 4.5 0 0 1 4.5 4.5V19M3 19h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Yatır</span></a>
+      <a class="action action--play" href="#"><span class="action__icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2"/></svg></span><span>Oyna</span></a>
+      <a class="action" href="#"><span class="action__icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 8.6V10l-7.6 5.7c-1 .8-.5 2.6.9 2.6h13.4c1.4 0 1.9-1.8.9-2.6L12 10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span><span>Şkaf</span></a>
+    </div>
+  </main>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

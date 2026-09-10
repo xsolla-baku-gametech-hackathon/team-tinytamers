@@ -1,0 +1,52 @@
+@inject Loc Loc
+
+@* Missiya sətri — həm ana ekranda, həm dünya xəritəsində istifadə olunur. *@
+
+<div class="mission @(Mission.Status == MissionStatus.Completed ? "mission--done" : null)">
+    <div class="mission__icon" aria-hidden="true">@Icon</div>
+    <div class="mission__body">
+        <div class="mission__title">@Mission.Title</div>
+        <div class="progress" style="height:10px">
+            <div class="progress__bar" style="width:@Percent%"></div>
+        </div>
+        <div class="mission__meta">
+            <span>@Mission.Progress/@Mission.Target</span>
+            <span>⭐ @Mission.RewardStars</span>
+            @if (Mission.RewardGems > 0)
+            {
+                <span>💎 @Mission.RewardGems</span>
+            }
+        </div>
+    </div>
+
+    @if (Mission.Status == MissionStatus.Completed && OnClaim.HasDelegate)
+    {
+        <button class="btn btn--success btn--quiet" disabled="@IsClaiming"
+                @onclick="() => OnClaim.InvokeAsync(Mission)">
+            @(IsClaiming ? "…" : Loc.T("Al", "Claim"))
+        </button>
+    }
+    else if (Mission.Status == MissionStatus.Claimed)
+    {
+        <span aria-label="@(Loc.T("Tamamlanıb", "Completed"))">✅</span>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public MissionDto Mission { get; set; } = new();
+
+    [Parameter] public EventCallback<MissionDto> OnClaim { get; set; }
+
+    [Parameter] public bool IsClaiming { get; set; }
+
+    private int Percent => Mission.Target <= 0 ? 0 : Math.Clamp(Mission.Progress * 100 / Mission.Target, 0, 100);
+
+    private string Icon => Mission.Type switch
+    {
+        MissionType.SolveQuestions => "📘",
+        MissionType.CareForPet => "💗",
+        MissionType.DiscoverRealWorld => "🍃",
+        MissionType.KeepStreak => "🔥",
+        _ => "🤝"
+    };
+}

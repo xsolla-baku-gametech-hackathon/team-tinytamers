@@ -1,0 +1,74 @@
+@page "/register"
+@layout EmptyLayout
+@inject AuthApiClient Auth
+@inject AppSession Session
+@inject NavigationManager Navigation
+@inject Loc Loc
+
+<div class="center-screen">
+    <div class="brand">
+        <div class="brand__mark" aria-hidden="true">🐣</div>
+        <h1 class="brand__name">@Loc.T("Hesab yaradın", "Create an account")</h1>
+        <div class="brand__tagline">@Loc.T("Hesab valideynə aiddir — uşaq profilləri sonra əlavə olunur", "The account belongs to the parent — child profiles come next")</div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert--error">@_error</div>
+    }
+
+    <EditForm Model="_model" OnValidSubmit="SubmitAsync">
+        <DataAnnotationsValidator />
+
+        <label class="field">
+            <span class="field__label">@Loc.T("Adınız", "Your name")</span>
+            <InputText class="field__input" @bind-Value="_model.DisplayName" placeholder="@Loc.T("Aysel", "Alex")" />
+            <ValidationMessage For="() => _model.DisplayName" />
+        </label>
+
+        <label class="field">
+            <span class="field__label">@Loc.T("E-poçt", "Email")</span>
+            <InputText class="field__input" @bind-Value="_model.Email" type="email"
+                       autocomplete="username" placeholder="@Loc.T("ana@example.com", "mom@example.com")" />
+            <ValidationMessage For="() => _model.Email" />
+        </label>
+
+        <label class="field">
+            <span class="field__label">@Loc.T("Şifrə", "Password")</span>
+            <InputText class="field__input" @bind-Value="_model.Password" type="password"
+                       autocomplete="new-password" placeholder="@Loc.T("Ən azı 8 simvol", "At least 8 characters")" />
+            <ValidationMessage For="() => _model.Password" />
+        </label>
+
+        <button class="btn btn--primary btn--block" type="submit" disabled="@_busy">
+            @(_busy ? Loc.T("Yaradılır…", "Creating…") : Loc.T("Davam et", "Continue"))
+        </button>
+    </EditForm>
+
+    <a class="link-button" href="login">@Loc.T("Artıq hesabınız var? Daxil olun", "Already have an account? Sign in")</a>
+</div>
+
+@code {
+    private readonly RegisterParentRequest _model = new();
+    private string? _error;
+    private bool _busy;
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+
+        var result = await Auth.RegisterAsync(_model);
+
+        _busy = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        await Session.SignInParentAsync(result.Value, _model.Email);
+        Navigation.NavigateTo("/profiles", replace: true);
+    }
+}

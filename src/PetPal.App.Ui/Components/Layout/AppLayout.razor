@@ -1,0 +1,69 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject AppSession Session
+@inject PushRegistration Push
+@inject Loc Loc
+@inject NavigationManager Navigation
+
+@* Oyun ekranlarının karkası: üst panel (cüzdan) + məzmun + alt naviqasiya.
+   Sessiya yoxdursa istifadəçi giriş axınına qaytarılır. *@
+
+@if (Session.IsChildActive)
+{
+    @* Ev ekranında səhnə tam ekranlıdır və HUD onun üstündə üzür ("immersive").
+       Digər ekranlarda panel adi zolaq kimi məzmunun üstündə oturur. *@
+    <div class="app-shell @(IsHome ? "app-shell--immersive" : null)">
+        <TopBar />
+        <main class="app-main @(IsHome ? "app-main--immersive" : null)">
+            @Body
+        </main>
+        <BottomNav />
+    </div>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        Session.Changed += OnSessionChanged;
+        Loc.Changed += OnSessionChanged;
+        Navigation.LocationChanged += OnLocationChanged;
+        RedirectIfNeeded();
+    }
+
+    /// <summary>
+    /// Cihazın push ünvanı sessiya hazır olandan sonra qeyd edilir: token
+    /// AKTİV PROFİLƏ bağlanır, yəni profil dəyişəndə köhnə uşaq bildiriş
+    /// almağı dayandırır. Firebase qurulmayıbsa bu çağırış heç nə etmir.
+    /// </summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Session.IsChildActive)
+            await Push.SyncAsync();
+    }
+
+    /// <summary>Yalnız kök marşrut ("/") tam ekranlı səhnə işlədir.</summary>
+    private bool IsHome =>
+        string.IsNullOrEmpty(Navigation.ToBaseRelativePath(Navigation.Uri).TrimStart('/').Split('?')[0]);
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) =>
+        InvokeAsync(StateHasChanged);
+
+    protected override void OnParametersSet() => RedirectIfNeeded();
+
+    private void RedirectIfNeeded()
+    {
+        if (!Session.IsParentSignedIn)
+            Navigation.NavigateTo("/login", replace: true);
+        else if (!Session.IsChildActive)
+            Navigation.NavigateTo("/profiles", replace: true);
+    }
+
+    private void OnSessionChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        Loc.Changed -= OnSessionChanged;
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+}

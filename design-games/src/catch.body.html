@@ -1,0 +1,63 @@
+<div class="pp-root" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--sc-sky-3); color: var(--pp-ink);">
+
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, var(--sc-sky-2) 0%, var(--sc-sky-3) 52%, var(--pp-life-soft) 100%);"></div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 210px; background: var(--sc-hill-2); border-radius: 60% 40% 0 0 / 40px 40px 0 0;"></div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 122px; background: var(--sc-hill-3);"></div>
+
+  <!-- Düşən əşyalar. Hər birinin arxasında kəsik iz var: nə qədər vaxt
+       qaldığını uşaq izin uzunluğundan görür. -->
+  <svg viewBox="0 0 390 470" width="390" height="470" style="position: absolute; top: 216px; left: 0;" aria-hidden="true">
+
+    <path d="M78 20v54M212 12v78M318 44v42" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-dasharray="4 14" opacity="0.7" />
+
+    <!-- Alma — qaydaya uyğun (meyvə). -->
+    <g>
+      <circle cx="78" cy="104" r="30" fill="var(--pp-alert)" />
+      <circle cx="68" cy="92" r="8" fill="#FFFFFF" opacity="0.32" />
+      <path d="M78 74c3-10 11-13 18-11-2 8-8 12-18 11z" fill="var(--pp-life)" />
+    </g>
+
+    <!-- Çiyələk — qaydaya uyğun. -->
+    <g>
+      <path d="M212 120c-17 0-30-13-30-27 0-9 13-15 30-15s30 6 30 15c0 14-13 27-30 27z" fill="var(--pp-alert-lift)" />
+      <path d="M196 76h32l-6-10h-20z" fill="var(--pp-life)" />
+      <circle cx="204" cy="94" r="2.6" fill="#FFF3E2" />
+      <circle cx="220" cy="98" r="2.6" fill="#FFF3E2" />
+      <circle cx="212" cy="86" r="2.6" fill="#FFF3E2" />
+    </g>
+
+    <!-- Balıq — meyvə deyil: tutulsa can gedir. -->
+    <g opacity="0.95">
+      <ellipse cx="318" cy="116" rx="30" ry="19" fill="var(--pp-primary-lift)" />
+      <path d="M348 116l20-13v26z" fill="var(--pp-primary)" />
+      <circle cx="306" cy="110" r="4" fill="#241E38" />
+    </g>
+
+    <!-- Aşağıda gözləyən növbəti dalğa — kölgə kimi görünür. -->
+    <circle cx="140" cy="18" r="14" fill="var(--pp-spark)" opacity="0.35" />
+    <circle cx="272" cy="10" r="12" fill="var(--pp-life)" opacity="0.35" />
+  </svg>
+
+  <!-- Pet səbətlə birlikdə sağa-sola sürüşdürülür — sürükləmə barmağın
+       altındadır, ekranın kənarında düymə yoxdur. -->
+  <div style="position: absolute; left: 50%; bottom: 128px; transform: translateX(-50%); z-index: 6;">
+    <!--PET:happy:200-->
+  </div>
+
+  <div style="position: absolute; left: 50%; bottom: 108px; transform: translateX(-50%); z-index: 7;">
+    <svg viewBox="0 0 180 96" width="180" height="96" aria-hidden="true">
+      <path d="M14 22h152l-20 68H34z" fill="var(--pp-spark-lift)" stroke="var(--pp-spark-edge)" stroke-width="4" stroke-linejoin="round" />
+      <path d="M40 22l10 68M90 22v68M140 22l-10 68" stroke="var(--pp-spark-edge)" stroke-width="3" opacity="0.55" />
+      <rect x="6" y="12" width="168" height="16" rx="8" fill="var(--pp-spark)" stroke="var(--pp-spark-edge)" stroke-width="4" />
+    </svg>
+  </div>
+
+  <!-- Sürüşdürmə yolu: barmağın hara gedəcəyini göstərir. -->
+  <div style="position: absolute; left: 34px; right: 34px; bottom: 92px; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.55); z-index: 5;"></div>
+
+<!--CHROME:Səbət tut,2,5,3-->
+<!--RULE:Yalnız MEYVƏ tut,life-->
+<!--TIMER:73-->
+<!--SCORE:9,doğru tutuldu-->
+
+</div>

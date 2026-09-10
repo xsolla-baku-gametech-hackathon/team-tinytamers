@@ -1,0 +1,1616 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap">
+  <style>
+    /* Şkaf — ayrıca tam ekran paltar dəyişmə otağı.
+       Aşağıdakı qaydalar tətbiqin app.css/pet.css-indən OLDUĞU KİMİ köçürülüb
+       (əl ilə yazılmayıb). Tətbiqin həmin bölmələri dəyişəndə bu artboard da
+       yenidən qurulmalıdır — kanvas kodu güzgüləyir. */
+    body {
+      margin: 0;
+      font-family: 'Nunito', ui-rounded, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* theme.css-in element sıfırlamaları: onsuz düymələr brauzerin öz çərçivəsi
+       ilə çıxır (məsələn oyun avtomatının arxasında ağ qutu). */
+    *,
+    *::before,
+    *::after { box-sizing: border-box; }
+
+    button {
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      border: none;
+      background: none;
+      padding: 0;
+    }
+
+    img,
+    svg { max-width: 100%; display: block; }
+
+    :root {
+        /* Brend */
+        --pp-primary: #6F5AD8;
+        --pp-primary-dark: #54419E;
+        --pp-primary-soft: #E9E4F7;
+    
+        /* ---- Üç rəng ailəsi ----
+         * Hər ailənin bir işi var, ona görə oxumağı hələ yaxşı bacarmayan uşaq da
+         * ekranda nə baş verdiyini rəngdən anlayır:
+         *
+         *   bənövşəyi — ağıl      : brend, öyrənmə, gem, əsas düymələr
+         *   yaşıl     — canlılıq  : pet, dünya, doğru cavab, sağlam statlar
+         *   narıncı   — enerji    : ulduz, seriya, mini oyunlar, kəşf
+         *
+         * Səhv rəngi qəsdən moruğa çalır. Narıncı "qazandın" deməkdir, ona görə
+         * səhv ondan aydın seçilməlidir: köhnə mərcan (#FF7A6B) narıncıya cəmi
+         * ~14° yaxın idi, moruq isə ~45° aralıdır.
+         */
+    
+        /* Yaşıl — canlılıq */
+        --pp-life: #35A57A;
+        --pp-life-deep: #156F4F;   /* ağ mətn daşıya bilən yeganə yaşıl — 6.1:1 */
+        --pp-life-soft: #DCEEE4;
+        --pp-on-life: #06301D;     /* parlaq yaşıl dolgunun üstündəki mətn */
+    
+        /* Narıncı — enerji */
+        --pp-spark: #E89A3C;
+        --pp-spark-deep: #93540E;  /* açıq fonda narıncı mətn — 5.0:1 */
+        --pp-spark-soft: #FAEBD6;
+        --pp-on-spark: #3A1D00;    /* narıncının üstündə ağ mətn 2.3:1 verir — istifadə olunmur */
+    
+        /* Moruq — yalnız səhv */
+        --pp-alert: #B7304C;
+        --pp-alert-soft: #F7E1E5;
+        --pp-on-alert: #FFFFFF;
+    
+        /* Səthlər */
+        --pp-bg: #F0EBE0;
+        --pp-card: #FBF7EF;
+        --pp-card-soft: #F6F1E6;
+        --pp-overlay: rgba(38, 30, 18, 0.58);
+    
+        /* Mətn */
+        --pp-ink: #241E38;
+        --pp-ink-soft: #5C5470;
+        --pp-ink-muted: #8A82A0;
+        --pp-on-primary: #FFFFFF;
+    
+        /* Sərhəd */
+        --pp-border: #E4DCCE;
+        --pp-track: #E8E2D6;
+    
+        /* Kölgə — rəngli, "oyuncaq" hissi verir */
+        --pp-shadow-sm: 0 2px 8px rgba(96, 74, 46, 0.10);
+        --pp-shadow-md: 0 8px 24px rgba(96, 74, 46, 0.13);
+        --pp-shadow-lg: 0 16px 40px rgba(96, 74, 46, 0.18);
+    
+        /* ---- Səth resepti ----
+         * Mobil oyun düymələri düz dolğu deyil: yuxarısı işıqlı ("lift"), altında
+         * isə bir neçə piksellik tünd kənar ("edge") var — həmin kənar düymənin
+         * qalınlığıdır və basılanda azalır, ona görə element fiziki hiss olunur.
+         * Yeni rəng ailəsi əlavə olunmur; hər dəyər mövcud ailənin çalarıdır.
+         */
+        --pp-primary-lift: #8A78E4;
+        --pp-primary-edge: #4E3BA8;
+        --pp-life-lift: #4FBB91;
+        --pp-life-edge: #156F4F;
+        --pp-spark-lift: #F2B166;
+        --pp-spark-edge: #93540E;
+        --pp-alert-lift: #C94764;
+        --pp-alert-edge: #8A2038;
+    
+        /* Neytral səthlərin (kart, kapsul, dok) kənarı — rəngsiz, sadəcə dərinlik. */
+        --pp-edge-neutral: rgba(96, 74, 46, 0.20);
+    
+        /* Üst kənardakı işıq zolağı — plastik parıltı hissi. */
+        --pp-gloss: inset 0 2px 0 rgba(255, 255, 255, 0.40);
+    
+        /* Forma */
+        --pp-radius-sm: 14px;
+        --pp-radius: 22px;
+        --pp-radius-lg: 30px;
+        --pp-radius-pill: 999px;
+    
+        /* Ölçü */
+        --pp-tap: 56px;
+        --pp-gutter: 18px;
+    
+        /* Cihaz safe-area */
+        --pp-safe-top: env(safe-area-inset-top, 0px);
+        --pp-safe-bottom: env(safe-area-inset-bottom, 0px);
+    
+        color-scheme: light;
+    }
+    }
+
+    .pp-root {
+      --pp-safe-top: 0px;
+      --pp-safe-bottom: 0px;
+    }
+
+    /* ==================== PET AVATAR ====================
+     * Pet tamamilə inline SVG-dir — xarici asset yoxdur, ölçüdən asılı olmayaraq
+     * kəskin görünür və mərhələ/əhval dəyişəndə anında yenilənir.
+     * ==================================================== */
+    
+    .pet {
+        width: min(210px, 62vw);
+        height: auto;
+        transform-origin: 50% 92%;
+        animation: pet-breathe 3.4s ease-in-out infinite;
+        filter: drop-shadow(0 10px 14px rgba(60, 40, 20, 0.22));
+    }
+    
+    .pet--excited { animation: pet-hop 900ms cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
+    .pet--sad,
+    .pet--sleepy { animation: pet-slow-breathe 5s ease-in-out infinite; }
+    .pet--hungry { animation: pet-wobble 2.4s ease-in-out infinite; }
+    
+    /* Quyruq həmişə yüngülcə tərpənir — pet "canlı" görünsün. */
+    .pet__tail {
+        transform-origin: 68% 72%;
+        animation: pet-wag 1.9s ease-in-out infinite;
+    }
+    
+    .pet--excited .pet__tail { animation-duration: 700ms; }
+    .pet--sad .pet__tail,
+    .pet--sleepy .pet__tail { animation-duration: 4s; }
+    
+    /* Göz qırpma — nadir və qısa, diqqəti yayındırmır. */
+    .pet__eyelid {
+        transform-origin: center;
+        animation: pet-blink 5.5s ease-in-out infinite;
+    }
+    
+    .pet--sleepy .pet__eyelid { animation: none; }
+    
+    .pet__zzz {
+        animation: pet-float 2.6s ease-in-out infinite;
+    }
+    
+    .pet__sparkle {
+        transform-origin: center;
+        animation: pet-sparkle 1.8s ease-in-out infinite;
+    }
+    
+    .pet-stage-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        padding: 5px 14px;
+        border-radius: var(--pp-radius-pill);
+        background: rgba(255, 255, 255, 0.85);
+        color: #3B2A66;
+        font-size: 12px;
+        font-weight: 800;
+    }
+    
+    /* Yaş nişanın içində ayrıca kapsuldur: mərhələ adı ilə rəqəm bir-birinə
+       qarışmasın deyə. */
+    .pet-stage-label__age {
+        padding: 2px 8px;
+        border-radius: var(--pp-radius-pill);
+        background: var(--pp-primary-soft);
+        color: var(--pp-primary-dark);
+        font-size: 11px;
+        font-weight: 900;
+    }
+    
+    @keyframes pet-breathe {
+        0%, 100% { transform: scaleY(1) scaleX(1); }
+        50% { transform: scaleY(1.025) scaleX(0.99); }
+    }
+    
+    @keyframes pet-slow-breathe {
+        0%, 100% { transform: scaleY(1) translateY(0); }
+        50% { transform: scaleY(0.985) translateY(3px); }
+    }
+    
+    @keyframes pet-hop {
+        0%, 100% { transform: translateY(0) scaleY(1); }
+        35% { transform: translateY(-14px) scaleY(1.04); }
+        55% { transform: translateY(0) scaleY(0.94); }
+        70% { transform: translateY(0) scaleY(1); }
+    }
+    
+    @keyframes pet-wobble {
+        0%, 100% { transform: rotate(0deg); }
+        30% { transform: rotate(-2.5deg); }
+        70% { transform: rotate(2.5deg); }
+    }
+    
+    @keyframes pet-wag {
+        0%, 100% { transform: rotate(-7deg); }
+        50% { transform: rotate(9deg); }
+    }
+    
+    @keyframes pet-blink {
+        0%, 92%, 100% { transform: scaleY(0); }
+        94%, 97% { transform: scaleY(1); }
+    }
+    
+    @keyframes pet-float {
+        0% { opacity: 0; transform: translate(0, 0) scale(0.8); }
+        40% { opacity: 1; }
+        100% { opacity: 0; transform: translate(10px, -22px) scale(1.1); }
+    }
+    
+    @keyframes pet-sparkle {
+        0%, 100% { opacity: 0.25; transform: scale(0.8) rotate(0deg); }
+        50% { opacity: 1; transform: scale(1.15) rotate(20deg); }
+    }
+    
+    /* Yumurta mərhələsi — hələ "yatır", yalnız yüngül tərpənir. */
+    .pet--egg {
+        animation: pet-egg-rock 3s ease-in-out infinite;
+    }
+    
+    @keyframes pet-egg-rock {
+        0%, 100% { transform: rotate(-3deg); }
+        50% { transform: rotate(3deg); }
+    }
+    
+    /* ---------- Bədənin rəngləri ----------
+       Rəsm bir dənədir, rəng isə növdən gəlir: PetAvatar SVG-nin üstündə
+       --pet-fur / --pet-belly / --pet-inner-ear dəyişənlərini qoyur, ona görə
+       eyni yol dörd növə (tülkü, pişik, əjdaha, dovşan) xidmət edir. */
+    .pet__fur { fill: var(--pet-fur, #F3A05A); }
+    .pet__belly { fill: var(--pet-belly, #FFF3E2); }
+    .pet__inner-ear { fill: var(--pet-inner-ear, #FFD3A8); }
+    
+    /* Kontur bütün mərhələlərdə eyni qalınlıqdadır — kiçik ölçüdə forma
+       yumşalmasın deyə. */
+    .pet__outline {
+        stroke: #2B2140;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    
+    .pet__eye,
+    .pet__nose { fill: #2B2140; }
+    
+    .pet__mouth {
+        fill: none;
+        stroke: #2B2140;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    
+    /* Yumulmuş və gülən gözlər xətdir, dolgu deyil. */
+    .pet__lash {
+        fill: none;
+        stroke: #2B2140;
+        stroke-width: 4;
+        stroke-linecap: round;
+    }
+    
+    /* Tam ekran otaqlarda pet öz qutusunu doldurur. Standart `.pet` eni
+       `min(210px, 62vw)`-dir — səhnə üçün doğrudur, amma otaqda qutunun ölçüsünü
+       səhnə özü seçir (güzgünün qarşısı, vanna, yataq) və pet həmin qutuya
+       oturmalıdır, yoxsa sola sürüşür və ya qutudan daşır. */
+    .bathroom__pet .pet,
+    .bedroom__pet .pet,
+    .closet__pet .pet {
+        width: 100%;
+        max-width: none;
+    }
+    
+    /* Növə xas detallar: tülkünün qulaq ucları, pişik və dovşanın bığları.
+       Bunlar tükün rəngindən asılı deyil — həmişə tünd, çünki siluetin oxunması
+       onlardan asılıdır. */
+    .pet__ear-tip { fill: #2B2140; }
+    
+    .pet__whisker {
+        fill: none;
+        stroke: #2B2140;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    
+    /* Yalnız konturla çəkilən formalar (əjdahanın silsiləsi, dovşanın qulaq
+       cizgiləri) və dovşanın ön dişləri. */
+    .pet__line { fill: none; }
+    
+    .pet__tooth {
+        stroke: #2B2140;
+        stroke-width: 1.4;
+        stroke-linejoin: round;
+    }
+    
+
+    .closet {
+        position: absolute;
+        inset: 0;
+        z-index: 60;
+        overflow: hidden;
+        background: linear-gradient(180deg, #F9F2E6 0%, #EFE2CB 100%);
+        animation: pp-closet-in 220ms ease-out;
+    
+        /* Rəf lentinin hündürlüyü bir yerdə saxlanılır: pet də, otağın döşəməsi də
+           ona görə yerləşir. */
+        --closet-tray: calc(150px + var(--pp-safe-bottom));
+    }
+    
+    @keyframes pp-closet-in {
+        from { opacity: 0; transform: scale(1.03); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    
+    .closet__room {
+        position: absolute;
+        /* Digər otaqlarla eyni: sabit 390x620 qutu ekranın altına yapışır və
+           ENƏ görə miqyaslanır (petCare.js → fitRooms). Əvvəl faizlə idi —
+           uzun ekranda güzgü dartılır, pet altda kiçik qalırdı. */
+        left: 50%;
+        bottom: 0;
+        width: 390px;
+        height: 620px;
+        transform: translateX(-50%) scale(var(--room-scale, 1));
+        transform-origin: bottom center;
+        /* Otağın öz yığın konteksti. Onsuz içəridəki z-index-lər (divar 0,
+           güzgü 3, pərdə 7) pet və rəf lenti ilə eyni müstəvidə yarışır —
+           nəticədə pet güzgünün ARXASINDA qalırdı. */
+        isolation: isolate;
+        z-index: 0;
+    }
+    
+    .closet__decor {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        isolation: isolate;
+        z-index: 0;
+    }
+    
+    .closet__pet {
+        position: absolute;
+        left: 50%;
+        /* Ayaqlar güzgünün altlığına düşür; SVG-nin altındakı boş sahə rəf
+           lentinin arxasına girir, ona görə mənfi boşluq qəsdəndir. */
+        /* Otağın öz koordinatında: ayaqlar güzgünün altlığına düşür, aşağıdakı
+           boş sahə isə rəf lentinin arxasına girir. */
+        bottom: 132px;
+        transform: translateX(-50%);
+        width: 300px;
+        z-index: 2;
+    }
+    
+    .closet__bar {
+        position: absolute;
+        top: calc(12px + var(--pp-safe-top));
+        left: var(--pp-gutter);
+        right: var(--pp-gutter);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        z-index: 4;
+    }
+    
+    .overlay-close {
+        display: grid;
+        place-items: center;
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: linear-gradient(180deg, var(--pp-card) 0%, var(--pp-card-soft) 100%);
+        border: 3px solid var(--pp-border);
+        box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-md);
+        font-size: 20px;
+        font-weight: 900;
+        color: var(--pp-ink);
+        transition: transform 130ms ease, box-shadow 130ms ease;
+    }
+    
+    .overlay-close:active {
+        transform: translateY(3px);
+        box-shadow: 0 1px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);
+    }
+    
+    .closet__clear {
+        padding: 11px 16px;
+        border-radius: var(--pp-radius-pill);
+        background: var(--pp-card);
+        box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);
+        font-size: 13px;
+        font-weight: 900;
+        color: var(--pp-primary-dark);
+    }
+    
+    .closet__clear:active { transform: translateY(2px); }
+    
+    .closet__error {
+        position: absolute;
+        top: calc(78px + var(--pp-safe-top));
+        left: var(--pp-gutter);
+        right: var(--pp-gutter);
+        padding: 10px 14px;
+        border-radius: var(--pp-radius-sm);
+        background: var(--pp-alert-soft);
+        color: var(--pp-alert);
+        font-size: 13px;
+        font-weight: 800;
+        text-align: center;
+        z-index: 4;
+    }
+    
+    .closet__tray {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: var(--closet-tray);
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 30px var(--pp-gutter) calc(14px + var(--pp-safe-bottom));
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior: contain;
+        scroll-snap-type: x proximity;
+        background:
+            linear-gradient(180deg, #E7D6B8 0%, #C4A87F 100%) no-repeat var(--pp-gutter) 18px / calc(100% - 2 * var(--pp-gutter)) 6px,
+            linear-gradient(180deg, rgba(251, 247, 239, 0) 0%, rgba(251, 247, 239, 0.94) 34px, #FBF7EF 100%);
+        z-index: 3;
+    }
+    
+    .closet__item {
+        position: relative;
+        flex: 0 0 auto;
+        display: grid;
+        justify-items: center;
+        align-content: start;
+        gap: 3px;
+        width: 84px;
+        margin-top: 14px;
+        padding: 11px 6px;
+        border-radius: var(--pp-radius-sm);
+        background: var(--pp-spark-soft);
+        border: 2px solid transparent;
+        box-shadow: var(--pp-shadow-sm);
+        text-align: center;
+        scroll-snap-align: center;
+        transition: transform 130ms ease, border-color 160ms ease;
+    }
+    
+    .closet__item::before {
+        content: '';
+        position: absolute;
+        top: -13px;
+        left: 50%;
+        width: 15px;
+        height: 15px;
+        transform: translateX(-50%);
+        border: 3px solid #B9986C;
+        border-bottom-color: transparent;
+        border-radius: 50%;
+    }
+    
+    .closet__item:active:not(:disabled) { transform: scale(0.94); }
+    
+    .closet__item--on {
+        border-color: var(--pp-primary);
+        background: var(--pp-primary-soft);
+    }
+    
+    .closet__item--locked {
+        background: var(--pp-card-soft);
+        border: 1px dashed var(--pp-border);
+    }
+    
+    .closet__icon { font-size: 28px; line-height: 1; }
+    
+    .closet__name {
+        font-size: 11.5px;
+        font-weight: 800;
+    }
+    
+    .closet__meta {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--pp-ink-soft);
+    }
+    
+    .closet__item:not(.closet__item--locked) .closet__meta { color: var(--pp-spark-deep); }
+    
+    .closet__item--on .closet__meta { color: var(--pp-primary); }
+    
+    .closet__decor *,
+    .closet__decor *::before,
+    
+    .closet__decor *::after {
+        position: absolute;
+        box-sizing: border-box;
+    }
+    
+    .closet__wall {
+        /* Divar otaq qutusundan yuxarı uzanır: uzun ekranda tavan yerində
+           naxışsız zolaq qalmasın. Artığını .closet-in overflow-u kəsir. */
+        inset: -700px 0 34% 0;
+        z-index: 0;
+        background:
+            repeating-linear-gradient(
+                90deg,
+                #F9F2E6 0 5.4%,
+                #EFE2CB 5.4% 10.8%
+            );
+    }
+    
+    .closet__wall::after {
+        inset: 11.4% 0 0;
+        content: "";
+        background: linear-gradient(180deg, transparent, rgba(96,74,46,0.10));
+        opacity: 0.34;
+    }
+    
+    .closet__floor {
+        inset: 65.4% 0 0;
+        z-index: 0;
+        background: linear-gradient(180deg, #E7CDA6, #D3B083);
+    }
+    
+    .closet__floor::after {
+        inset: 0;
+        content: "";
+        background: linear-gradient(
+            90deg,
+            transparent 0 24.7%,
+            #D3B083 24.7% 25%,
+            transparent 25% 49.7%,
+            #D3B083 49.7% 50%,
+            transparent 50% 74.7%,
+            #D3B083 74.7% 75%,
+            transparent 75%
+        );
+        opacity: 0.42;
+    }
+    
+    .closet__floor::before {
+        inset: 0;
+        content: "";
+        background: linear-gradient(
+            180deg,
+            transparent 0 35%,
+            #D3B083 35% 35.5%,
+            transparent 35.5% 69%,
+            #D3B083 69% 69.5%,
+            transparent 69.5%
+        );
+        opacity: 0.34;
+    }
+    
+    .closet__planks {
+        top: 66.7%;
+        right: 0;
+        left: 0;
+        height: 10.8%;
+        z-index: 1;
+        opacity: 0.68;
+        background:
+            linear-gradient(
+                90deg,
+                transparent 0 20%,
+                #D3B083 20% 20.8%,
+                transparent 20.8% 48%,
+                #D3B083 48% 48.8%,
+                transparent 48.8% 75%,
+                #D3B083 75% 75.8%,
+                transparent 75.8%
+            ),
+            repeating-linear-gradient(
+                0deg,
+                transparent 0 31%,
+                #D3B083 31% 33%
+            );
+    }
+    
+    .closet__planks::after {
+        inset: 33% 0 0;
+        content: "";
+        background: linear-gradient(
+            90deg,
+            #D3B083 0 0.7%,
+            transparent 0.7% 33%,
+            #D3B083 33% 33.7%,
+            transparent 33.7% 63%,
+            #D3B083 63% 63.7%,
+            transparent 63.7% 91%,
+            #D3B083 91% 91.7%,
+            transparent 91.7%
+        );
+        opacity: 0.74;
+    }
+    
+    .closet__baseboard {
+        top: 64.8%;
+        right: 0;
+        left: 0;
+        height: 2.25%;
+        z-index: 2;
+        border-top: 2px solid #E4DCCE;
+        border-bottom: 2px solid #D3B083;
+        background: linear-gradient(180deg, #FBF7EF, #EFE2CB);
+        box-shadow: 0 5px 10px rgba(96,74,46,0.13);
+    }
+    
+    .closet__floor-depth {
+        top: 67%;
+        right: 0;
+        left: 0;
+        height: 7%;
+        z-index: 1;
+        background: linear-gradient(180deg, rgba(96,74,46,0.13), transparent);
+        opacity: 0.54;
+    }
+    
+    .closet__floor-shadow {
+        top: 71.2%;
+        left: 8%;
+        width: 84%;
+        height: 5.9%;
+        z-index: 1;
+        border-radius: 50%;
+        background: rgba(96,74,46,0.13);
+        filter: blur(10px);
+    }
+    
+    .closet__rug {
+        top: 67.7%;
+        left: 6.2%;
+        width: 87.6%;
+        height: 9.4%;
+        z-index: 2;
+        overflow: hidden;
+        border: 4px solid #FBF7EF;
+        border-radius: 50%;
+        background: radial-gradient(
+            ellipse at center,
+            #F3E5CB 0 45%,
+            #E4D0AC 46% 76%,
+            #D3B98D 77%
+        );
+        box-shadow: 0 9px 15px rgba(96,74,46,0.13);
+    }
+    
+    .closet__rug::after {
+        inset: 14% 8%;
+        content: "";
+        border: 2px solid #F2DCAE;
+        border-radius: 50%;
+        opacity: 0.72;
+    }
+    
+    .closet__mirror {
+        /* Güzgü qəsdən alçaldılıb: tam hündürlükdə şüşənin boş sahəsi pet-i
+           udurdu. İndi tağ pet-in başının bir az üstündə bitir, altlığı isə
+           yerində qalır — güzgü döşəmədə dayanmalıdır. */
+        /* Güzgü DÖŞƏMƏYƏ bağlanır, tavana yox: uzun ekranda yuxarıdan
+           ölçüləndə şüşə pet-dən xeyli yuxarıda qalırdı. Hündürlük də
+           məhdudlaşdırılıb ki, faiz onu dartmasın. */
+        bottom: min(23%, 194px);
+        left: 21.8%;
+        width: 56.4%;
+        height: min(44%, 430px);
+        z-index: 3;
+        border: 3px solid #C79E5C;
+        border-radius: 50% 50% 7% 7% / 23% 23% 3.5% 3.5%;
+        background: linear-gradient(135deg, #F2DCAE, #C79E5C);
+        box-shadow:
+            0 10px 20px rgba(96,74,46,0.18),
+            inset 0 0 0 5px #F2DCAE;
+    }
+    
+    .closet__mirror-glass {
+        inset: 2.2% 4.1% 1.8%;
+        overflow: hidden;
+        border: 3px solid #FBF7EF;
+        border-radius: 50% 50% 5% 5% / 23% 23% 3% 3%;
+        /* Şüşə ağ deyil, soyuq-mavi: ağ lövhə güzgü kimi oxunmurdu və
+           qarşısındakı pet fonsuz qalırdı. */
+        background: linear-gradient(160deg, #E9F2F7 0%, #D3E5EE 46%, #BCD6E4 100%);
+        box-shadow: inset 0 0 18px rgba(96,74,46,0.10);
+    }
+    
+    .closet__mirror-glass::after {
+        content: '';
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 26%;
+        background: linear-gradient(180deg,
+            rgba(211, 176, 131, 0) 0%,
+            rgba(211, 176, 131, 0.50) 62%,
+            rgba(196, 158, 110, 0.72) 100%);
+    }
+    
+    .closet__mirror-glass::before {
+        inset: 0;
+        content: "";
+        background: linear-gradient(
+            116deg,
+            transparent 0 21%,
+            #FBF7EF 22% 29%,
+            transparent 30% 63%,
+            #E9E4F7 64% 69%,
+            transparent 70%
+        );
+        opacity: 0.68;
+    }
+    
+    .closet__mirror-glass::after {
+        top: 8%;
+        left: 17%;
+        width: 12%;
+        height: 65%;
+        content: "";
+        border-radius: 50%;
+        background: #FBF7EF;
+        opacity: 0.38;
+        transform: rotate(14deg);
+    }
+    
+    .closet__mirror-foot {
+        bottom: -0.3%;
+        width: 16%;
+        height: 3%;
+        z-index: 1;
+        border: 2px solid #C79E5C;
+        border-radius: 0 0 50% 50%;
+        background: #F2DCAE;
+        box-shadow: 0 4px 5px rgba(96,74,46,0.13);
+    }
+    
+    .closet__mirror-foot--left {
+        left: 12%;
+        transform: rotate(5deg);
+    }
+    
+    .closet__mirror-foot--right {
+        right: 12%;
+        transform: rotate(-5deg);
+    }
+    
+    .closet__bulb {
+        width: 5.5%;
+        aspect-ratio: 1;
+        z-index: 4;
+        border: 1px solid #FBF7EF;
+        border-radius: 50%;
+        background: #F2B166;
+        box-shadow:
+            0 0 0 3px rgba(96,74,46,0.10),
+            0 3px 7px rgba(96,74,46,0.18);
+    }
+    
+    .closet__bulb--01 { top: 0.2%; left: 47.25%; }
+    
+    .closet__bulb--02 { top: 2.2%; left: 30%; }
+    
+    .closet__bulb--03 { top: 7.1%; left: 16%; }
+    
+    .closet__bulb--04 { top: 15.3%; left: 6%; }
+    
+    .closet__bulb--05 { top: 25%; left: 1.3%; }
+    
+    .closet__bulb--06 { top: 37.5%; left: 0.7%; }
+    
+    .closet__bulb--13 { top: 37.5%; right: 0.7%; }
+    
+    .closet__bulb--14 { top: 25%; right: 1.3%; }
+    
+    .closet__bulb--15 { top: 15.3%; right: 6%; }
+    
+    .closet__bulb--16 { top: 7.1%; right: 16%; }
+    
+    .closet__bulb--17 { top: 2.2%; right: 30%; }
+    
+    .closet__wardrobe {
+        top: 12.3%;
+        left: 11.3%;
+        width: 32%;
+        height: 10.5%;
+        z-index: 6;
+    }
+    
+    .closet__rail {
+        top: 8%;
+        left: -4%;
+        width: 108%;
+        height: 4px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #F2DCAE, #C79E5C);
+        box-shadow: 0 3px 5px rgba(96,74,46,0.13);
+    }
+    
+    .closet__rail::before,
+    .closet__rail::after {
+        top: -4px;
+        width: 10px;
+        height: 12px;
+        content: "";
+        border: 2px solid #C79E5C;
+        border-radius: 50%;
+        background: #F2DCAE;
+    }
+    
+    .closet__rail::before { left: -2px; }
+    
+    .closet__rail::after { right: -2px; }
+    
+    .closet__garment {
+        top: 14%;
+        width: 25%;
+        height: 72%;
+    }
+    
+    .closet__garment--tee { left: 0; }
+    
+    .closet__garment--dress { left: 25%; }
+    
+    .closet__garment--jacket { left: 50%; }
+    
+    .closet__garment--scarf { left: 75%; }
+    
+    .closet__hanger {
+        top: 0;
+        left: 50%;
+        width: 25px;
+        height: 15px;
+        background: #C79E5C;
+        clip-path: polygon(47% 0, 54% 0, 100% 82%, 100% 100%, 0 100%, 0 82%);
+        transform: translateX(-50%);
+    }
+    
+    .closet__hanger::before {
+        top: -8px;
+        left: 10px;
+        width: 8px;
+        height: 10px;
+        content: "";
+        border: 2px solid #C79E5C;
+        border-bottom-color: transparent;
+        border-left-color: transparent;
+        border-radius: 50%;
+        transform: rotate(-22deg);
+    }
+    
+    .closet__cloth {
+        top: 12px;
+        left: 50%;
+        filter: drop-shadow(0 4px 3px rgba(96,74,46,0.13));
+        transform: translateX(-50%);
+    }
+    
+    .closet__cloth--tee {
+        width: 30px;
+        height: 47px;
+        background: #35A57A;
+        clip-path: polygon(28% 0, 41% 0, 44% 8%, 56% 8%, 59% 0, 72% 0, 100% 22%, 84% 41%, 73% 33%, 76% 100%, 24% 100%, 27% 33%, 16% 41%, 0 22%);
+    }
+    
+    .closet__cloth--tee::after {
+        top: 0;
+        left: 37%;
+        width: 26%;
+        height: 9%;
+        content: "";
+        border-radius: 0 0 50% 50%;
+        background: #F9F2E6;
+    }
+    
+    .closet__cloth--dress {
+        width: 31px;
+        height: 55px;
+        background: #E89A3C;
+        clip-path: polygon(31% 0, 43% 0, 45% 8%, 55% 8%, 57% 0, 69% 0, 78% 28%, 96% 100%, 4% 100%, 22% 28%);
+    }
+    
+    .closet__cloth--dress::after {
+        top: 31%;
+        left: 18%;
+        width: 64%;
+        height: 6%;
+        content: "";
+        border-radius: 999px;
+        background: #F2B166;
+    }
+    
+    .closet__cloth--jacket {
+        width: 31px;
+        height: 55px;
+        background: #6F5AD8;
+        clip-path: polygon(28% 0, 72% 0, 96% 24%, 82% 45%, 72% 35%, 78% 100%, 22% 100%, 28% 35%, 18% 45%, 4% 24%);
+    }
+    
+    .closet__cloth--jacket::before {
+        top: 6%;
+        bottom: 0;
+        left: 48%;
+        width: 4%;
+        content: "";
+        background: #E9E4F7;
+    }
+    
+    .closet__cloth--jacket::after {
+        top: 5%;
+        left: 29%;
+        width: 42%;
+        height: 24%;
+        content: "";
+        border-right: 4px solid #8A78E4;
+        border-bottom: 4px solid #8A78E4;
+        transform: rotate(45deg);
+    }
+    
+    .closet__cloth--scarf {
+        width: 23px;
+        height: 55px;
+        background: #F2B166;
+        clip-path: polygon(31% 0, 69% 0, 72% 22%, 100% 33%, 75% 45%, 84% 100%, 52% 92%, 45% 53%, 19% 100%, 0 90%, 29% 42%, 7% 30%, 28% 21%);
+    }
+    
+    .closet__cloth--scarf::after {
+        top: 27%;
+        left: 30%;
+        width: 40%;
+        aspect-ratio: 1;
+        content: "";
+        border-radius: 35%;
+        background: #E89A3C;
+        transform: rotate(45deg);
+    }
+    
+    .closet__shelf {
+        top: 19.6%;
+        left: 74.6%;
+        width: 14.1%;
+        height: 21.9%;
+        z-index: 6;
+    }
+    
+    .closet__shelf-board {
+        left: -9%;
+        width: 118%;
+        height: 7px;
+        border: 2px solid #C79E5C;
+        border-radius: 999px;
+        background: #F2DCAE;
+        box-shadow: 0 4px 7px rgba(96,74,46,0.13);
+    }
+    
+    .closet__shelf-board--top { top: 49%; }
+    
+    .closet__shelf-board--bottom { top: 94%; }
+    
+    .closet__shelf-board--bottom::before,
+    .closet__shelf-board--bottom::after {
+        top: 5px;
+        width: 7px;
+        height: 18px;
+        content: "";
+        border-bottom: 3px solid #C79E5C;
+        background: #F2DCAE;
+    }
+    
+    .closet__shelf-board--bottom::before {
+        left: 8px;
+        transform: skew(-14deg);
+    }
+    
+    .closet__shelf-board--bottom::after {
+        right: 8px;
+        transform: skew(14deg);
+    }
+    
+    .closet__hatbox {
+        height: 18%;
+        border: 2px solid #E4DCCE;
+        border-radius: 45% / 22%;
+        box-shadow: 0 3px 5px rgba(96,74,46,0.10);
+    }
+    
+    .closet__hatbox::before {
+        top: -4px;
+        left: -3px;
+        width: calc(100% + 6px);
+        height: 7px;
+        content: "";
+        border-radius: 50%;
+        background: inherit;
+        box-shadow: 0 2px 2px rgba(96,74,46,0.10);
+    }
+    
+    .closet__hatbox::after {
+        top: 29%;
+        left: 45%;
+        width: 10%;
+        height: 47%;
+        content: "";
+        border-radius: 999px;
+        background: #F2DCAE;
+    }
+    
+    .closet__hatbox--large {
+        top: 29%;
+        left: 3%;
+        width: 87%;
+        background: #E9E4F7;
+    }
+    
+    .closet__hatbox--small {
+        top: 11%;
+        left: 18%;
+        width: 77%;
+        background: #FBF7EF;
+    }
+    
+    .closet__folds {
+        top: 57%;
+        left: 3%;
+        width: 91%;
+        height: 34%;
+    }
+    
+    .closet__fold {
+        left: 0;
+        height: 22%;
+        border: 1px solid #FBF7EF;
+        border-radius: 8px 5px 5px 8px;
+        box-shadow: 0 2px 3px rgba(96,74,46,0.10);
+    }
+    
+    .closet__fold::after {
+        top: 23%;
+        right: 9%;
+        width: 16%;
+        height: 54%;
+        content: "";
+        border-radius: 50%;
+        background: #FBF7EF;
+        opacity: 0.62;
+    }
+    
+    .closet__fold--one {
+        top: 0;
+        width: 89%;
+        background: #35A57A;
+    }
+    
+    .closet__fold--two {
+        top: 23%;
+        left: 8%;
+        width: 89%;
+        background: #F2B166;
+    }
+    
+    .closet__fold--three {
+        top: 46%;
+        width: 94%;
+        background: #8A78E4;
+    }
+    
+    .closet__fold--four {
+        top: 69%;
+        left: 5%;
+        width: 84%;
+        background: #E9E4F7;
+    }
+    
+    .closet__pouf {
+        top: 66.8%;
+        left: 1.8%;
+        width: 14.2%;
+        height: 10%;
+        z-index: 8;
+        filter: drop-shadow(0 8px 6px rgba(96,74,46,0.18));
+    }
+    
+    .closet__pouf-top {
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 35%;
+        z-index: 2;
+        border: 3px solid #54419E;
+        border-radius: 50%;
+        background: #8A78E4;
+    }
+    
+    .closet__pouf-body {
+        top: 16%;
+        left: 4%;
+        width: 92%;
+        height: 76%;
+        overflow: hidden;
+        border: 3px solid #54419E;
+        border-radius: 18% 18% 28% 28% / 20% 20% 38% 38%;
+        background: #6F5AD8;
+    }
+    
+    .closet__pouf-body::before,
+    .closet__pouf-body::after {
+        top: 10%;
+        width: 2px;
+        height: 72%;
+        content: "";
+        border-radius: 999px;
+        background: #8A78E4;
+    }
+    
+    .closet__pouf-body::before { left: 31%; }
+    
+    .closet__pouf-body::after { right: 31%; }
+    
+    .closet__pouf-button {
+        top: 9%;
+        left: 47%;
+        width: 7%;
+        aspect-ratio: 1;
+        z-index: 3;
+        border-radius: 50%;
+        background: #F2DCAE;
+        box-shadow: 0 1px 2px rgba(96,74,46,0.18);
+    }
+    
+    .closet__plant {
+        top: 44.5%;
+        left: 84.4%;
+        width: 13.8%;
+        height: 32.4%;
+        z-index: 8;
+    }
+    
+    .closet__stem {
+        bottom: 20%;
+        left: 49%;
+        width: 4px;
+        height: 58%;
+        border-radius: 999px;
+        background: #35A57A;
+        transform-origin: bottom;
+    }
+    
+    .closet__stem--left {
+        height: 47%;
+        transform: rotate(-11deg);
+    }
+    
+    .closet__stem--right {
+        height: 50%;
+        transform: rotate(10deg);
+    }
+    
+    .closet__leaf {
+        bottom: 20%;
+        left: 47%;
+        width: 37%;
+        border: 2px solid #35A57A;
+        border-radius: 100% 0 100% 0;
+        transform-origin: 20% 100%;
+        box-shadow: 0 4px 6px rgba(96,74,46,0.10);
+    }
+    
+    .closet__leaf--one {
+        height: 34%;
+        background: #4FBB91;
+        transform: translateX(-25%) rotate(-12deg);
+    }
+    
+    .closet__leaf--two {
+        height: 42%;
+        background: #35A57A;
+        transform: translateX(-2%) rotate(2deg);
+    }
+    
+    .closet__leaf--three {
+        height: 33%;
+        background: #4FBB91;
+        transform: translateX(8%) rotate(10deg);
+    }
+    
+    .closet__leaf--four {
+        bottom: 35%;
+        height: 28%;
+        background: #35A57A;
+        transform: translateX(-20%) rotate(-16deg);
+    }
+    
+    .closet__leaf--five {
+        bottom: 37%;
+        height: 27%;
+        background: #4FBB91;
+        transform: translateX(4%) rotate(8deg);
+    }
+    
+    .closet__pot-rim {
+        bottom: 17%;
+        left: 3%;
+        width: 94%;
+        height: 9%;
+        z-index: 3;
+        border: 2px solid #93540E;
+        border-radius: 50%;
+        background: #F2B166;
+    }
+    
+    .closet__pot {
+        bottom: 0;
+        left: 13%;
+        width: 74%;
+        height: 21%;
+        border: 2px solid #93540E;
+        border-radius: 8% 8% 36% 36% / 8% 8% 18% 18%;
+        background: linear-gradient(90deg, #E89A3C, #F2B166, #E89A3C);
+        box-shadow: 0 7px 8px rgba(96,74,46,0.18);
+    }
+    
+    .closet__lamp {
+        top: 0;
+        left: 74.1%;
+        width: 14.9%;
+        height: 18.1%;
+        z-index: 5;
+    }
+    
+    .closet__lamp-canopy {
+        top: 0;
+        left: 35%;
+        width: 30%;
+        height: 5px;
+        border-radius: 0 0 50% 50%;
+        background: #C79E5C;
+    }
+    
+    .closet__lamp-cord {
+        top: 3px;
+        left: calc(50% - 1px);
+        width: 2px;
+        height: 66%;
+        background: #C79E5C;
+    }
+    
+    .closet__lamp-shade {
+        top: 65%;
+        left: 0;
+        width: 100%;
+        height: 27%;
+        z-index: 2;
+        border-bottom: 4px solid #C79E5C;
+        background: linear-gradient(135deg, #F2DCAE, #C79E5C);
+        clip-path: polygon(27% 0, 73% 0, 100% 100%, 0 100%);
+        filter: drop-shadow(0 5px 5px rgba(96,74,46,0.13));
+    }
+    
+    .closet__lamp-bulb {
+        top: 88%;
+        left: 42%;
+        width: 16%;
+        aspect-ratio: 1;
+        border: 1px solid #FBF7EF;
+        border-radius: 50%;
+        background: #F2B166;
+        box-shadow: 0 2px 5px rgba(96,74,46,0.18);
+    }
+    
+    .closet__rod {
+        top: 9.55%;
+        left: 1.5%;
+        width: 97%;
+        height: 6px;
+        z-index: 9;
+        border: 1px solid #C79E5C;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #F2DCAE, #C79E5C);
+        box-shadow: 0 3px 5px rgba(96,74,46,0.13);
+    }
+    
+    .closet__rod::before,
+    .closet__rod::after {
+        top: -5px;
+        width: 14px;
+        height: 14px;
+        content: "";
+        border: 2px solid #C79E5C;
+        border-radius: 50%;
+        background: #F2DCAE;
+    }
+    
+    .closet__rod::before { left: -6px; }
+    
+    .closet__rod::after { right: -6px; }
+    
+    .closet__curtain {
+        top: 8.9%;
+        width: 13.1%;
+        /* Pərdə döşəməyə çatır: divarın ortasında kəsiləndə "asılmış parça"
+           yox, rəngli zolaq kimi oxunurdu. Altı rəf lentinin arxasına girir. */
+        height: 76%;
+        z-index: 7;
+        background: repeating-linear-gradient(
+            90deg,
+            #9F8CE6 0 16%,
+            #B4A4EA 16% 39%,
+            #D6CCF2 39% 63%,
+            #B4A4EA 63% 84%,
+            #9F8CE6 84% 100%
+        );
+        filter: drop-shadow(0 7px 6px rgba(96,74,46,0.18));
+    }
+    
+    .closet__curtain::before {
+        top: 0;
+        width: 100%;
+        height: 8%;
+        content: "";
+        border-bottom: 3px solid #54419E;
+        background: repeating-linear-gradient(
+            90deg,
+            #F2DCAE 0 7%,
+            transparent 7% 22%
+        );
+        opacity: 0.72;
+    }
+    
+    .closet__curtain::after {
+        top: 37%;
+        width: 74%;
+        height: 5.5%;
+        content: "";
+        border: 2px solid #C79E5C;
+        border-radius: 999px;
+        background: #F2DCAE;
+        box-shadow: 0 3px 4px rgba(96,74,46,0.13);
+    }
+    
+    .closet__curtain--left {
+        left: 0;
+        clip-path: polygon(0 0, 84% 0, 79% 31%, 61% 40%, 94% 46%, 84% 100%, 0 100%);
+    }
+    
+    .closet__curtain--left::after { left: 22%; }
+    
+    .closet__curtain--right {
+        right: 0;
+        clip-path: polygon(16% 0, 100% 0, 100% 100%, 16% 100%, 6% 46%, 39% 40%, 21% 31%);
+    }
+    
+    .closet__curtain--right::after { right: 22%; }
+    
+    .closet__species {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: var(--closet-tray);
+        z-index: 4;
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 var(--pp-gutter) 10px;
+        pointer-events: none;
+    }
+    
+    .closet__species-pick {
+        display: grid;
+        place-items: center;
+        width: 56px;
+        height: 56px;
+        padding: 3px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        background: rgba(251, 247, 239, 0.92);
+        box-shadow: var(--pp-shadow-sm);
+        pointer-events: auto;
+        transition: transform 130ms ease, border-color 160ms ease;
+    }
+    
+    .closet__species-pick .pet {
+        width: 100%;
+        animation: none;
+        filter: none;
+    }
+    
+    .closet__species-pick:active:not(:disabled) { transform: scale(0.94); }
+    
+    .closet__species-pick--on {
+        border-color: var(--pp-primary);
+        background: var(--pp-primary-soft);
+    }
+  </style>
+</helmet>
+<div class="pp-root" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--pp-bg); color: var(--pp-ink);">
+  <div class="closet" style="animation: none;">
+    <div class="closet__room" style="--room-scale: 1;">
+<div class="closet__decor" aria-hidden="true">
+        <div class="closet__wall"></div>
+        <div class="closet__floor"></div>
+        <div class="closet__planks"></div>
+        <div class="closet__baseboard"></div>
+        <div class="closet__floor-depth"></div>
+        <div class="closet__floor-shadow"></div>
+
+        <div class="closet__rug"></div>
+
+        <div class="closet__mirror">
+          <div class="closet__mirror-glass"></div>
+          <div class="closet__mirror-foot closet__mirror-foot--left"></div>
+          <div class="closet__mirror-foot closet__mirror-foot--right"></div>
+          <i class="closet__bulb closet__bulb--01"></i>
+          <i class="closet__bulb closet__bulb--02"></i>
+          <i class="closet__bulb closet__bulb--03"></i>
+          <i class="closet__bulb closet__bulb--04"></i>
+          <i class="closet__bulb closet__bulb--05"></i>
+          <i class="closet__bulb closet__bulb--06"></i>
+          <i class="closet__bulb closet__bulb--13"></i>
+          <i class="closet__bulb closet__bulb--14"></i>
+          <i class="closet__bulb closet__bulb--15"></i>
+          <i class="closet__bulb closet__bulb--16"></i>
+          <i class="closet__bulb closet__bulb--17"></i>
+        </div>
+
+        <div class="closet__wardrobe">
+          <div class="closet__rail"></div>
+          <div class="closet__garment closet__garment--tee">
+            <span class="closet__hanger"></span>
+            <span class="closet__cloth closet__cloth--tee"></span>
+          </div>
+          <div class="closet__garment closet__garment--dress">
+            <span class="closet__hanger"></span>
+            <span class="closet__cloth closet__cloth--dress"></span>
+          </div>
+          <div class="closet__garment closet__garment--jacket">
+            <span class="closet__hanger"></span>
+            <span class="closet__cloth closet__cloth--jacket"></span>
+          </div>
+          <div class="closet__garment closet__garment--scarf">
+            <span class="closet__hanger"></span>
+            <span class="closet__cloth closet__cloth--scarf"></span>
+          </div>
+        </div>
+
+        <div class="closet__shelf">
+          <div class="closet__hatbox closet__hatbox--large"></div>
+          <div class="closet__hatbox closet__hatbox--small"></div>
+          <div class="closet__shelf-board closet__shelf-board--top"></div>
+          <div class="closet__folds">
+            <span class="closet__fold closet__fold--one"></span>
+            <span class="closet__fold closet__fold--two"></span>
+            <span class="closet__fold closet__fold--three"></span>
+            <span class="closet__fold closet__fold--four"></span>
+          </div>
+          <div class="closet__shelf-board closet__shelf-board--bottom"></div>
+        </div>
+
+        <div class="closet__pouf">
+          <div class="closet__pouf-body"></div>
+          <div class="closet__pouf-top"></div>
+          <span class="closet__pouf-button"></span>
+        </div>
+
+        <div class="closet__plant">
+          <span class="closet__stem closet__stem--left"></span>
+          <span class="closet__stem closet__stem--right"></span>
+          <span class="closet__leaf closet__leaf--one"></span>
+          <span class="closet__leaf closet__leaf--two"></span>
+          <span class="closet__leaf closet__leaf--three"></span>
+          <span class="closet__leaf closet__leaf--four"></span>
+          <span class="closet__leaf closet__leaf--five"></span>
+          <div class="closet__pot"></div>
+          <div class="closet__pot-rim"></div>
+        </div>
+
+        <div class="closet__lamp">
+          <div class="closet__lamp-canopy"></div>
+          <div class="closet__lamp-cord"></div>
+          <div class="closet__lamp-shade"></div>
+          <div class="closet__lamp-bulb"></div>
+        </div>
+
+        <div class="closet__rod"></div>
+        <div class="closet__curtain closet__curtain--left"></div>
+        <div class="closet__curtain closet__curtain--right"></div>
+</div>
+      <div class="closet__pet"><div class="pet-wrap"><svg class="pet" viewBox="0 0 200 200" style="--pet-fur:#9C8FE8;--pet-belly:#EFEAFF;--pet-inner-ear:#C9BEFF">
+<path class="pet__fur pet__outline pet__tail" d="M126 120 C138 101 155 95 164 106 C175 119 167 142 152 152 C146 156 140 159 134 159 C130 159 128 156 129 152 C129 149 132 147 136 147 C146 145 154 136 157 126 C160 116 157 108 151 108 C143 108 135 119 129 132 Z"/>
+<rect class="pet__fur pet__outline" x="74" y="130" width="20" height="29" rx="10"/>
+<rect class="pet__fur pet__outline" x="106" y="130" width="20" height="29" rx="10"/>
+<ellipse class="pet__fur pet__outline" cx="70" cy="116" rx="8" ry="21"/>
+<ellipse class="pet__fur pet__outline" cx="130" cy="116" rx="8" ry="21"/>
+<ellipse class="pet__fur pet__outline" cx="100" cy="119" rx="31" ry="34"/>
+<ellipse class="pet__belly" cx="70" cy="130" rx="6" ry="7"/>
+<ellipse class="pet__belly" cx="130" cy="130" rx="6" ry="7"/>
+<path class="pet__belly" d="M83 98 C89 94 96 96 100 102 C104 96 111 94 117 98 C116 111 111 124 104 133 C102 136 101 140 100 143 C99 140 98 136 96 133 C89 124 84 111 83 98 Z"/>
+<ellipse class="pet__belly pet__outline" cx="84" cy="158" rx="12" ry="4"/>
+<ellipse class="pet__belly pet__outline" cx="116" cy="158" rx="12" ry="4"/>
+<ellipse class="pet__fur pet__outline" cx="100" cy="72" rx="40" ry="33"/>
+<path class="pet__fur pet__outline" d="M60 72 C60 63 62 56 65 50 C64 43 68 33 74 27 Q76 22 80 27 C86 34 89 42 90 50 C94 43 97 39 100 39 C103 39 106 43 110 50 C111 42 114 34 120 27 Q124 22 126 27 C132 33 136 43 135 50 C138 56 140 63 140 72 C140 91 123 105 100 105 C77 105 60 91 60 72 Z"/>
+<path class="pet__inner-ear" d="M68 47 C68 40 71 31 75 27 Q77 24 80 28 C84 33 86 40 87 48 C81 44 75 44 68 47 Z"/>
+<path class="pet__inner-ear" d="M132 47 C132 40 129 31 125 27 Q123 24 120 28 C116 33 114 40 113 48 C119 44 125 44 132 47 Z"/>
+<ellipse class="pet__belly" cx="94" cy="86" rx="10" ry="7"/>
+<ellipse class="pet__belly" cx="106" cy="86" rx="10" ry="7"/>
+<path class="pet__whisker" d="M90 85 C81 84 73 83 66 84 M89 90 C80 90 71 91 64 93 M90 95 C81 98 73 101 68 104 M110 85 C119 84 127 83 134 84 M111 90 C120 90 129 91 136 93 M110 95 C119 98 127 101 132 104"/>
+<path class="pet__nose" data-cx="100" data-cy="86" d="M100 90 C98 88 95 86 95 84 C95 82 98 81 100 84 C102 81 105 82 105 84 C105 86 102 88 100 90 Z"/>
+<circle class="pet__eye" cx="84" cy="71" r="8"/><circle class="pet__eye" cx="116" cy="71" r="8"/>
+<circle cx="86.4" cy="68.3" r="2.24" fill="#FFFFFF"/><circle cx="118.4" cy="68.3" r="2.24" fill="#FFFFFF"/>
+<path class="pet__mouth" d="M91 90 Q100 100 109 90"/></svg></div></div>
+    </div>
+
+    <div class="closet__bar">
+      <button class="overlay-close">✕</button>
+      <button class="closet__clear">Hamısını çıxart</button>
+    </div>
+
+    <div class="closet__species">
+      <button class="closet__species-pick"><div class="pet-wrap"><svg class="pet" viewBox="0 0 200 200" style="--pet-fur:#F3A05A;--pet-belly:#FFF3E2;--pet-inner-ear:#FFD3A8">
+<path class="pet__fur pet__outline pet__tail" d="M114 132 C124 114 141 104 154 109 C168 115 170 134 160 148 C150 162 132 164 119 152 C114 147 112 138 114 132 Z"/>
+<path class="pet__belly pet__outline pet__tail" d="M149 108 C158 108 166 115 168 124 C169 132 165 141 159 148 C158 134 151 122 139 116 C142 112 145 110 149 108 Z"/>
+<ellipse class="pet__fur pet__outline" cx="100" cy="133" rx="31" ry="28"/>
+<ellipse class="pet__belly" cx="100" cy="136" rx="18" ry="21"/>
+<ellipse class="pet__fur pet__outline" cx="72" cy="133" rx="10" ry="16"/>
+<ellipse class="pet__fur pet__outline" cx="128" cy="133" rx="10" ry="16"/>
+<ellipse class="pet__belly" cx="72" cy="145" rx="7" ry="5"/>
+<ellipse class="pet__belly" cx="128" cy="145" rx="7" ry="5"/>
+<ellipse class="pet__belly pet__outline" cx="84" cy="157" rx="12" ry="5"/>
+<ellipse class="pet__belly pet__outline" cx="116" cy="157" rx="12" ry="5"/>
+<ellipse class="pet__fur pet__outline" cx="100" cy="82" rx="42" ry="35"/>
+<path class="pet__fur pet__outline" d="M58 82 C58 75 59 71 61 66 C57 55 58 38 64 26 C75 33 80 44 81 55 C87 50 93 47 100 47 C107 47 113 50 119 55 C120 44 125 33 136 26 C142 38 143 55 139 66 C141 71 142 75 142 82 C142 92 138 100 131 105 C138 108 136 114 126 113 C118 116 109 117 100 117 C91 117 82 116 74 113 C64 114 62 108 69 105 C62 100 58 92 58 82 Z"/>
+<path class="pet__inner-ear" d="M61 58 C61 48 62 36 64 28 C70 33 75 41 77 51 C72 48 66 51 61 58 Z"/>
+<path class="pet__inner-ear" d="M139 58 C139 48 138 36 136 28 C130 33 125 41 123 51 C128 48 134 51 139 58 Z"/>
+<path class="pet__ear-tip" d="M60 38 C61 33 62 29 64 26 C68 28 72 33 74 38 C69 36 65 36 60 38 Z"/>
+<path class="pet__ear-tip" d="M140 38 C139 33 138 29 136 26 C132 28 128 33 126 38 C131 36 135 36 140 38 Z"/>
+<path class="pet__belly" d="M83 93 Q91 90 100 98 Q109 90 117 93 Q114 103 100 109 Q86 103 83 93 Z"/>
+<circle class="pet__nose" cx="100" cy="98" r="3.8"/>
+<path class="pet__lash" d="M76 71 q8 6.8 16 0"/><path class="pet__lash" d="M108 71 q8 6.8 16 0"/>
+<path class="pet__mouth" d="M91 90 Q100 100 109 90"/></svg></div></button>
+      <button class="closet__species-pick closet__species-pick--on"><div class="pet-wrap"><svg class="pet" viewBox="0 0 200 200" style="--pet-fur:#9C8FE8;--pet-belly:#EFEAFF;--pet-inner-ear:#C9BEFF">
+<path class="pet__fur pet__outline pet__tail" d="M123 128 C137 116 152 117 158 129 C164 142 155 157 141 159 C136 160 132 157 132 153 C132 150 134 148 138 148 C147 147 151 140 148 133 C145 126 136 127 125 138 Z"/>
+<ellipse class="pet__fur pet__outline" cx="100" cy="134" rx="31" ry="27"/>
+<ellipse class="pet__fur pet__outline" cx="72" cy="134" rx="10" ry="16"/>
+<ellipse class="pet__fur pet__outline" cx="128" cy="134" rx="10" ry="16"/>
+<ellipse class="pet__belly" cx="72" cy="146" rx="7" ry="5"/>
+<ellipse class="pet__belly" cx="128" cy="146" rx="7" ry="5"/>
+<path class="pet__belly" d="M84 113 C90 110 96 112 100 117 C104 112 110 110 116 113 C115 123 110 133 104 139 C102 142 101 145 100 148 C99 145 98 142 96 139 C90 133 85 123 84 113 Z"/>
+<ellipse class="pet__belly pet__outline" cx="84" cy="157" rx="12" ry="5"/>
+<ellipse class="pet__belly pet__outline" cx="116" cy="157" rx="12" ry="5"/>
+<ellipse class="pet__fur pet__outline" cx="100" cy="82" rx="42" ry="35"/>
+<path class="pet__fur pet__outline" d="M58 82 C58 72 60 65 65 59 C64 52 67 43 73 37 Q76 33 80 38 C85 43 88 51 89 58 C93 51 96 47 100 47 C104 47 107 51 111 58 C112 51 115 43 120 38 Q124 33 127 37 C133 43 136 52 135 59 C140 65 142 72 142 82 C142 102 124 117 100 117 C76 117 58 102 58 82 Z"/>
+<path class="pet__inner-ear" d="M68 55 C68 49 71 41 75 37 Q77 35 80 39 C84 43 86 49 87 56 C81 52 75 52 68 55 Z"/>
+<path class="pet__inner-ear" d="M132 55 C132 49 129 41 125 37 Q123 35 120 39 C116 43 114 49 113 56 C119 52 125 52 132 55 Z"/>
+<ellipse class="pet__belly" cx="94" cy="98" rx="10.5" ry="7.5"/>
+<ellipse class="pet__belly" cx="106" cy="98" rx="10.5" ry="7.5"/>
+<path class="pet__whisker" d="M89 97 C80 96 73 95 66 96 M88 102 C79 102 71 103 64 105 M89 107 C80 110 73 113 68 116 M111 97 C120 96 127 95 134 96 M112 102 C121 102 129 103 136 105 M111 107 C120 110 127 113 132 116"/>
+<path class="pet__nose" data-cx="100" data-cy="98" d="M100 102 C98 100 95 98 95 96 C95 94 98 93 100 96 C102 93 105 94 105 96 C105 98 102 100 100 102 Z"/>
+<path class="pet__lash" d="M76 71 q8 6.8 16 0"/><path class="pet__lash" d="M108 71 q8 6.8 16 0"/>
+<path class="pet__mouth" d="M91 90 Q100 100 109 90"/></svg></div></button>
+    </div>
+
+    <div class="closet__tray">
+      <button class="closet__item closet__item--on"><span class="closet__icon">🎩</span><span class="closet__name">Silindr</span><span class="closet__meta">Taxılıb</span></button>
+      <button class="closet__item"><span class="closet__icon">🧣</span><span class="closet__name">Şərf</span><span class="closet__meta">Taxmaq üçün toxun</span></button>
+      <button class="closet__item closet__item--locked"><span class="closet__icon">🔒</span><span class="closet__name">Tac</span><span class="closet__meta">12 yaş</span></button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

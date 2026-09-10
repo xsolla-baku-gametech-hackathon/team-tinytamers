@@ -1,0 +1,294 @@
+@implements IDisposable
+@inject Loc Loc
+
+@* Hərf ovu: şəkil göstərilir, uşaq sözü hərf-hərf yığır.
+
+   Söz ŞƏKİLDƏN gəlir, yazıdan yox — oxumağı hələ öyrənən uşaq da oynaya bilir.
+   Hərflər ardıcıl yığılır, ona görə oyun həm hərfi tanımağı, həm də sözün
+   içindəki sıranı öyrədir.
+
+   Söz bankı dilə görə dəyişir: azərbaycanca BALIQ, ingiliscə FISH. Şəkil isə
+   eynidir, çünki şəkil dilsizdir — elə buna görə seçilib. *@
+
+<GameShell Title="@Loc.T("Hərf ovu", "Letter Hunt")"
+           Round="_completed" RoundTotal="RoundCount"
+           Lives="_lives" Hit="_hit" Over="_over"
+           Rule="@Loc.T("Şəkildəki sözü yığ", "Spell the word in the picture")" RuleTone="primary"
+           TimerPercent="TimerPercent"
+           ScoreValue="@_completed.ToString()"
+           ScoreLabel="@Loc.T("söz yığıldı", "words spelled")">
+
+    <Backdrop><div class="gsbg gsbg--study"></div></Backdrop>
+
+    <ChildContent>
+        <div class="letters">
+            <div class="letters__picture" role="img" aria-label="@_word">@_glyph</div>
+
+            <div class="letters__slots">
+                @for (var i = 0; i < _word.Length; i++)
+                {
+                    var index = i;
+
+                    <span class="letters__slot @SlotClass(index)">@(index < _index ? _word[index].ToString() : string.Empty)</span>
+                }
+            </div>
+
+            <div class="letters__pool">
+                @foreach (var key in _keys)
+                {
+                    var current = key;
+
+                    <button class="letters__key @(current.Used ? "letters__key--used" : null) @(current.Id == _wrongKey ? "letters__key--wrong" : null)"
+                            disabled="@(current.Used || _locked)"
+                            @onclick="() => PressAsync(current)">@current.Letter</button>
+                }
+            </div>
+        </div>
+    </ChildContent>
+</GameShell>
+
+@code {
+    private const int RoundCount = 5;
+    private const int SecondsPerRound = 30;
+    private const int DistractorCount = 3;
+    private const int StartingLives = 3;
+
+    private sealed class Key
+    {
+        public required int Id { get; init; }
+        public required char Letter { get; init; }
+        public bool Used { get; set; }
+    }
+
+    [Parameter] public EventCallback<(int Score, int DurationMs)> OnFinished { get; set; }
+
+    private readonly Random _random = new();
+    private readonly List<Key> _keys = [];
+
+    /// <summary>Söz bankı: şəkil dildən asılı deyil, söz isə asılıdır.</summary>
+    private (string Word, string Glyph)[] _bank = [];
+
+    private string _word = string.Empty;
+    private string _glyph = string.Empty;
+    private string _alphabet = string.Empty;
+
+    private int _round;
+    private int _completed;
+    private int _index;
+    private int _wrongKey = -1;
+    private int _nextKeyId;
+
+    private int _lives = StartingLives;
+    private bool _hit;
+    private bool _over;
+    private bool _locked;
+    private int _secondsLeft = SecondsPerRound;
+
+    private bool _finished;
+
+    private DateTime _startedAt;
+    private PeriodicTimer? _timer;
+    private CancellationTokenSource? _timerCts;
+
+    private int TimerPercent => Math.Clamp(_secondsLeft * 100 / SecondsPerRound, 0, 100);
+
+    protected override void OnInitialized()
+    {
+        _startedAt = DateTime.UtcNow;
+
+        _bank = Loc.IsEnglish
+            ?
+            [
+                ("FISH", "🐟"), ("APPLE", "🍎"), ("SUN", "☀️"), ("STAR", "⭐"),
+                ("BOOK", "📚"), ("TREE", "🌳"), ("BALL", "⚽"), ("MOON", "🌙")
+            ]
+            :
+            [
+                ("BALIQ", "🐟"), ("ALMA", "🍎"), ("GÜNƏŞ", "☀️"), ("ULDUZ", "⭐"),
+                ("KİTAB", "📚"), ("AĞAC", "🌳"), ("TOP", "⚽"), ("AY", "🌙")
+            ];
+
+        // Yad hərflər eyni əlifbadan seçilir — yoxsa uşaq doğru hərfi tanımaqla
+        // yox, "tanış olmayanı at" üsulu ilə oynayardı.
+        _alphabet = Loc.IsEnglish ? "ABCDEFGHIJKLMNOPRSTUVYZ" : "ABCDƏEFGHXIİJKQLMNOÖPRSŞTUÜVYZ";
+
+        _bank = _bank.OrderBy(_ => _random.Next()).ToArray();
+
+        NextWord();
+        _ = RunTimerAsync();
+    }
+
+    private void NextWord()
+    {
+        var entry = _bank[(_round) % _bank.Length];
+        _round++;
+
+        _word = entry.Word;
+        _glyph = entry.Glyph;
+        _index = 0;
+        _wrongKey = -1;
+        _secondsLeft = SecondsPerRound;
+        _locked = false;
+
+        _keys.Clear();
+
+        foreach (var letter in _word)
+            _keys.Add(new Key { Id = ++_nextKeyId, Letter = letter });
+
+        for (var i = 0; i < DistractorCount; i++)
+        {
+            char letter;
+            var attempts = 0;
+
+            do
+            {
+                letter = _alphabet[_random.Next(_alphabet.Length)];
+                attempts++;
+            }
+            while (attempts < 12 && _word.Contains(letter));
+
+            _keys.Add(new Key { Id = ++_nextKeyId, Letter = letter });
+        }
+
+        var shuffled = _keys.OrderBy(_ => _random.Next()).ToList();
+        _keys.Clear();
+        _keys.AddRange(shuffled);
+    }
+
+    private async Task RunTimerAsync()
+    {
+        _timerCts = new CancellationTokenSource();
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+
+        try
+        {
+            while (await _timer.WaitForNextTickAsync(_timerCts.Token))
+            {
+                if (_locked)
+                    continue;
+
+                _secondsLeft--;
+
+                // Vaxt bitdi: söz itir, amma can getmir — yavaş oxumaq səhv deyil.
+                if (_secondsLeft <= 0)
+                    await AdvanceAsync();
+                else
+                    await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Komponent bağlanıb — normal hal.
+        }
+    }
+
+    private async Task PressAsync(Key key)
+    {
+        if (_locked || _index >= _word.Length)
+            return;
+
+        if (key.Letter != _word[_index])
+        {
+            _wrongKey = key.Id;
+            _locked = true;
+            await InvokeAsync(StateHasChanged);
+
+            await Task.Delay(420);
+            _wrongKey = -1;
+            _locked = false;
+
+            if (!await LoseLifeAsync())
+                return;
+
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        key.Used = true;
+        _index++;
+
+        if (_index < _word.Length)
+        {
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _completed++;
+        _locked = true;
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(700);
+        await AdvanceAsync();
+    }
+
+    private async Task AdvanceAsync()
+    {
+        if (_round >= RoundCount)
+        {
+            await InvokeAsync(FinishAsync);
+            return;
+        }
+
+        NextWord();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task<bool> LoseLifeAsync()
+    {
+        _lives--;
+        _hit = true;
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(420);
+        _hit = false;
+
+        if (_lives > 0)
+        {
+            await InvokeAsync(StateHasChanged);
+            return true;
+        }
+
+        _over = true;
+        _locked = true;
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(900);
+        await InvokeAsync(FinishAsync);
+        return false;
+    }
+
+    private async Task FinishAsync()
+    {
+        if (_finished)
+            return;
+
+        _finished = true;
+        StopTimer();
+
+        var score = Math.Clamp(_completed * 100 / RoundCount, 0, 100);
+        var duration = (int)Math.Clamp((DateTime.UtcNow - _startedAt).TotalMilliseconds, 0, 1_800_000);
+
+        await OnFinished.InvokeAsync((score, duration));
+    }
+
+    /// <summary>Növbəti yuva boş yuvadan seçilir: uşaq hara yazacağını axtarmır.</summary>
+    private string SlotClass(int index)
+    {
+        if (index < _index)
+            return "letters__slot--filled";
+
+        return index == _index ? "letters__slot--next" : "letters__slot--empty";
+    }
+
+    private void StopTimer()
+    {
+        _timerCts?.Cancel();
+        _timer?.Dispose();
+    }
+
+    public void Dispose()
+    {
+        StopTimer();
+        _timerCts?.Dispose();
+    }
+}

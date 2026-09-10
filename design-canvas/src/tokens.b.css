@@ -1,0 +1,55 @@
+/* İSTİQAMƏT B — yumşaldılmış. Ailə adları və mənaları eynidir; yalnız xroma
+   və səth parlaqlığı azalıb. Bütün mətn cütləri WCAG 4.5:1-dən yuxarıdadır. */
+--pp-primary: #6F5AD8;
+--pp-primary-dark: #54419E;
+--pp-primary-soft: #E9E4F7;
+--pp-primary-lift: #8A78E4;
+--pp-primary-edge: #4E3BA8;
+
+--pp-life: #35A57A;
+--pp-life-deep: #156F4F;
+--pp-life-soft: #DCEEE4;
+--pp-life-lift: #4FBB91;
+--pp-life-edge: #156F4F;
+--pp-on-life: #06301D;
+
+--pp-spark: #E89A3C;
+--pp-spark-deep: #93540E;
+--pp-spark-soft: #FAEBD6;
+--pp-spark-lift: #F2B166;
+--pp-spark-edge: #93540E;
+--pp-on-spark: #3A1D00;
+
+--pp-alert: #B7304C;
+--pp-alert-soft: #F7E1E5;
+--pp-alert-edge: #8A2038;
+
+--pp-bg: #F0EBE0;
+--pp-card: #FBF7EF;
+--pp-card-soft: #F6F1E6;
+--pp-glass: rgba(251, 247, 239, 0.94);
+
+--pp-ink: #241E38;
+--pp-ink-soft: #5C5470;
+--pp-ink-muted: #8A82A0;
+
+--pp-border: #E4DCCE;
+--pp-track: #E8E2D6;
+
+--pp-edge-neutral: rgba(96, 74, 46, 0.20);
+--pp-shadow-sm: 0 2px 8px rgba(96, 74, 46, 0.10);
+--pp-shadow-md: 0 8px 24px rgba(96, 74, 46, 0.13);
+--pp-shadow-lg: 0 16px 40px rgba(96, 74, 46, 0.18);
+--pp-gloss: inset 0 2px 0 rgba(255, 255, 255, 0.40);
+
+/* Səhnə — süd kimi səma, sakit çəmən */
+--sc-sky-1: #BEDFEE;
+--sc-sky-2: #D3E9F1;
+--sc-sky-3: #E8F1E8;
+--sc-sun: #EFCE7C;
+--sc-sun-halo: #F5E3B4;
+--sc-cloud: #FBF8F2;
+--sc-hill-1: #CFE3D2;
+--sc-hill-2: #A5D3B7;
+--sc-hill-3: #77BE97;
+--sc-hill-4: #35A57A;

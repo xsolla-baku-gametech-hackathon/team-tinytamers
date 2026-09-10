@@ -1,0 +1,287 @@
+<div class="pp-root" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--pp-bg); color: var(--pp-ink);">
+
+  <!-- Başlıq zolağı: geri, ekranın adı, cüzdan. -->
+  <div style="position: absolute; top: 52px; left: 16px; right: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; z-index: 10;">
+    <span style="display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 999px; background: var(--pp-card); box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+        <path d="M15 5l-7 7 7 7" stroke="var(--pp-ink-soft)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </span>
+
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 13px 0 8px; border-radius: 999px; background: var(--pp-card); box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M12 3.2l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.6l6.1-.8z" fill="var(--pp-spark)" stroke="var(--pp-spark-edge)" stroke-width="1.6" stroke-linejoin="round" />
+        </svg>
+        <span style="font-size: 14px; font-weight: 900; color: var(--pp-spark-deep);">248</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 13px 0 8px; border-radius: 999px; background: var(--pp-card); box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M7.5 4h9l4 5-8.5 11L3.5 9z" fill="var(--pp-primary-lift)" stroke="var(--pp-primary-edge)" stroke-width="1.6" stroke-linejoin="round" />
+          <path d="M7.5 4l4.5 5 4.5-5M3.5 9h17" fill="none" stroke="var(--pp-primary-edge)" stroke-width="1.4" />
+        </svg>
+        <span style="font-size: 14px; font-weight: 900; color: var(--pp-primary-dark);">12</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Başlıq və gündəlik mükafat bir sətirdədir: üç yuvadan ikisi dolu.
+       Ayrıca zolaq siyahıdan bir sıra oyun oğurlayırdı. -->
+  <div style="position: absolute; top: 110px; left: 16px; right: 16px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;">
+    <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+      <div style="font-size: 24px; font-weight: 900; line-height: 1.15;">Oyun rəfi</div>
+      <div style="font-size: 13px; font-weight: 700; line-height: 1.4; color: var(--pp-ink-soft);">Hər oyun bir bacarığı məşq etdirir.</div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 5px; flex-shrink: 0; height: 40px; padding: 0 13px; border-radius: 999px; background: var(--pp-spark-soft);">
+      <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true">
+        <path d="M12 3.2l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.6l6.1-.8z" fill="var(--pp-spark)" stroke="var(--pp-spark-edge)" stroke-width="1.6" stroke-linejoin="round" />
+      </svg>
+      <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true">
+        <path d="M12 3.2l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.6l6.1-.8z" fill="var(--pp-spark)" stroke="var(--pp-spark-edge)" stroke-width="1.6" stroke-linejoin="round" />
+      </svg>
+      <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true">
+        <path d="M12 3.2l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.6l6.1-.8z" fill="none" stroke="var(--pp-spark-deep)" stroke-width="1.8" stroke-linejoin="round" opacity="0.45" />
+      </svg>
+    </div>
+  </div>
+
+  <!-- Kafel şəbəkəsi. Şəkil oyunun MEXANİKASINI göstərir: uşaq oxumadan
+       da nə oynayacağını bilir. Kilidli kafel eyni şəkli daşıyır. -->
+  <div style="position: absolute; top: 178px; left: 16px; right: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+
+    <!-- Yaddaş cütləri — açıq -->
+    <div style="display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 12px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+      <span style="display: block; border-radius: 14px; overflow: hidden;">
+        <svg viewBox="0 0 160 90" width="100%" height="78" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Yaddaş cütləri">
+          <rect x="0" y="0" width="160" height="90" rx="14" fill="var(--pp-primary-soft)" />
+          <rect x="14" y="22" width="30" height="46" rx="8" fill="var(--pp-card)" stroke="var(--pp-primary)" stroke-width="2.5" />
+          <path d="M29 34l3.2 6.6 7.3 1-5.3 5.1 1.3 7.2L29 50.5l-6.5 3.4 1.3-7.2-5.3-5.1 7.3-1z" fill="var(--pp-spark)" />
+          <rect x="52" y="22" width="30" height="46" rx="8" fill="var(--pp-primary)" />
+          <circle cx="67" cy="38" r="3.4" fill="var(--pp-primary-lift)" />
+          <circle cx="67" cy="46" r="3.4" fill="var(--pp-primary-lift)" />
+          <circle cx="67" cy="54" r="3.4" fill="var(--pp-primary-lift)" />
+          <rect x="90" y="22" width="30" height="46" rx="8" fill="var(--pp-card)" stroke="var(--pp-primary)" stroke-width="2.5" />
+          <path d="M105 34l3.2 6.6 7.3 1-5.3 5.1 1.3 7.2-6.5-3.4-6.5 3.4 1.3-7.2-5.3-5.1 7.3-1z" fill="var(--pp-spark)" />
+          <rect x="128" y="22" width="30" height="46" rx="8" fill="var(--pp-primary)" />
+          <circle cx="143" cy="38" r="3.4" fill="var(--pp-primary-lift)" />
+          <circle cx="143" cy="46" r="3.4" fill="var(--pp-primary-lift)" />
+          <circle cx="143" cy="54" r="3.4" fill="var(--pp-primary-lift)" />
+        </svg>
+      </span>
+      <span style="margin-top: 4px; font-size: 13.5px; font-weight: 900; line-height: 1.2;">Yaddaş cütləri</span>
+      <span style="font-size: 11px; font-weight: 700; color: var(--pp-ink-soft);">Yaddaş və diqqət</span>
+    </div>
+
+    <!-- Sürətli hesab — açıq -->
+    <div style="display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 12px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+      <span style="display: block; border-radius: 14px; overflow: hidden;">
+        <svg viewBox="0 0 160 90" width="100%" height="78" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Sürətli hesab">
+          <rect x="0" y="0" width="160" height="90" rx="14" fill="var(--pp-spark-soft)" />
+          <circle cx="40" cy="45" r="24" fill="var(--pp-card)" />
+          <circle cx="40" cy="45" r="19" fill="none" stroke="var(--pp-track)" stroke-width="6" />
+          <path d="M40 26a19 19 0 0 1 16.5 28.4" fill="none" stroke="var(--pp-spark)" stroke-width="6" stroke-linecap="round" />
+          <path d="M40 34v11l7 5" fill="none" stroke="var(--pp-spark-deep)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+          <rect x="86" y="10" width="60" height="20" rx="8" fill="var(--pp-card)" />
+          <circle cx="106" cy="20" r="3" fill="var(--pp-ink-muted)" />
+          <circle cx="116" cy="20" r="3" fill="var(--pp-ink-muted)" />
+          <rect x="84" y="34" width="64" height="22" rx="9" fill="var(--pp-life-soft)" stroke="var(--pp-life)" stroke-width="3" />
+          <circle cx="106" cy="45" r="3.4" fill="var(--pp-life-deep)" />
+          <circle cx="116" cy="45" r="3.4" fill="var(--pp-life-deep)" />
+          <circle cx="126" cy="45" r="3.4" fill="var(--pp-life-deep)" />
+          <rect x="86" y="60" width="60" height="20" rx="8" fill="var(--pp-card)" />
+          <circle cx="106" cy="70" r="3" fill="var(--pp-ink-muted)" />
+          <circle cx="116" cy="70" r="3" fill="var(--pp-ink-muted)" />
+        </svg>
+      </span>
+      <span style="margin-top: 4px; font-size: 13.5px; font-weight: 900; line-height: 1.2;">Sürətli hesab</span>
+      <span style="font-size: 11px; font-weight: 700; color: var(--pp-ink-soft);">Zehni hesablama</span>
+    </div>
+
+    <!-- Baloncuq ovu — açıq -->
+    <div style="display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 12px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+      <span style="display: block; border-radius: 14px; overflow: hidden;">
+        <svg viewBox="0 0 160 90" width="100%" height="78" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Baloncuq ovu">
+          <rect x="0" y="0" width="160" height="90" rx="14" fill="var(--pp-life-soft)" />
+          <circle cx="32" cy="54" r="20" fill="var(--pp-card)" stroke="var(--pp-life)" stroke-width="3" />
+          <circle cx="24" cy="46" r="5" fill="#FFFFFF" opacity="0.85" />
+          <circle cx="74" cy="32" r="15" fill="var(--pp-card)" stroke="var(--pp-life)" stroke-width="3" />
+          <circle cx="68" cy="27" r="3.6" fill="#FFFFFF" opacity="0.85" />
+          <circle cx="104" cy="66" r="12" fill="var(--pp-card)" stroke="var(--pp-life)" stroke-width="3" />
+          <circle cx="100" cy="62" r="3" fill="#FFFFFF" opacity="0.85" />
+          <circle cx="124" cy="30" r="15" fill="none" stroke="var(--pp-spark)" stroke-width="3.5" stroke-dasharray="7 7" />
+          <path d="M124 9V3M139 15l4.6-4.6M109 15l-4.6-4.6M143 30h6M105 30h-6M138 45l4 4" stroke="var(--pp-spark)" stroke-width="3.5" stroke-linecap="round" />
+        </svg>
+      </span>
+      <span style="margin-top: 4px; font-size: 13.5px; font-weight: 900; line-height: 1.2;">Baloncuq ovu</span>
+      <span style="font-size: 11px; font-weight: 700; color: var(--pp-ink-soft);">Qayda tutma</span>
+    </div>
+
+    <!-- Rəng sırası — açıq -->
+    <div style="display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 12px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+      <span style="display: block; border-radius: 14px; overflow: hidden;">
+        <svg viewBox="0 0 160 90" width="100%" height="78" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Rəng sırası">
+          <rect x="0" y="0" width="160" height="90" rx="14" fill="var(--pp-card-soft)" />
+          <rect x="20" y="8" width="54" height="28" rx="9" fill="var(--pp-primary)" opacity="0.5" />
+          <rect x="86" y="8" width="54" height="28" rx="9" fill="var(--pp-life)" opacity="0.5" />
+          <rect x="20" y="40" width="54" height="28" rx="9" fill="var(--pp-spark)" opacity="0.5" />
+          <rect x="84" y="38" width="58" height="32" rx="10" fill="var(--pp-alert)" />
+          <rect x="79" y="33" width="68" height="42" rx="14" fill="none" stroke="var(--pp-alert)" stroke-width="2.5" opacity="0.45" />
+          <circle cx="66" cy="80" r="4" fill="var(--pp-primary)" />
+          <circle cx="80" cy="80" r="4" fill="var(--pp-spark)" />
+          <circle cx="94" cy="80" r="4" fill="var(--pp-alert)" />
+        </svg>
+      </span>
+      <span style="margin-top: 4px; font-size: 13.5px; font-weight: 900; line-height: 1.2;">Rəng sırası</span>
+      <span style="font-size: 11px; font-weight: 700; color: var(--pp-ink-soft);">İşlək yaddaş</span>
+    </div>
+
+    <!-- Ulduz qaçışı — kilidli, amma ulduz çatır -->
+    <div style="position: relative; display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 12px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+      <span style="position: absolute; top: 4px; right: 4px; z-index: 2; padding: 3px 9px; border-radius: 999px; background: var(--pp-life); box-shadow: 0 2px 0 var(--pp-life-edge); font-size: 10px; font-weight: 900; letter-spacing: 0.4px; color: #FFFFFF;">YENİ</span>
+      <span style="position: relative; display: block; border-radius: 14px; overflow: hidden;">
+        <svg viewBox="0 0 160 90" width="100%" height="78" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Ulduz qaçışı" style="filter: saturate(0.45); opacity: 0.7;">
+          <rect x="0" y="0" width="160" height="90" rx="14" fill="var(--sc-sky-2)" />
+          <path d="M56 0h48l40 90H16z" fill="var(--pp-card-soft)" />
+          <path d="M72 0h4l-18 90h-8zM84 0h4l18 90h8z" fill="var(--pp-card)" />
+          <rect x="26" y="18" width="30" height="13" rx="6" fill="var(--pp-life)" />
+          <rect x="66" y="18" width="28" height="13" rx="6" fill="var(--pp-alert)" />
+          <rect x="104" y="18" width="30" height="13" rx="6" fill="var(--pp-spark)" />
+          <ellipse cx="80" cy="70" rx="15" ry="13" fill="#F3A05A" />
+          <ellipse cx="80" cy="74" rx="9" ry="8" fill="#FFF3E2" />
+          <path d="M67 60l-3-11 11 6zM93 60l3-11-11 6z" fill="#F3A05A" />
+        </svg>
+        <span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(251, 247, 239, 0.32);">
+          <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+            <rect x="5" y="10.5" width="14" height="10" rx="3" fill="var(--pp-ink-soft)" />
+            <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" fill="none" stroke="var(--pp-ink-soft)" stroke-width="2.4" />
+          </svg>
+        </span>
+      </span>
+      <span style="margin-top: 4px; font-size: 13.5px; font-weight: 900; line-height: 1.2;">Ulduz qaçışı</span>
+      <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 900; color: var(--pp-spark-deep);">
+        <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
+          <path d="M12 3.2l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.6l6.1-.8z" fill="var(--pp-spark)" stroke="var(--pp-spark-edge)" stroke-width="1.6" stroke-linejoin="round" />
+        </svg>
+        180 ilə aç
+      </span>
+    </div>
+
+    <!-- Meyvə kəs — kilidli, ulduz çatmır -->
+    <div style="position: relative; display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 12px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);">
+      <span style="position: absolute; top: 4px; right: 4px; z-index: 2; padding: 3px 9px; border-radius: 999px; background: var(--pp-life); box-shadow: 0 2px 0 var(--pp-life-edge); font-size: 10px; font-weight: 900; letter-spacing: 0.4px; color: #FFFFFF;">YENİ</span>
+      <span style="position: relative; display: block; border-radius: 14px; overflow: hidden;">
+        <svg viewBox="0 0 160 90" width="100%" height="78" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Meyvə kəs" style="filter: saturate(0.45); opacity: 0.7;">
+          <rect x="0" y="0" width="160" height="90" rx="14" fill="var(--pp-alert-soft)" />
+          <circle cx="40" cy="52" r="18" fill="var(--pp-alert)" />
+          <circle cx="40" cy="52" r="9" fill="var(--pp-alert-soft)" />
+          <path d="M96 34a17 17 0 0 1 17 17H79a17 17 0 0 1 17-17z" fill="var(--pp-spark)" />
+          <path d="M79 57a17 17 0 0 0 34 0z" fill="var(--pp-spark-lift)" transform="translate(10 8)" />
+          <path d="M18 76L142 14" stroke="var(--pp-card)" stroke-width="7" stroke-linecap="round" opacity="0.9" />
+          <path d="M18 76L142 14" stroke="var(--pp-ink-muted)" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 9" />
+        </svg>
+        <span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(251, 247, 239, 0.32);">
+          <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+            <rect x="5" y="10.5" width="14" height="10" rx="3" fill="var(--pp-ink-soft)" />
+            <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" fill="none" stroke="var(--pp-ink-soft)" stroke-width="2.4" />
+          </svg>
+        </span>
+      </span>
+      <span style="margin-top: 4px; font-size: 13.5px; font-weight: 900; line-height: 1.2;">Meyvə kəs</span>
+      <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 900; color: var(--pp-spark-deep);">
+        <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
+          <path d="M12 3.2l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.6l6.1-.8z" fill="var(--pp-spark)" stroke="var(--pp-spark-edge)" stroke-width="1.6" stroke-linejoin="round" />
+        </svg>
+        240 ilə aç
+      </span>
+    </div>
+
+    <!-- Səbət tut — kilidli -->
+    <div style="position: relative; display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 12px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm); opacity: 0.72;">
+      <span style="position: relative; display: block; border-radius: 14px; overflow: hidden;">
+        <svg viewBox="0 0 160 90" width="100%" height="78" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Səbət tut" style="filter: saturate(0.45); opacity: 0.7;">
+          <rect x="0" y="0" width="160" height="90" rx="14" fill="var(--pp-life-soft)" />
+          <circle cx="44" cy="20" r="9" fill="var(--pp-alert)" />
+          <circle cx="96" cy="14" r="8" fill="var(--pp-spark)" />
+          <circle cx="122" cy="38" r="9" fill="var(--pp-life)" />
+          <path d="M44 32v10M96 24v10M122 50v8" stroke="var(--pp-ink-muted)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="3 6" />
+          <path d="M52 58h56l-8 22H60z" fill="var(--pp-spark-lift)" stroke="var(--pp-spark-edge)" stroke-width="2.5" stroke-linejoin="round" />
+          <path d="M52 58h56" stroke="var(--pp-spark-edge)" stroke-width="4" stroke-linecap="round" />
+        </svg>
+        <span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(251, 247, 239, 0.32);">
+          <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+            <rect x="5" y="10.5" width="14" height="10" rx="3" fill="var(--pp-ink-soft)" />
+            <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" fill="none" stroke="var(--pp-ink-soft)" stroke-width="2.4" />
+          </svg>
+        </span>
+      </span>
+      <span style="margin-top: 4px; font-size: 13.5px; font-weight: 900; line-height: 1.2;">Səbət tut</span>
+      <span style="font-size: 11px; font-weight: 900; color: var(--pp-spark-deep);">Daha 52 ulduz</span>
+    </div>
+
+    <!-- Bulud tullanışı — kilidli -->
+    <div style="position: relative; display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 12px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm); opacity: 0.72;">
+      <span style="position: relative; display: block; border-radius: 14px; overflow: hidden;">
+        <svg viewBox="0 0 160 90" width="100%" height="78" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Bulud tullanışı" style="filter: saturate(0.45); opacity: 0.7;">
+          <rect x="0" y="0" width="160" height="90" rx="14" fill="var(--sc-sky-2)" />
+          <rect x="14" y="66" width="46" height="12" rx="6" fill="var(--sc-cloud)" />
+          <rect x="76" y="48" width="46" height="12" rx="6" fill="var(--sc-cloud)" />
+          <rect x="30" y="28" width="46" height="12" rx="6" fill="var(--sc-cloud)" />
+          <rect x="96" y="10" width="46" height="12" rx="6" fill="var(--sc-cloud)" />
+          <ellipse cx="99" cy="36" rx="13" ry="11" fill="#F3A05A" />
+          <ellipse cx="99" cy="39" rx="8" ry="7" fill="#FFF3E2" />
+          <path d="M88 27l-3-10 10 5zM110 27l3-10-10 5z" fill="#F3A05A" />
+          <path d="M99 52v6" stroke="var(--pp-primary)" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 5" />
+        </svg>
+        <span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(251, 247, 239, 0.32);">
+          <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+            <rect x="5" y="10.5" width="14" height="10" rx="3" fill="var(--pp-ink-soft)" />
+            <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" fill="none" stroke="var(--pp-ink-soft)" stroke-width="2.4" />
+          </svg>
+        </span>
+      </span>
+      <span style="margin-top: 4px; font-size: 13.5px; font-weight: 900; line-height: 1.2;">Bulud tullanışı</span>
+      <span style="font-size: 11px; font-weight: 900; color: var(--pp-spark-deep);">Daha 132 ulduz</span>
+    </div>
+
+    <!-- Beşinci sıra ekranın kənarından qismən görünür: siyahının davamı
+         olduğunu göstərir və son iki oyunu da gözə çatdırır. -->
+    <div style="position: relative; display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 12px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm); opacity: 0.72;">
+      <span style="position: relative; display: block; border-radius: 14px; overflow: hidden;">
+        <svg viewBox="0 0 160 90" width="100%" height="78" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Hərf ovu" style="filter: saturate(0.45); opacity: 0.7;">
+          <rect x="0" y="0" width="160" height="90" rx="14" fill="var(--pp-primary-soft)" />
+          <rect x="16" y="14" width="128" height="34" rx="12" fill="var(--pp-card)" />
+          <ellipse cx="70" cy="31" rx="26" ry="14" fill="var(--pp-primary-lift)" />
+          <path d="M96 31l16-10v20z" fill="var(--pp-primary)" />
+          <circle cx="58" cy="27" r="3.4" fill="#FFF3E2" />
+          <rect x="18" y="58" width="28" height="26" rx="8" fill="var(--pp-primary)" />
+          <rect x="52" y="58" width="28" height="26" rx="8" fill="var(--pp-primary)" />
+          <rect x="86" y="58" width="28" height="26" rx="8" fill="var(--pp-primary)" />
+          <rect x="120" y="58" width="24" height="26" rx="8" fill="none" stroke="var(--pp-primary)" stroke-width="3" stroke-dasharray="5 5" />
+        </svg>
+      </span>
+      <span style="margin-top: 4px; font-size: 13.5px; font-weight: 900; line-height: 1.2;">Hərf ovu</span>
+      <span style="font-size: 11px; font-weight: 900; color: var(--pp-spark-deep);">Daha 212 ulduz</span>
+    </div>
+    <div style="position: relative; display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 12px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm); opacity: 0.72;">
+      <span style="position: relative; display: block; border-radius: 14px; overflow: hidden;">
+        <svg viewBox="0 0 160 90" width="100%" height="78" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Balaca aşpaz" style="filter: saturate(0.45); opacity: 0.7;">
+          <rect x="0" y="0" width="160" height="90" rx="14" fill="var(--pp-spark-soft)" />
+          <circle cx="80" cy="52" r="34" fill="var(--pp-card)" />
+          <circle cx="80" cy="52" r="25" fill="var(--pp-card-soft)" />
+          <path d="M68 58c-8 0-14-6-14-12 0-4 6-7 14-7s14 3 14 7c0 6-6 12-14 12z" fill="var(--pp-alert-lift)" />
+          <path d="M60 39h16l-3-5h-10z" fill="var(--pp-life)" />
+          <circle cx="96" cy="58" r="11" fill="var(--pp-alert)" />
+          <path d="M96 47c1-4 5-5 7-4-1 3-3 4-7 4z" fill="var(--pp-life)" />
+        </svg>
+      </span>
+      <span style="margin-top: 4px; font-size: 13.5px; font-weight: 900; line-height: 1.2;">Balaca aşpaz</span>
+      <span style="font-size: 11px; font-weight: 900; color: var(--pp-spark-deep);">Daha 312 ulduz</span>
+    </div>
+
+  </div>
+
+  <!-- Siyahının alt kənarı: fon rəngi kafellərin üstünə yumşaq keçir. -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 74px; background: linear-gradient(180deg, rgba(240, 235, 224, 0) 0%, var(--pp-bg) 62%);"></div>
+
+</div>

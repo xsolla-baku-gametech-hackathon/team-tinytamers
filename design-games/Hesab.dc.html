@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap">
+  <style>
+    /* Sürətli hesab */
+    body {
+      margin: 0;
+      font-family: 'Nunito', ui-rounded, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+
+      /* İSTİQAMƏT B — yumşaldılmış. Ailə adları və mənaları eynidir; yalnız xroma
+      və səth parlaqlığı azalıb. Bütün mətn cütləri WCAG 4.5:1-dən yuxarıdadır. */
+      --pp-primary: #6F5AD8;
+      --pp-primary-dark: #54419E;
+      --pp-primary-soft: #E9E4F7;
+      --pp-primary-lift: #8A78E4;
+      --pp-primary-edge: #4E3BA8;
+
+      --pp-life: #35A57A;
+      --pp-life-deep: #156F4F;
+      --pp-life-soft: #DCEEE4;
+      --pp-life-lift: #4FBB91;
+      --pp-life-edge: #156F4F;
+      --pp-on-life: #06301D;
+
+      --pp-spark: #E89A3C;
+      --pp-spark-deep: #93540E;
+      --pp-spark-soft: #FAEBD6;
+      --pp-spark-lift: #F2B166;
+      --pp-spark-edge: #93540E;
+      --pp-on-spark: #3A1D00;
+
+      --pp-alert: #B7304C;
+      --pp-alert-soft: #F7E1E5;
+      --pp-alert-edge: #8A2038;
+
+      --pp-bg: #F0EBE0;
+      --pp-card: #FBF7EF;
+      --pp-card-soft: #F6F1E6;
+      --pp-glass: rgba(251, 247, 239, 0.94);
+
+      --pp-ink: #241E38;
+      --pp-ink-soft: #5C5470;
+      --pp-ink-muted: #8A82A0;
+
+      --pp-border: #E4DCCE;
+      --pp-track: #E8E2D6;
+
+      --pp-edge-neutral: rgba(96, 74, 46, 0.20);
+      --pp-shadow-sm: 0 2px 8px rgba(96, 74, 46, 0.10);
+      --pp-shadow-md: 0 8px 24px rgba(96, 74, 46, 0.13);
+      --pp-shadow-lg: 0 16px 40px rgba(96, 74, 46, 0.18);
+      --pp-gloss: inset 0 2px 0 rgba(255, 255, 255, 0.40);
+
+      /* Səhnə — süd kimi səma, sakit çəmən */
+      --sc-sky-1: #BEDFEE;
+      --sc-sky-2: #D3E9F1;
+      --sc-sky-3: #E8F1E8;
+      --sc-sun: #EFCE7C;
+      --sc-sun-halo: #F5E3B4;
+      --sc-cloud: #FBF8F2;
+      --sc-hill-1: #CFE3D2;
+      --sc-hill-2: #A5D3B7;
+      --sc-hill-3: #77BE97;
+      --sc-hill-4: #35A57A;
+    }
+    a { color: var(--pp-primary-dark); }
+    a:hover { color: var(--pp-primary); }
+  </style>
+</helmet>
+<div class="pp-root" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--pp-bg); color: var(--pp-ink);">
+
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, var(--pp-spark-soft) 0%, var(--pp-bg) 44%);"></div>
+
+  <!-- Sual ekranın ən böyük elementidir: qayda zolağı burada SUALIN ÖZÜdür,
+       ona görə ayrıca başlıq yazılmır. -->
+  <div style="position: absolute; top: 230px; left: 24px; right: 24px; display: flex; align-items: center; justify-content: center; height: 168px; border-radius: 32px; background: var(--pp-card); box-shadow: 0 6px 0 var(--pp-edge-neutral), var(--pp-shadow-md); z-index: 10;">
+    <span style="font-size: 62px; font-weight: 900; letter-spacing: 1px; line-height: 1;">7 + 5</span>
+  </div>
+
+  <!-- Cavablar: üç geniş kapsul, hər biri 74px — səhv toxunuş barmaqdan
+       yox, düşüncədən gəlməlidir. -->
+  <div style="position: absolute; top: 434px; left: 24px; right: 24px; display: flex; flex-direction: column; gap: 14px; z-index: 10;">
+
+    <div style="display: flex; align-items: center; justify-content: center; height: 74px; border-radius: 999px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm); font-size: 30px; font-weight: 900;">11</div>
+
+    <!-- Basılan cavab: aşağı enir, kölgəsi azalır. Doğru/yanlış RƏNGİ
+         yalnız barmaq qalxandan sonra gəlir. -->
+    <div style="display: flex; align-items: center; justify-content: center; height: 74px; border-radius: 999px; background: var(--pp-primary-soft); box-shadow: 0 2px 0 var(--pp-edge-neutral); transform: translateY(3px); font-size: 30px; font-weight: 900; color: var(--pp-primary-dark);">12</div>
+
+    <div style="display: flex; align-items: center; justify-content: center; height: 74px; border-radius: 999px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm); font-size: 30px; font-weight: 900;">14</div>
+  </div>
+
+  <!-- Sual sayğacı: neçə sual keçilib, neçəsi qalıb. -->
+  <div style="position: absolute; left: 24px; right: 24px; bottom: 112px; display: flex; align-items: center; justify-content: center; gap: 7px; z-index: 8;">
+    <span style="width: 30px; height: 8px; border-radius: 999px; background: var(--pp-life);"></span>
+    <span style="width: 30px; height: 8px; border-radius: 999px; background: var(--pp-life);"></span>
+    <span style="width: 30px; height: 8px; border-radius: 999px; background: var(--pp-alert);"></span>
+    <span style="width: 30px; height: 8px; border-radius: 999px; background: var(--pp-life);"></span>
+    <span style="width: 30px; height: 8px; border-radius: 999px; background: var(--pp-spark);"></span>
+    <span style="width: 30px; height: 8px; border-radius: 999px; background: var(--pp-track);"></span>
+    <span style="width: 30px; height: 8px; border-radius: 999px; background: var(--pp-track);"></span>
+    <span style="width: 30px; height: 8px; border-radius: 999px; background: var(--pp-track);"></span>
+  </div>
+
+  <div style="position: absolute; top: 52px; left: 14px; right: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; z-index: 20;">
+
+    <span style="display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; flex-shrink: 0; border-radius: 999px; background: var(--pp-glass); box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss);">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+        <path d="M15 5l-7 7 7 7" stroke="var(--pp-ink-soft)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </span>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 7px 18px 8px; border-radius: 999px; background: var(--pp-glass); box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss);">
+      <span style="font-size: 14px; font-weight: 900; line-height: 1; color: var(--pp-ink);">Sürətli hesab</span>
+      <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-primary);"></span><span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-primary);"></span><span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-primary);"></span><span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-primary);"></span><span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-primary);"></span><span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-track);"></span><span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-track);"></span><span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-track);"></span></span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 4px; height: 40px; padding: 0 14px; border-radius: 999px; background: var(--pp-glass); box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss);"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 20.6C12 20.6 3.8 15.6 3.8 10.1A4.4 4.4 0 0 1 12 7.3a4.4 4.4 0 0 1 8.2 2.8c0 5.5-8.2 10.5-8.2 10.5z" fill="var(--pp-alert)" /></svg><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 20.6C12 20.6 3.8 15.6 3.8 10.1A4.4 4.4 0 0 1 12 7.3a4.4 4.4 0 0 1 8.2 2.8c0 5.5-8.2 10.5-8.2 10.5z" fill="var(--pp-alert)" /></svg><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 20.6C12 20.6 3.8 15.6 3.8 10.1A4.4 4.4 0 0 1 12 7.3a4.4 4.4 0 0 1 8.2 2.8c0 5.5-8.2 10.5-8.2 10.5z" fill="var(--pp-track)" /></svg></div>
+  </div>
+  <div style="position: absolute; top: 190px; left: 20px; right: 20px; height: 8px; border-radius: 999px; background: var(--pp-track); overflow: hidden; z-index: 15;">
+    <div style="width: 34%; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--pp-spark-lift) 0%, var(--pp-spark) 100%);"></div>
+  </div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 34px; display: flex; align-items: center; justify-content: center; gap: 8px; z-index: 20;">
+    <div style="display: flex; align-items: center; gap: 9px; height: 46px; padding: 0 20px; border-radius: 999px; background: var(--pp-glass); box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-md), var(--pp-gloss);">
+      <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+        <path d="M12 3.2l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.6l6.1-.8z" fill="var(--pp-spark)" stroke="var(--pp-spark-edge)" stroke-width="1.6" stroke-linejoin="round" />
+      </svg>
+      <span style="font-size: 17px; font-weight: 900; color: var(--pp-ink);">4</span>
+      <span style="font-size: 12px; font-weight: 800; color: var(--pp-ink-soft);">doğru cavab</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

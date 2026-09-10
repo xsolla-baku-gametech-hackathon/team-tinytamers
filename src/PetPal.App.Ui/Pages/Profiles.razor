@@ -1,0 +1,279 @@
+@page "/profiles"
+@layout EmptyLayout
+@inject AuthApiClient Auth
+@inject AppSession Session
+@inject AppState State
+@inject NavigationManager Navigation
+@inject Loc Loc
+
+@* Uşaq profilinin seçilməsi. Profil PIN ilə qorunur ki, uşaqlar
+   bir-birinin proqresinə təsadüfən daxil olmasın. *@
+
+<div class="center-screen">
+    @if (_pinTarget is not null)
+    {
+        <div class="brand">
+            <div class="brand__mark" aria-hidden="true">@AvatarFor(_pinTarget.AvatarKey)</div>
+            <h1 class="brand__name">@Loc.T($"Salam, {_pinTarget.DisplayName}!", $"Hi, {_pinTarget.DisplayName}!")</h1>
+            <div class="brand__tagline">@Loc.T("PIN kodunu daxil et", "Enter your PIN")</div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="alert alert--error">@_error</div>
+        }
+
+        <div class="pin-dots">
+            @for (var i = 0; i < 4; i++)
+            {
+                <div class="pin-dot @(i < _pin.Length ? "pin-dot--filled" : null)"></div>
+            }
+        </div>
+
+        <div class="pin-pad">
+            @foreach (var digit in new[] { "1", "2", "3", "4", "5", "6", "7", "8", "9" })
+            {
+                var value = digit;
+                <button class="pin-key" disabled="@_busy" @onclick="() => AppendDigit(value)">@value</button>
+            }
+            <button class="pin-key pin-key--muted" @onclick="CancelPin">@Loc.T("Geri", "Back")</button>
+            <button class="pin-key" disabled="@_busy" @onclick='() => AppendDigit("0")'>0</button>
+            <button class="pin-key pin-key--muted" disabled="@_busy" @onclick="Backspace">⌫</button>
+        </div>
+    }
+    else if (_addingChild)
+    {
+        <div class="brand">
+            <div class="brand__mark" aria-hidden="true">🥚</div>
+            <h1 class="brand__name">@Loc.T("Yeni profil", "New profile")</h1>
+            <div class="brand__tagline">@Loc.T("Uşaq üçün profil və onun pet-i yaradılır", "A profile for your child — and their pet")</div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="alert alert--error">@_error</div>
+        }
+
+        <EditForm Model="_newChild" OnValidSubmit="CreateChildAsync">
+            <DataAnnotationsValidator />
+
+            <label class="field">
+                <span class="field__label">@Loc.T("Uşağın adı", "Child's name")</span>
+                <InputText class="field__input" @bind-Value="_newChild.DisplayName" placeholder="Ava" />
+                <ValidationMessage For="() => _newChild.DisplayName" />
+            </label>
+
+            <label class="field">
+                <span class="field__label">@Loc.T("Yaş", "Age")</span>
+                <InputNumber class="field__input" @bind-Value="_newChild.Age" />
+                <ValidationMessage For="() => _newChild.Age" />
+            </label>
+
+            <label class="field">
+                <span class="field__label">Avatar</span>
+                <InputSelect class="field__input" @bind-Value="_newChild.AvatarKey">
+                    <option value="avatar-fox">🦊 @Loc.T("Tülkü", "Fox")</option>
+                    <option value="avatar-cat">🐱 @Loc.T("Pişik", "Cat")</option>
+                    <option value="avatar-bunny">🐰 @Loc.T("Dovşan", "Bunny")</option>
+                    <option value="avatar-dragon">🐲 @Loc.T("Əjdaha", "Dragon")</option>
+                    <option value="avatar-bear">🐻 @Loc.T("Ayı", "Bear")</option>
+                </InputSelect>
+            </label>
+
+            <label class="field">
+                <span class="field__label">@Loc.T("Tapşırıqların və app-in dili", "Language of the app and the tasks")</span>
+                <InputSelect class="field__input" @bind-Value="_newChild.LanguageCode">
+                    <option value="az">🇦🇿 Azərbaycan dili</option>
+                    <option value="en">🇬🇧 English</option>
+                </InputSelect>
+            </label>
+
+            <label class="field">
+                <span class="field__label">@Loc.T("Pet-in adı", "Pet's name")</span>
+                <InputText class="field__input" @bind-Value="_newChild.PetName" placeholder="Max" />
+                <ValidationMessage For="() => _newChild.PetName" />
+            </label>
+
+            @* Növü uşaq YAZIDAN yox, ŞƏKİLDƏN seçir — dördü də eyni yaşda
+               göstərilir ki, fərq siluetdə görünsün. *@
+            <div class="field">
+                <span class="field__label">@Loc.T("Pet növü", "Pet kind")</span>
+
+                <div class="species">
+                    @foreach (var option in DisplayNames.SpeciesOptions(Loc))
+                    {
+                        var key = option.Key;
+
+                        <button type="button"
+                                class="species__pick @(_newChild.PetSpecies == key ? "species__pick--on" : null)"
+                                aria-pressed="@(_newChild.PetSpecies == key)"
+                                @onclick="() => _newChild.PetSpecies = key">
+                            <PetAvatar Species="@key" Stage="PetStage.Baby" Mood="PetMood.Happy" Name="@option.Label" />
+                            <span class="species__name">@option.Label</span>
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <label class="field">
+                <span class="field__label">@Loc.T("4 rəqəmli PIN", "4-digit PIN")</span>
+                <InputText class="field__input" @bind-Value="_newChild.Pin" inputmode="numeric"
+                           maxlength="4" placeholder="1234" />
+                <ValidationMessage For="() => _newChild.Pin" />
+            </label>
+
+            <button class="btn btn--primary btn--block" type="submit" disabled="@_busy">
+                @(_busy ? Loc.T("Yaradılır…", "Creating…") : Loc.T("Profili yarat", "Create profile"))
+            </button>
+        </EditForm>
+
+        <button class="link-button" @onclick="() => _addingChild = false">@Loc.T("Geri", "Back")</button>
+    }
+    else
+    {
+        <div class="brand">
+            <div class="brand__mark" aria-hidden="true">👋</div>
+            <h1 class="brand__name">@Loc.T("Kim oynayır?", "Who is playing?")</h1>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="alert alert--error">@_error</div>
+        }
+
+        <div class="profiles">
+            @foreach (var child in Session.Children)
+            {
+                var target = child;
+                <button class="profile-tile" @onclick="() => StartPin(target)">
+                    <span class="profile-tile__avatar" aria-hidden="true">@AvatarFor(child.AvatarKey)</span>
+                    <span>@child.DisplayName</span>
+                    <span class="profile-tile__meta">@Loc.T($"{child.Level} yaş", $"age {child.Level}") · ⭐ @child.Stars</span>
+                </button>
+            }
+
+            <button class="profile-tile" @onclick="() => _addingChild = true">
+                <span class="profile-tile__avatar" aria-hidden="true">➕</span>
+                <span>@Loc.T("Profil əlavə et", "Add a profile")</span>
+            </button>
+        </div>
+
+        <button class="link-button" @onclick="SignOutAsync">@Loc.T("Hesabdan çıx", "Sign out")</button>
+    }
+</div>
+
+@code {
+
+    private readonly CreateChildRequest _newChild = new();
+
+    private ChildSummaryDto? _pinTarget;
+    private string _pin = string.Empty;
+    private bool _addingChild;
+    private bool _busy;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsParentSignedIn)
+        {
+            Navigation.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        var children = await Auth.GetChildrenAsync();
+        if (children.Succeeded && children.Value is not null)
+            Session.UpdateParentChildren(children.Value);
+
+        // İlk dəfə girişdə birbaşa profil yaratma addımına keçirik.
+        _addingChild = Session.Children.Count == 0;
+    }
+
+    private void StartPin(ChildSummaryDto child)
+    {
+        _pinTarget = child;
+        _pin = string.Empty;
+        _error = null;
+    }
+
+    private void CancelPin()
+    {
+        _pinTarget = null;
+        _pin = string.Empty;
+        _error = null;
+    }
+
+    private void Backspace()
+    {
+        if (_pin.Length > 0)
+            _pin = _pin[..^1];
+    }
+
+    private async Task AppendDigit(string digit)
+    {
+        if (_pin.Length >= 4)
+            return;
+
+        _pin += digit;
+
+        if (_pin.Length == 4)
+            await SubmitPinAsync();
+    }
+
+    private async Task SubmitPinAsync()
+    {
+        if (_pinTarget is null)
+            return;
+
+        _busy = true;
+        _error = null;
+
+        var result = await Auth.ChildLoginAsync(new ChildLoginRequest { ChildId = _pinTarget.Id, Pin = _pin });
+
+        _busy = false;
+        _pin = string.Empty;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        await Session.ActivateChildAsync(result.Value);
+        State.Reset();
+        Navigation.NavigateTo("/", replace: true);
+    }
+
+    private async Task CreateChildAsync()
+    {
+        _busy = true;
+        _error = null;
+
+        // Yuxu rejimi uşağın yerli saatına görə işləməlidir — cihazın fərqini serverə veririk.
+        _newChild.UtcOffsetMinutes = (int)TimeZoneInfo.Local.GetUtcOffset(DateTime.UtcNow).TotalMinutes;
+
+        var result = await Auth.CreateChildAsync(_newChild);
+
+        if (!result.Succeeded)
+        {
+            _busy = false;
+            _error = result.Error;
+            return;
+        }
+
+        var children = await Auth.GetChildrenAsync();
+        if (children.Succeeded && children.Value is not null)
+            Session.UpdateParentChildren(children.Value);
+
+        _busy = false;
+        _addingChild = false;
+    }
+
+    private async Task SignOutAsync()
+    {
+        await Session.SignOutAsync();
+        State.Reset();
+        Navigation.NavigateTo("/login", replace: true);
+    }
+
+    private static string AvatarFor(string avatarKey) => DisplayNames.Avatar(avatarKey);
+}

@@ -1,0 +1,198 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap">
+  <style>
+    /* Səbət tut */
+    body {
+      margin: 0;
+      font-family: 'Nunito', ui-rounded, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+
+      /* İSTİQAMƏT B — yumşaldılmış. Ailə adları və mənaları eynidir; yalnız xroma
+      və səth parlaqlığı azalıb. Bütün mətn cütləri WCAG 4.5:1-dən yuxarıdadır. */
+      --pp-primary: #6F5AD8;
+      --pp-primary-dark: #54419E;
+      --pp-primary-soft: #E9E4F7;
+      --pp-primary-lift: #8A78E4;
+      --pp-primary-edge: #4E3BA8;
+
+      --pp-life: #35A57A;
+      --pp-life-deep: #156F4F;
+      --pp-life-soft: #DCEEE4;
+      --pp-life-lift: #4FBB91;
+      --pp-life-edge: #156F4F;
+      --pp-on-life: #06301D;
+
+      --pp-spark: #E89A3C;
+      --pp-spark-deep: #93540E;
+      --pp-spark-soft: #FAEBD6;
+      --pp-spark-lift: #F2B166;
+      --pp-spark-edge: #93540E;
+      --pp-on-spark: #3A1D00;
+
+      --pp-alert: #B7304C;
+      --pp-alert-soft: #F7E1E5;
+      --pp-alert-edge: #8A2038;
+
+      --pp-bg: #F0EBE0;
+      --pp-card: #FBF7EF;
+      --pp-card-soft: #F6F1E6;
+      --pp-glass: rgba(251, 247, 239, 0.94);
+
+      --pp-ink: #241E38;
+      --pp-ink-soft: #5C5470;
+      --pp-ink-muted: #8A82A0;
+
+      --pp-border: #E4DCCE;
+      --pp-track: #E8E2D6;
+
+      --pp-edge-neutral: rgba(96, 74, 46, 0.20);
+      --pp-shadow-sm: 0 2px 8px rgba(96, 74, 46, 0.10);
+      --pp-shadow-md: 0 8px 24px rgba(96, 74, 46, 0.13);
+      --pp-shadow-lg: 0 16px 40px rgba(96, 74, 46, 0.18);
+      --pp-gloss: inset 0 2px 0 rgba(255, 255, 255, 0.40);
+
+      /* Səhnə — süd kimi səma, sakit çəmən */
+      --sc-sky-1: #BEDFEE;
+      --sc-sky-2: #D3E9F1;
+      --sc-sky-3: #E8F1E8;
+      --sc-sun: #EFCE7C;
+      --sc-sun-halo: #F5E3B4;
+      --sc-cloud: #FBF8F2;
+      --sc-hill-1: #CFE3D2;
+      --sc-hill-2: #A5D3B7;
+      --sc-hill-3: #77BE97;
+      --sc-hill-4: #35A57A;
+    }
+    a { color: var(--pp-primary-dark); }
+    a:hover { color: var(--pp-primary); }
+  </style>
+</helmet>
+<div class="pp-root" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--sc-sky-3); color: var(--pp-ink);">
+
+  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, var(--sc-sky-2) 0%, var(--sc-sky-3) 52%, var(--pp-life-soft) 100%);"></div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 210px; background: var(--sc-hill-2); border-radius: 60% 40% 0 0 / 40px 40px 0 0;"></div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 122px; background: var(--sc-hill-3);"></div>
+
+  <!-- Düşən əşyalar. Hər birinin arxasında kəsik iz var: nə qədər vaxt
+       qaldığını uşaq izin uzunluğundan görür. -->
+  <svg viewBox="0 0 390 470" width="390" height="470" style="position: absolute; top: 216px; left: 0;" aria-hidden="true">
+
+    <path d="M78 20v54M212 12v78M318 44v42" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-dasharray="4 14" opacity="0.7" />
+
+    <!-- Alma — qaydaya uyğun (meyvə). -->
+    <g>
+      <circle cx="78" cy="104" r="30" fill="var(--pp-alert)" />
+      <circle cx="68" cy="92" r="8" fill="#FFFFFF" opacity="0.32" />
+      <path d="M78 74c3-10 11-13 18-11-2 8-8 12-18 11z" fill="var(--pp-life)" />
+    </g>
+
+    <!-- Çiyələk — qaydaya uyğun. -->
+    <g>
+      <path d="M212 120c-17 0-30-13-30-27 0-9 13-15 30-15s30 6 30 15c0 14-13 27-30 27z" fill="var(--pp-alert-lift)" />
+      <path d="M196 76h32l-6-10h-20z" fill="var(--pp-life)" />
+      <circle cx="204" cy="94" r="2.6" fill="#FFF3E2" />
+      <circle cx="220" cy="98" r="2.6" fill="#FFF3E2" />
+      <circle cx="212" cy="86" r="2.6" fill="#FFF3E2" />
+    </g>
+
+    <!-- Balıq — meyvə deyil: tutulsa can gedir. -->
+    <g opacity="0.95">
+      <ellipse cx="318" cy="116" rx="30" ry="19" fill="var(--pp-primary-lift)" />
+      <path d="M348 116l20-13v26z" fill="var(--pp-primary)" />
+      <circle cx="306" cy="110" r="4" fill="#241E38" />
+    </g>
+
+    <!-- Aşağıda gözləyən növbəti dalğa — kölgə kimi görünür. -->
+    <circle cx="140" cy="18" r="14" fill="var(--pp-spark)" opacity="0.35" />
+    <circle cx="272" cy="10" r="12" fill="var(--pp-life)" opacity="0.35" />
+  </svg>
+
+  <!-- Pet səbətlə birlikdə sağa-sola sürüşdürülür — sürükləmə barmağın
+       altındadır, ekranın kənarında düymə yoxdur. -->
+  <div style="position: absolute; left: 50%; bottom: 128px; transform: translateX(-50%); z-index: 6;">
+    <svg viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Aylinin pet-i">
+      <ellipse cx="100" cy="168" rx="43.24" ry="9" fill="rgba(0,0,0,0.12)" />
+      <g transform="translate(100 162) scale(0.94) translate(-100 -162)">
+        <path d="M132 132c22 4 34-10 34-26 0-12-7-22-16-24 4 10 2 22-6 29-7 6-15 8-22 8z" fill="#F3A05A" />
+        <ellipse cx="100" cy="128" rx="38" ry="34" fill="#F3A05A" />
+        <ellipse cx="100" cy="136" rx="24" ry="23" fill="#FFF3E2" />
+        <ellipse cx="80" cy="158" rx="13" ry="8" fill="#FFF3E2" />
+        <ellipse cx="120" cy="158" rx="13" ry="8" fill="#FFF3E2" />
+        <path d="M64 60l-6-30 28 16z" fill="#F3A05A" />
+        <path d="M136 60l6-30-28 16z" fill="#F3A05A" />
+        <path d="M67 57l-3-17 16 9z" fill="#FFD3A8" />
+        <path d="M133 57l3-17-16 9z" fill="#FFD3A8" />
+        <ellipse cx="100" cy="74" rx="36" ry="32" fill="#F3A05A" />
+        <ellipse cx="100" cy="86" rx="26" ry="18" fill="#FFF3E2" />
+        <path d="M78 74q8 -11 16 0" stroke="#2B2140" stroke-width="5" fill="none" stroke-linecap="round" /><path d="M106 74q8 -11 16 0" stroke="#2B2140" stroke-width="5" fill="none" stroke-linecap="round" />
+        <ellipse cx="100" cy="84" rx="6" ry="4.5" fill="#2B2140" />
+        <path d="M92 92q8 9 16 0" stroke="#2B2140" stroke-width="3.5" fill="none" stroke-linecap="round" />
+        <ellipse cx="72" cy="86" rx="7" ry="4.5" fill="#FF9EA8" opacity="0.65" /><ellipse cx="128" cy="86" rx="7" ry="4.5" fill="#FF9EA8" opacity="0.65" />
+        <path d="M76 100q24 14 48 0" stroke="var(--pp-primary)" stroke-width="7" fill="none" stroke-linecap="round" />
+        <circle cx="100" cy="110" r="7" fill="var(--pp-spark)" stroke="var(--pp-spark-deep)" stroke-width="2" />
+        
+      </g>
+    </svg>
+  </div>
+
+  <div style="position: absolute; left: 50%; bottom: 108px; transform: translateX(-50%); z-index: 7;">
+    <svg viewBox="0 0 180 96" width="180" height="96" aria-hidden="true">
+      <path d="M14 22h152l-20 68H34z" fill="var(--pp-spark-lift)" stroke="var(--pp-spark-edge)" stroke-width="4" stroke-linejoin="round" />
+      <path d="M40 22l10 68M90 22v68M140 22l-10 68" stroke="var(--pp-spark-edge)" stroke-width="3" opacity="0.55" />
+      <rect x="6" y="12" width="168" height="16" rx="8" fill="var(--pp-spark)" stroke="var(--pp-spark-edge)" stroke-width="4" />
+    </svg>
+  </div>
+
+  <!-- Sürüşdürmə yolu: barmağın hara gedəcəyini göstərir. -->
+  <div style="position: absolute; left: 34px; right: 34px; bottom: 92px; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.55); z-index: 5;"></div>
+
+  <div style="position: absolute; top: 52px; left: 14px; right: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; z-index: 20;">
+
+    <span style="display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; flex-shrink: 0; border-radius: 999px; background: var(--pp-glass); box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss);">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+        <path d="M15 5l-7 7 7 7" stroke="var(--pp-ink-soft)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </span>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 7px 18px 8px; border-radius: 999px; background: var(--pp-glass); box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss);">
+      <span style="font-size: 14px; font-weight: 900; line-height: 1; color: var(--pp-ink);">Səbət tut</span>
+      <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-primary);"></span><span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-primary);"></span><span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-track);"></span><span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-track);"></span><span style="width: 7px; height: 7px; border-radius: 999px; background: var(--pp-track);"></span></span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 4px; height: 40px; padding: 0 14px; border-radius: 999px; background: var(--pp-glass); box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss);"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 20.6C12 20.6 3.8 15.6 3.8 10.1A4.4 4.4 0 0 1 12 7.3a4.4 4.4 0 0 1 8.2 2.8c0 5.5-8.2 10.5-8.2 10.5z" fill="var(--pp-alert)" /></svg><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 20.6C12 20.6 3.8 15.6 3.8 10.1A4.4 4.4 0 0 1 12 7.3a4.4 4.4 0 0 1 8.2 2.8c0 5.5-8.2 10.5-8.2 10.5z" fill="var(--pp-alert)" /></svg><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 20.6C12 20.6 3.8 15.6 3.8 10.1A4.4 4.4 0 0 1 12 7.3a4.4 4.4 0 0 1 8.2 2.8c0 5.5-8.2 10.5-8.2 10.5z" fill="var(--pp-alert)" /></svg></div>
+  </div>
+  <div style="position: absolute; top: 122px; left: 20px; right: 20px; display: flex; align-items: center; justify-content: center; min-height: 54px; padding: 8px 18px; border-radius: 22px; background: var(--pp-life-soft); box-shadow: 0 3px 0 var(--pp-edge-neutral); text-align: center; z-index: 15;">
+    <span style="font-size: 19px; font-weight: 900; line-height: 1.2; color: var(--pp-life-deep);">Yalnız MEYVƏ tut</span>
+  </div>
+  <div style="position: absolute; top: 190px; left: 20px; right: 20px; height: 8px; border-radius: 999px; background: var(--pp-track); overflow: hidden; z-index: 15;">
+    <div style="width: 73%; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--pp-spark-lift) 0%, var(--pp-spark) 100%);"></div>
+  </div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 34px; display: flex; align-items: center; justify-content: center; gap: 8px; z-index: 20;">
+    <div style="display: flex; align-items: center; gap: 9px; height: 46px; padding: 0 20px; border-radius: 999px; background: var(--pp-glass); box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-md), var(--pp-gloss);">
+      <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+        <path d="M12 3.2l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.6l6.1-.8z" fill="var(--pp-spark)" stroke="var(--pp-spark-edge)" stroke-width="1.6" stroke-linejoin="round" />
+      </svg>
+      <span style="font-size: 17px; font-weight: 900; color: var(--pp-ink);">9</span>
+      <span style="font-size: 12px; font-weight: 800; color: var(--pp-ink-soft);">doğru tutuldu</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

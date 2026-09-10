@@ -1,0 +1,76 @@
+@page "/login"
+@layout EmptyLayout
+@inject AuthApiClient Auth
+@inject AppSession Session
+@inject NavigationManager Navigation
+@inject Loc Loc
+
+<div class="center-screen">
+    <div class="brand">
+        <div class="brand__mark" aria-hidden="true">🦊</div>
+        <h1 class="brand__name">AI Pets for Kids</h1>
+        <div class="brand__tagline">@Loc.T("Öyrən, oyna, birlikdə böyü", "Learn, play, grow together")</div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert--error">@_error</div>
+    }
+
+    <EditForm Model="_model" OnValidSubmit="SubmitAsync">
+        <DataAnnotationsValidator />
+
+        <label class="field">
+            <span class="field__label">@Loc.T("Valideyn e-poçtu", "Parent email")</span>
+            <InputText class="field__input" @bind-Value="_model.Email" type="email"
+                       autocomplete="username" placeholder="@Loc.T("ana@example.com", "mom@example.com")" />
+        </label>
+
+        <label class="field">
+            <span class="field__label">@Loc.T("Şifrə", "Password")</span>
+            <InputText class="field__input" @bind-Value="_model.Password" type="password"
+                       autocomplete="current-password" placeholder="••••••••" />
+        </label>
+
+        <button class="btn btn--primary btn--block" type="submit" disabled="@_busy">
+            @(_busy ? Loc.T("Yoxlanılır…", "Checking…") : Loc.T("Daxil ol", "Sign in"))
+        </button>
+    </EditForm>
+
+    <a class="link-button" href="register">@Loc.T("Hesabınız yoxdur? Qeydiyyatdan keçin", "No account yet? Sign up")</a>
+</div>
+
+@code {
+    private readonly LoginRequest _model = new();
+    private string? _error;
+    private bool _busy;
+
+    /// <summary>
+    /// Cihazda yadda qalmış e-poçt forma açılan kimi doldurulur — valideyn
+    /// hər dəfə eyni ünvanı yazmamalıdır. Şifrə saxlanılmır.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_model.Email))
+            _model.Email = await Session.GetStoredEmailAsync() ?? string.Empty;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+
+        var result = await Auth.LoginAsync(_model);
+
+        _busy = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        await Session.SignInParentAsync(result.Value, _model.Email);
+        Navigation.NavigateTo("/profiles", replace: true);
+    }
+}

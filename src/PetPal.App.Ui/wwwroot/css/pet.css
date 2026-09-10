@@ -1,0 +1,193 @@
+/* ==================== PET AVATAR ====================
+ * Pet tamamilə inline SVG-dir — xarici asset yoxdur, ölçüdən asılı olmayaraq
+ * kəskin görünür və mərhələ/əhval dəyişəndə anında yenilənir.
+ * ==================================================== */
+
+.pet {
+    /* Kətan vahidində sabitdir; dar ekrana app-in özü zoom ilə sığır. */
+    width: 210px;
+    height: auto;
+    transform-origin: 50% 92%;
+    animation: pet-breathe 3.4s ease-in-out infinite;
+    filter: drop-shadow(0 10px 14px rgba(60, 40, 20, 0.22));
+}
+
+.pet--excited { animation: pet-hop 900ms cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
+.pet--sad,
+.pet--sleepy { animation: pet-slow-breathe 5s ease-in-out infinite; }
+.pet--hungry { animation: pet-wobble 2.4s ease-in-out infinite; }
+
+/* Quyruq həmişə yüngülcə tərpənir — pet "canlı" görünsün. */
+.pet__tail {
+    transform-origin: 68% 72%;
+    animation: pet-wag 1.9s ease-in-out infinite;
+}
+
+.pet--excited .pet__tail { animation-duration: 700ms; }
+.pet--sad .pet__tail,
+.pet--sleepy .pet__tail { animation-duration: 4s; }
+
+/* Göz qırpma — nadir və qısa, diqqəti yayındırmır. */
+.pet__eyelid {
+    transform-origin: center;
+    animation: pet-blink 5.5s ease-in-out infinite;
+}
+
+.pet--sleepy .pet__eyelid { animation: none; }
+
+.pet__zzz {
+    animation: pet-float 2.6s ease-in-out infinite;
+}
+
+.pet__sparkle {
+    transform-origin: center;
+    animation: pet-sparkle 1.8s ease-in-out infinite;
+}
+
+.pet-stage-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 5px 14px;
+    border-radius: var(--pp-radius-pill);
+    background: rgba(255, 255, 255, 0.85);
+    color: #3B2A66;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+/* Yaş nişanın içində ayrıca kapsuldur: mərhələ adı ilə rəqəm bir-birinə
+   qarışmasın deyə. */
+.pet-stage-label__age {
+    padding: 2px 8px;
+    border-radius: var(--pp-radius-pill);
+    background: var(--pp-primary-soft);
+    color: var(--pp-primary-dark);
+    font-size: 11px;
+    font-weight: 900;
+}
+
+@keyframes pet-breathe {
+    0%, 100% { transform: scaleY(1) scaleX(1); }
+    50% { transform: scaleY(1.025) scaleX(0.99); }
+}
+
+@keyframes pet-slow-breathe {
+    0%, 100% { transform: scaleY(1) translateY(0); }
+    50% { transform: scaleY(0.985) translateY(3px); }
+}
+
+@keyframes pet-hop {
+    0%, 100% { transform: translateY(0) scaleY(1); }
+    35% { transform: translateY(-14px) scaleY(1.04); }
+    55% { transform: translateY(0) scaleY(0.94); }
+    70% { transform: translateY(0) scaleY(1); }
+}
+
+@keyframes pet-wobble {
+    0%, 100% { transform: rotate(0deg); }
+    30% { transform: rotate(-2.5deg); }
+    70% { transform: rotate(2.5deg); }
+}
+
+@keyframes pet-wag {
+    0%, 100% { transform: rotate(-7deg); }
+    50% { transform: rotate(9deg); }
+}
+
+@keyframes pet-blink {
+    0%, 92%, 100% { transform: scaleY(0); }
+    94%, 97% { transform: scaleY(1); }
+}
+
+@keyframes pet-float {
+    0% { opacity: 0; transform: translate(0, 0) scale(0.8); }
+    40% { opacity: 1; }
+    100% { opacity: 0; transform: translate(10px, -22px) scale(1.1); }
+}
+
+@keyframes pet-sparkle {
+    0%, 100% { opacity: 0.25; transform: scale(0.8) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1.15) rotate(20deg); }
+}
+
+/* Yumurta mərhələsi — hələ "yatır", yalnız yüngül tərpənir. */
+.pet--egg {
+    animation: pet-egg-rock 3s ease-in-out infinite;
+}
+
+@keyframes pet-egg-rock {
+    0%, 100% { transform: rotate(-3deg); }
+    50% { transform: rotate(3deg); }
+}
+
+/* ---------- Bədənin rəngləri ----------
+   Rəsm bir dənədir, rəng isə növdən gəlir: PetAvatar SVG-nin üstündə
+   --pet-fur / --pet-belly / --pet-inner-ear dəyişənlərini qoyur, ona görə
+   eyni yol dörd növə (tülkü, pişik, əjdaha, dovşan) xidmət edir. */
+.pet__fur { fill: var(--pet-fur, #F3A05A); }
+.pet__belly { fill: var(--pet-belly, #FFF3E2); }
+.pet__inner-ear { fill: var(--pet-inner-ear, #FFD3A8); }
+
+/* Kontur bütün mərhələlərdə eyni qalınlıqdadır — kiçik ölçüdə forma
+   yumşalmasın deyə. */
+.pet__outline {
+    stroke: #2B2140;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.pet__eye,
+.pet__nose { fill: #2B2140; }
+
+.pet__mouth {
+    fill: none;
+    stroke: #2B2140;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Yumulmuş və gülən gözlər xətdir, dolgu deyil. */
+.pet__lash {
+    fill: none;
+    stroke: #2B2140;
+    stroke-width: 4;
+    stroke-linecap: round;
+}
+
+/* Tam ekran otaqlarda pet öz qutusunu doldurur. Standart `.pet` eni
+   210 pikseldir — səhnə üçün doğrudur, amma otaqda qutunun ölçüsünü
+   səhnə özü seçir (güzgünün qarşısı, vanna, yataq) və pet həmin qutuya
+   oturmalıdır, yoxsa sola sürüşür və ya qutudan daşır. */
+.bathroom__pet .pet,
+.bedroom__pet .pet,
+.closet__pet .pet {
+    width: 100%;
+    max-width: none;
+}
+
+/* Növə xas detallar: tülkünün qulaq ucları, pişik və dovşanın bığları.
+   Bunlar tükün rəngindən asılı deyil — həmişə tünd, çünki siluetin oxunması
+   onlardan asılıdır. */
+.pet__ear-tip { fill: #2B2140; }
+
+.pet__whisker {
+    fill: none;
+    stroke: #2B2140;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Yalnız konturla çəkilən formalar (əjdahanın silsiləsi, dovşanın qulaq
+   cizgiləri) və dovşanın ön dişləri. */
+.pet__line { fill: none; }
+
+.pet__tooth {
+    stroke: #2B2140;
+    stroke-width: 1.4;
+    stroke-linejoin: round;
+}

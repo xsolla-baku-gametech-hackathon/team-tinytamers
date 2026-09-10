@@ -1,0 +1,576 @@
+@* Pet-in BƏDƏNİ: növ və yaş mərhələsinə görə ayrıca çəkilmiş rəsmlər (Codex).
+   Burada yalnız sabit hissələr var — gövdə, quyruq, qulaq/buynuz, bığ, burun.
+   Göz və ağız PetAvatar-dadır, çünki onlar ƏHVALA görə dəyişir.
+
+   Dörd növ eyni üz nöqtələrini (bax PetAvatar.Anchor) paylaşır: baş eyni
+   mərkəzdə və eyni radiusdadır, ona görə taxılan əşyalar hər növdə eyni yerə
+   düşür. Fərq siluetdədir — qulaq, quyruq, burun, bığ, buynuz, qanad.
+
+   Rənglər --pet-fur / --pet-belly / --pet-inner-ear dəyişənlərindən gəlir. *@
+
+@switch (Species)
+{
+    case "cat":
+        @switch (Stage)
+        {
+            case PetStage.Newborn:
+                <path class="pet__fur pet__outline pet__tail" d="M121 134 C132 127 144 129 149 138 C154 147 148 157 138 159 C134 160 130 157 130 153 C130 150 132 148 136 148 C142 148 144 144 142 140 C139 135 132 136 123 143 Z"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="139" rx="29" ry="22"/>
+                <ellipse class="pet__fur pet__outline" cx="76" cy="140" rx="9" ry="13"/>
+                <ellipse class="pet__fur pet__outline" cx="124" cy="140" rx="9" ry="13"/>
+                <ellipse class="pet__belly" cx="76" cy="147" rx="6.5" ry="4.5"/>
+                <ellipse class="pet__belly" cx="124" cy="147" rx="6.5" ry="4.5"/>
+                <path class="pet__belly" d="M86 121 C91 119 96 121 100 126 C104 121 109 119 114 121 C113 130 109 137 104 141 C102 143 101 146 100 148 C99 146 98 143 96 141 C91 137 87 130 86 121 Z"/>
+                <ellipse class="pet__belly pet__outline" cx="85" cy="157" rx="12" ry="5"/>
+                <ellipse class="pet__belly pet__outline" cx="115" cy="157" rx="12" ry="5"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="88" rx="44" ry="34"/>
+                <path class="pet__fur pet__outline" d="M56 88 C56 78 59 70 65 64 C64 58 67 50 73 46 Q76 42 80 47 C85 52 88 58 89 64 C93 57 96 54 100 54 C104 54 107 57 111 64 C112 58 115 52 120 47 Q124 42 127 46 C133 50 136 58 135 64 C141 70 144 78 144 88 C144 107 125 122 100 122 C75 122 56 107 56 88 Z"/>
+                <path class="pet__inner-ear" d="M69 61 C69 56 71 50 75 47 Q77 45 79 48 C83 52 85 57 86 62 C80 59 75 59 69 61 Z"/>
+                <path class="pet__inner-ear" d="M131 61 C131 56 129 50 125 47 Q123 45 121 48 C117 52 115 57 114 62 C120 59 125 59 131 61 Z"/>
+                <ellipse class="pet__belly" cx="93.5" cy="103" rx="11" ry="8"/>
+                <ellipse class="pet__belly" cx="106.5" cy="103" rx="11" ry="8"/>
+                <path class="pet__whisker" d="M88 102 C79 101 72 100 65 101 M87 107 C78 107 70 108 63 110 M88 112 C79 114 72 118 67 121 M112 102 C121 101 128 100 135 101 M113 107 C122 107 130 108 137 110 M112 112 C121 114 128 118 133 121"/>
+                <path class="pet__nose" data-cx="100" data-cy="103" d="M100 107 C98 105 95 103 95 101 C95 99 98 98 100 101 C102 98 105 99 105 101 C105 103 102 105 100 107 Z"/>
+                break;
+
+            case PetStage.Baby:
+                <path class="pet__fur pet__outline pet__tail" d="M123 128 C137 116 152 117 158 129 C164 142 155 157 141 159 C136 160 132 157 132 153 C132 150 134 148 138 148 C147 147 151 140 148 133 C145 126 136 127 125 138 Z"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="134" rx="31" ry="27"/>
+                <ellipse class="pet__fur pet__outline" cx="72" cy="134" rx="10" ry="16"/>
+                <ellipse class="pet__fur pet__outline" cx="128" cy="134" rx="10" ry="16"/>
+                <ellipse class="pet__belly" cx="72" cy="146" rx="7" ry="5"/>
+                <ellipse class="pet__belly" cx="128" cy="146" rx="7" ry="5"/>
+                <path class="pet__belly" d="M84 113 C90 110 96 112 100 117 C104 112 110 110 116 113 C115 123 110 133 104 139 C102 142 101 145 100 148 C99 145 98 142 96 139 C90 133 85 123 84 113 Z"/>
+                <ellipse class="pet__belly pet__outline" cx="84" cy="157" rx="12" ry="5"/>
+                <ellipse class="pet__belly pet__outline" cx="116" cy="157" rx="12" ry="5"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="82" rx="42" ry="35"/>
+                <path class="pet__fur pet__outline" d="M58 82 C58 72 60 65 65 59 C64 52 67 43 73 37 Q76 33 80 38 C85 43 88 51 89 58 C93 51 96 47 100 47 C104 47 107 51 111 58 C112 51 115 43 120 38 Q124 33 127 37 C133 43 136 52 135 59 C140 65 142 72 142 82 C142 102 124 117 100 117 C76 117 58 102 58 82 Z"/>
+                <path class="pet__inner-ear" d="M68 55 C68 49 71 41 75 37 Q77 35 80 39 C84 43 86 49 87 56 C81 52 75 52 68 55 Z"/>
+                <path class="pet__inner-ear" d="M132 55 C132 49 129 41 125 37 Q123 35 120 39 C116 43 114 49 113 56 C119 52 125 52 132 55 Z"/>
+                <ellipse class="pet__belly" cx="94" cy="98" rx="10.5" ry="7.5"/>
+                <ellipse class="pet__belly" cx="106" cy="98" rx="10.5" ry="7.5"/>
+                <path class="pet__whisker" d="M89 97 C80 96 73 95 66 96 M88 102 C79 102 71 103 64 105 M89 107 C80 110 73 113 68 116 M111 97 C120 96 127 95 134 96 M112 102 C121 102 129 103 136 105 M111 107 C120 110 127 113 132 116"/>
+                <path class="pet__nose" data-cx="100" data-cy="98" d="M100 102 C98 100 95 98 95 96 C95 94 98 93 100 96 C102 93 105 94 105 96 C105 98 102 100 100 102 Z"/>
+                break;
+
+            case PetStage.Child:
+                <path class="pet__fur pet__outline pet__tail" d="M126 120 C138 101 155 95 164 106 C175 119 167 142 152 152 C146 156 140 159 134 159 C130 159 128 156 129 152 C129 149 132 147 136 147 C146 145 154 136 157 126 C160 116 157 108 151 108 C143 108 135 119 129 132 Z"/>
+                <rect class="pet__fur pet__outline" x="74" y="130" width="20" height="29" rx="10"/>
+                <rect class="pet__fur pet__outline" x="106" y="130" width="20" height="29" rx="10"/>
+                <ellipse class="pet__fur pet__outline" cx="70" cy="116" rx="8" ry="21"/>
+                <ellipse class="pet__fur pet__outline" cx="130" cy="116" rx="8" ry="21"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="119" rx="31" ry="34"/>
+                <ellipse class="pet__belly" cx="70" cy="130" rx="6" ry="7"/>
+                <ellipse class="pet__belly" cx="130" cy="130" rx="6" ry="7"/>
+                <path class="pet__belly" d="M83 98 C89 94 96 96 100 102 C104 96 111 94 117 98 C116 111 111 124 104 133 C102 136 101 140 100 143 C99 140 98 136 96 133 C89 124 84 111 83 98 Z"/>
+                <ellipse class="pet__belly pet__outline" cx="84" cy="158" rx="12" ry="4"/>
+                <ellipse class="pet__belly pet__outline" cx="116" cy="158" rx="12" ry="4"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="72" rx="40" ry="33"/>
+                <path class="pet__fur pet__outline" d="M60 72 C60 63 62 56 65 50 C64 43 68 33 74 27 Q76 22 80 27 C86 34 89 42 90 50 C94 43 97 39 100 39 C103 39 106 43 110 50 C111 42 114 34 120 27 Q124 22 126 27 C132 33 136 43 135 50 C138 56 140 63 140 72 C140 91 123 105 100 105 C77 105 60 91 60 72 Z"/>
+                <path class="pet__inner-ear" d="M68 47 C68 40 71 31 75 27 Q77 24 80 28 C84 33 86 40 87 48 C81 44 75 44 68 47 Z"/>
+                <path class="pet__inner-ear" d="M132 47 C132 40 129 31 125 27 Q123 24 120 28 C116 33 114 40 113 48 C119 44 125 44 132 47 Z"/>
+                <ellipse class="pet__belly" cx="94" cy="86" rx="10" ry="7"/>
+                <ellipse class="pet__belly" cx="106" cy="86" rx="10" ry="7"/>
+                <path class="pet__whisker" d="M90 85 C81 84 73 83 66 84 M89 90 C80 90 71 91 64 93 M90 95 C81 98 73 101 68 104 M110 85 C119 84 127 83 134 84 M111 90 C120 90 129 91 136 93 M110 95 C119 98 127 101 132 104"/>
+                <path class="pet__nose" data-cx="100" data-cy="86" d="M100 90 C98 88 95 86 95 84 C95 82 98 81 100 84 C102 81 105 82 105 84 C105 86 102 88 100 90 Z"/>
+                break;
+
+            case PetStage.Teen:
+                <path class="pet__fur pet__outline pet__tail" d="M128 112 C139 86 158 76 167 89 C179 105 170 134 154 149 C147 155 140 158 134 159 C130 159 128 156 129 152 C130 149 132 147 136 146 C147 143 156 132 160 119 C164 105 161 93 154 93 C145 93 137 107 131 125 Z"/>
+                <rect class="pet__fur pet__outline" x="75" y="126" width="18" height="33" rx="9"/>
+                <rect class="pet__fur pet__outline" x="107" y="126" width="18" height="33" rx="9"/>
+                <ellipse class="pet__fur pet__outline" cx="72" cy="111" rx="7" ry="25"/>
+                <ellipse class="pet__fur pet__outline" cx="128" cy="111" rx="7" ry="25"/>
+                <path class="pet__fur pet__outline" d="M80 91 C85 85 92 82 100 82 C108 82 115 85 120 91 C129 103 130 125 124 139 C120 146 112 149 100 149 C88 149 80 146 76 139 C70 125 71 103 80 91 Z"/>
+                <ellipse class="pet__belly" cx="72" cy="129" rx="5.5" ry="7"/>
+                <ellipse class="pet__belly" cx="128" cy="129" rx="5.5" ry="7"/>
+                <path class="pet__belly" d="M82 87 C89 82 96 84 100 90 C104 84 111 82 118 87 C117 102 112 118 104 129 C102 132 101 137 100 140 C99 137 98 132 96 129 C88 118 83 102 82 87 Z"/>
+                <ellipse class="pet__belly pet__outline" cx="84" cy="158" rx="12" ry="4"/>
+                <ellipse class="pet__belly pet__outline" cx="116" cy="158" rx="12" ry="4"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="62" rx="38" ry="31"/>
+                <path class="pet__fur pet__outline" d="M62 62 C62 54 64 47 67 42 C66 35 69 25 75 19 Q77 14 81 19 C86 25 89 34 90 42 C94 35 97 31 100 31 C103 31 106 35 110 42 C111 34 114 25 119 19 Q123 14 125 19 C131 25 134 35 133 42 C136 47 138 54 138 62 C138 80 122 93 100 93 C78 93 62 80 62 62 Z"/>
+                <path class="pet__inner-ear" d="M69 39 C69 32 72 23 76 19 Q78 16 81 20 C85 25 87 32 87 40 C81 36 75 36 69 39 Z"/>
+                <path class="pet__inner-ear" d="M131 39 C131 32 128 23 124 19 Q122 16 119 20 C115 25 113 32 113 40 C119 36 125 36 131 39 Z"/>
+                <ellipse class="pet__belly" cx="94.5" cy="75" rx="9.5" ry="6.5"/>
+                <ellipse class="pet__belly" cx="105.5" cy="75" rx="9.5" ry="6.5"/>
+                <path class="pet__whisker" d="M91 74 C82 73 74 72 67 73 M90 79 C81 79 72 80 65 82 M91 84 C82 87 75 90 69 92 M109 74 C118 73 126 72 133 73 M110 79 C119 79 128 80 135 82 M109 84 C118 87 125 90 131 92"/>
+                <path class="pet__nose" data-cx="100" data-cy="75" d="M100 79 C98 77 96 75 96 73 C96 71 98 70 100 73 C102 70 104 71 104 73 C104 75 102 77 100 79 Z"/>
+                break;
+
+            case PetStage.Adult:
+                <path class="pet__fur pet__outline pet__tail" d="M130 105 C141 74 161 62 171 78 C183 97 174 130 156 147 C149 153 141 158 134 159 C130 159 128 156 129 152 C129 149 132 147 136 146 C149 142 159 129 163 114 C168 97 164 81 157 81 C148 81 139 98 133 121 Z"/>
+                <rect class="pet__fur pet__outline" x="72" y="124" width="20" height="35" rx="10"/>
+                <rect class="pet__fur pet__outline" x="108" y="124" width="20" height="35" rx="10"/>
+                <ellipse class="pet__fur pet__outline" cx="69" cy="109" rx="8" ry="27"/>
+                <ellipse class="pet__fur pet__outline" cx="131" cy="109" rx="8" ry="27"/>
+                <path class="pet__fur pet__outline" d="M78 84 C83 78 91 75 100 75 C109 75 117 78 122 84 C132 96 134 119 129 136 C126 146 117 151 100 151 C83 151 74 146 71 136 C66 119 68 96 78 84 Z"/>
+                <ellipse class="pet__belly" cx="69" cy="130" rx="6" ry="7"/>
+                <ellipse class="pet__belly" cx="131" cy="130" rx="6" ry="7"/>
+                <path class="pet__belly" d="M81 81 C88 76 96 78 100 84 C104 78 112 76 119 81 C118 98 112 116 104 128 C102 132 101 136 100 140 C99 136 98 132 96 128 C88 116 82 98 81 81 Z"/>
+                <ellipse class="pet__belly pet__outline" cx="82" cy="158" rx="13" ry="4"/>
+                <ellipse class="pet__belly pet__outline" cx="118" cy="158" rx="13" ry="4"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="57" rx="40" ry="31"/>
+                <path class="pet__fur pet__outline" d="M60 57 C60 49 62 42 65 37 C64 30 68 19 74 12 Q76 7 80 12 C86 19 90 29 91 37 C94 30 97 26 100 26 C103 26 106 30 109 37 C110 29 114 19 120 12 Q124 7 126 12 C132 19 136 30 135 37 C138 42 140 49 140 57 C140 75 123 88 100 88 C77 88 60 75 60 57 Z"/>
+                <path class="pet__inner-ear" d="M67 35 C67 27 71 17 75 12 Q77 9 80 13 C85 19 87 27 88 36 C81 32 74 32 67 35 Z"/>
+                <path class="pet__inner-ear" d="M133 35 C133 27 129 17 125 12 Q123 9 120 13 C115 19 113 27 112 36 C119 32 126 32 133 35 Z"/>
+                <ellipse class="pet__belly" cx="94" cy="70" rx="10.5" ry="7"/>
+                <ellipse class="pet__belly" cx="106" cy="70" rx="10.5" ry="7"/>
+                <path class="pet__whisker" d="M90 69 C81 68 72 67 65 68 M89 74 C80 74 70 75 63 77 M90 79 C81 82 73 85 67 88 M110 69 C119 68 128 67 135 68 M111 74 C120 74 130 75 137 77 M110 79 C119 82 127 85 133 88"/>
+                <path class="pet__nose" data-cx="100" data-cy="70" d="M100 74 C98 72 96 70 96 68 C96 66 98 65 100 68 C102 65 104 66 104 68 C104 70 102 72 100 74 Z"/>
+                break;
+
+            default:
+                <path class="pet__fur pet__outline pet__tail" d="M132 99 C142 64 163 49 173 65 C186 84 178 121 159 142 C151 150 142 157 133 159 C129 159 127 156 128 152 C129 149 132 147 136 145 C150 139 161 124 166 106 C171 87 167 69 159 69 C149 69 141 88 135 116 Z"/>
+                <rect class="pet__fur pet__outline" x="69" y="122" width="22" height="37" rx="11"/>
+                <rect class="pet__fur pet__outline" x="109" y="122" width="22" height="37" rx="11"/>
+                <ellipse class="pet__fur pet__outline" cx="66" cy="107" rx="9" ry="29"/>
+                <ellipse class="pet__fur pet__outline" cx="134" cy="107" rx="9" ry="29"/>
+                <path class="pet__fur pet__outline" d="M74 79 C81 72 90 69 100 69 C110 69 119 72 126 79 C137 92 139 118 133 137 C129 147 119 152 100 152 C81 152 71 147 67 137 C61 118 63 92 74 79 Z"/>
+                <ellipse class="pet__belly" cx="66" cy="130" rx="6.5" ry="7.5"/>
+                <ellipse class="pet__belly" cx="134" cy="130" rx="6.5" ry="7.5"/>
+                <path class="pet__belly" d="M80 75 C88 69 96 72 100 78 C104 72 112 69 120 75 C119 94 113 114 104 128 C102 132 101 137 100 141 C99 137 98 132 96 128 C87 114 81 94 80 75 Z"/>
+                <ellipse class="pet__belly pet__outline" cx="80" cy="158" rx="14" ry="4"/>
+                <ellipse class="pet__belly pet__outline" cx="120" cy="158" rx="14" ry="4"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="53" rx="42" ry="32"/>
+                <path class="pet__fur pet__outline" d="M58 53 C58 45 60 38 64 33 C63 25 67 13 73 7 Q75 2 80 7 C87 15 91 25 92 33 C95 25 97 21 100 21 C103 21 105 25 108 33 C109 25 113 15 120 7 Q125 2 127 7 C133 13 137 25 136 33 C140 38 142 45 142 53 C142 72 124 85 100 85 C76 85 58 72 58 53 Z"/>
+                <path class="pet__inner-ear" d="M65 32 C65 23 70 12 74 7 Q76 4 80 8 C85 14 88 23 89 33 C81 29 73 29 65 32 Z"/>
+                <path class="pet__inner-ear" d="M135 32 C135 23 130 12 126 7 Q124 4 120 8 C115 14 112 23 111 33 C119 29 127 29 135 32 Z"/>
+                <ellipse class="pet__belly" cx="93" cy="67" rx="11" ry="7.5"/>
+                <ellipse class="pet__belly" cx="107" cy="67" rx="11" ry="7.5"/>
+                <path class="pet__whisker" d="M89 66 C79 65 70 63 63 63 M88 71 C78 71 68 72 60 74 M89 76 C79 79 70 82 64 85 M111 66 C121 65 130 63 137 63 M112 71 C122 71 132 72 140 74 M111 76 C121 79 130 82 136 85"/>
+                <path class="pet__nose" data-cx="100" data-cy="67" d="M100 71 C98 69 96 67 96 65 C96 63 98 62 100 65 C102 62 104 63 104 65 C104 67 102 69 100 71 Z"/>
+                break;
+
+        }
+        break;
+
+    case "dragon":
+        @switch (Stage)
+        {
+            case PetStage.Newborn:
+                <ellipse class="pet__fur pet__outline" cx="100" cy="138" rx="28" ry="23"/>
+                <ellipse class="pet__belly" cx="100" cy="141" rx="16" ry="17"/>
+                <ellipse class="pet__fur pet__outline" cx="75" cy="138" rx="9" ry="13"/>
+                <ellipse class="pet__fur pet__outline" cx="125" cy="138" rx="9" ry="13"/>
+                <ellipse class="pet__belly pet__outline" cx="85" cy="157" rx="12" ry="5"/>
+                <ellipse class="pet__belly pet__outline" cx="115" cy="157" rx="12" ry="5"/>
+                <path class="pet__fur pet__tail" d="M119 132 C132 126 143 128 150 137 C154 142 158 144 164 143 C164 149 161 154 156 157 C151 154 147 151 142 151 C134 156 125 154 119 147 Z"/>
+                <path class="pet__outline pet__line pet__tail" d="M127 132 C132 126 143 128 150 137 C154 142 158 144 164 143 C164 149 161 154 156 157 C151 154 147 151 142 151 C134 156 128 154 125 148"/>
+                <path class="pet__inner-ear pet__outline" d="M80 128 C73 125 69 130 71 137 C73 142 78 145 84 144 C80 140 79 134 80 128 Z"/>
+                <path class="pet__inner-ear pet__outline" d="M120 128 C127 125 131 130 129 137 C127 142 122 145 116 144 C120 140 121 134 120 128 Z"/>
+                <path class="pet__inner-ear pet__outline pet__tail" d="M125 119 Q130 113 132 120 Q137 116 139 123 L132 133 L123 130 Z"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="88" rx="44" ry="34"/>
+                <path class="pet__belly" d="M72 66 C68 64 64 59 67 55 C69 52 73 54 75 58 C77 61 80 63 83 64 Z M117 64 C120 63 123 61 125 58 C127 54 131 52 133 55 C136 59 132 64 128 66 Z"/>
+                <path class="pet__outline pet__line" d="M72 62 C68 62 64 59 67 55 C69 52 73 54 75 58 C77 61 80 59 83 57 M117 57 C120 59 123 61 125 58 C127 54 131 52 133 55 C136 59 132 62 128 62"/>
+                <ellipse class="pet__belly" cx="100" cy="104" rx="21" ry="10"/>
+                <circle class="pet__nose" cx="95" cy="103" r="1.8"/>
+                <circle class="pet__nose" cx="105" cy="103" r="1.8"/>
+                break;
+
+            case PetStage.Baby:
+                <ellipse class="pet__fur pet__outline" cx="100" cy="133" rx="31" ry="28"/>
+                <ellipse class="pet__belly" cx="100" cy="136" rx="18" ry="21"/>
+                <ellipse class="pet__fur pet__outline" cx="72" cy="133" rx="10" ry="16"/>
+                <ellipse class="pet__fur pet__outline" cx="128" cy="133" rx="10" ry="16"/>
+                <ellipse class="pet__belly pet__outline" cx="84" cy="157" rx="12" ry="5"/>
+                <ellipse class="pet__belly pet__outline" cx="116" cy="157" rx="12" ry="5"/>
+                <path class="pet__fur pet__tail" d="M120 124 C135 115 149 117 156 128 Q159 124 163 125 Q162 131 166 134 C168 139 166 148 159 155 C153 153 150 149 149 144 C140 151 130 153 120 146 Z"/>
+                <path class="pet__outline pet__line pet__tail" d="M129 124 C135 115 149 117 156 128 Q159 124 163 125 Q162 131 166 134 C168 139 166 148 159 155 C153 153 150 149 149 144 C140 151 131 153 127 147"/>
+                <path class="pet__inner-ear pet__outline" d="M80 120 C69 116 64 124 67 134 C70 142 76 146 85 146 C79 139 78 130 80 120 Z"/>
+                <path class="pet__inner-ear pet__outline" d="M120 120 C131 116 136 124 133 134 C130 142 124 146 115 146 C121 139 122 130 120 120 Z"/>
+                <path class="pet__inner-ear pet__outline pet__tail" d="M124 109 Q130 102 132 111 Q138 105 140 115 Q146 111 147 121 L134 136 L121 130 Z"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="82" rx="42" ry="35"/>
+                <path class="pet__belly" d="M72 60 C67 57 61 51 64 45 C66 40 71 42 73 47 C75 52 79 54 84 55 Z M116 55 C121 54 125 52 127 47 C129 42 134 40 136 45 C139 51 133 57 128 60 Z"/>
+                <path class="pet__outline pet__line" d="M72 56 C67 55 61 51 64 45 C66 40 71 42 73 47 C75 52 79 51 84 50 M116 50 C121 51 125 52 127 47 C129 42 134 40 136 45 C139 51 133 55 128 56"/>
+                <ellipse class="pet__belly" cx="100" cy="99" rx="21" ry="10"/>
+                <circle class="pet__nose" cx="95" cy="98" r="1.9"/>
+                <circle class="pet__nose" cx="105" cy="98" r="1.9"/>
+                break;
+
+            case PetStage.Child:
+                <rect class="pet__fur pet__outline" x="74" y="131" width="20" height="28" rx="10"/>
+                <rect class="pet__fur pet__outline" x="106" y="131" width="20" height="28" rx="10"/>
+                <ellipse class="pet__fur pet__outline" cx="70" cy="116" rx="8" ry="21"/>
+                <ellipse class="pet__fur pet__outline" cx="130" cy="116" rx="8" ry="21"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="119" rx="31" ry="33"/>
+                <ellipse class="pet__belly" cx="100" cy="122" rx="18" ry="27"/>
+                <ellipse class="pet__belly pet__outline" cx="84" cy="158" rx="12" ry="4"/>
+                <ellipse class="pet__belly pet__outline" cx="116" cy="158" rx="12" ry="4"/>
+                <path class="pet__fur pet__tail" d="M120 113 C134 103 145 106 151 117 Q154 111 157 119 C159 123 160 126 162 128 C164 124 167 123 169 126 C170 130 167 134 164 136 C168 137 169 141 167 144 C164 148 160 151 156 150 C153 146 152 142 152 137 C142 145 130 148 120 142 Z"/>
+                <path class="pet__outline pet__line pet__tail" d="M130 113 C134 103 145 106 151 117 Q154 111 157 119 C159 123 160 126 162 128 C164 124 167 123 169 126 C170 130 167 134 164 136 C168 137 169 141 167 144 C164 148 160 151 156 150 C153 146 152 142 152 137 C142 145 128 148 122 142"/>
+                <path class="pet__inner-ear pet__outline" d="M83 102 C72 98 65 105 67 116 C69 125 75 132 83 135 C79 128 80 122 85 119 C79 115 78 109 83 102 Z"/>
+                <path class="pet__inner-ear pet__outline" d="M117 102 C128 98 135 105 133 116 C131 125 125 132 117 135 C121 128 120 122 115 119 C121 115 122 109 117 102 Z"/>
+                <path class="pet__inner-ear pet__outline pet__tail" d="M121 91 Q128 83 130 94 Q137 86 138 98 Q146 91 147 104 Q154 100 153 113 L136 133 L119 120 Z"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="72" rx="40" ry="33"/>
+                <path class="pet__belly" d="M72 53 C66 49 59 41 62 34 C64 28 69 30 72 36 C74 41 78 44 83 48 Z M117 48 C122 44 126 41 128 36 C131 30 136 28 138 34 C141 41 134 49 128 53 Z"/>
+                <path class="pet__outline pet__line" d="M72 48 C66 47 59 41 62 34 C64 28 69 30 72 36 C74 41 78 42 83 42 M117 42 C122 42 126 41 128 36 C131 30 136 28 138 34 C141 41 134 47 128 48"/>
+                <ellipse class="pet__belly" cx="100" cy="87" rx="22" ry="11"/>
+                <circle class="pet__nose" cx="94.5" cy="86" r="2"/>
+                <circle class="pet__nose" cx="105.5" cy="86" r="2"/>
+                break;
+
+            case PetStage.Teen:
+                <rect class="pet__fur pet__outline" x="75" y="126" width="18" height="33" rx="9"/>
+                <rect class="pet__fur pet__outline" x="107" y="126" width="18" height="33" rx="9"/>
+                <ellipse class="pet__fur pet__outline" cx="72" cy="111" rx="7" ry="25"/>
+                <ellipse class="pet__fur pet__outline" cx="128" cy="111" rx="7" ry="25"/>
+                <path class="pet__fur pet__outline" d="M80 91 C85 85 92 82 100 82 C108 82 115 85 120 91 C129 103 130 125 124 139 C120 146 112 149 100 149 C88 149 80 146 76 139 C70 125 71 103 80 91 Z"/>
+                <ellipse class="pet__belly" cx="100" cy="119" rx="17" ry="26"/>
+                <ellipse class="pet__belly pet__outline" cx="84" cy="158" rx="12" ry="4"/>
+                <ellipse class="pet__belly pet__outline" cx="116" cy="158" rx="12" ry="4"/>
+                <path class="pet__fur pet__tail" d="M119 104 C133 92 145 94 152 106 Q155 99 158 108 C160 112 161 115 163 117 C165 113 168 112 170 115 C172 119 169 123 166 126 C170 127 171 131 169 135 C166 140 162 144 158 145 C154 142 152 137 153 131 C143 140 130 145 118 138 Z"/>
+                <path class="pet__outline pet__line pet__tail" d="M126 104 C133 92 145 94 152 106 Q155 99 158 108 C160 112 161 115 163 117 C165 113 168 112 170 115 C172 119 169 123 166 126 C170 127 171 131 169 135 C166 140 162 144 158 145 C154 142 152 137 153 131 C143 140 130 145 124 138"/>
+                <path class="pet__inner-ear pet__outline" d="M84 92 C71 87 62 96 65 111 C68 123 75 132 84 136 C79 127 81 120 87 116 C80 111 78 101 84 92 Z"/>
+                <path class="pet__inner-ear pet__outline" d="M116 92 C129 87 138 96 135 111 C132 123 125 132 116 136 C121 127 119 120 113 116 C120 111 122 101 116 92 Z"/>
+                <path class="pet__inner-ear pet__outline pet__tail" d="M119 82 Q127 72 130 85 Q138 74 140 88 Q149 78 149 94 Q158 88 157 104 L137 130 L117 112 Z"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="62" rx="38" ry="31"/>
+                <path class="pet__belly" d="M72 47 C66 42 59 33 62 25 C64 19 69 21 72 27 C74 33 79 36 84 40 Z M116 40 C121 36 126 33 128 27 C131 21 136 19 138 25 C141 33 134 42 128 47 Z"/>
+                <path class="pet__outline pet__line" d="M72 41 C66 40 59 33 62 25 C64 19 69 21 72 27 C74 33 79 34 84 34 M116 34 C121 34 126 33 128 27 C131 21 136 19 138 25 C141 33 134 40 128 41"/>
+                <ellipse class="pet__belly" cx="100" cy="76" rx="22" ry="11"/>
+                <circle class="pet__nose" cx="94" cy="75" r="2.1"/>
+                <circle class="pet__nose" cx="106" cy="75" r="2.1"/>
+                break;
+
+            case PetStage.Adult:
+                <rect class="pet__fur pet__outline" x="72" y="124" width="20" height="35" rx="10"/>
+                <rect class="pet__fur pet__outline" x="108" y="124" width="20" height="35" rx="10"/>
+                <ellipse class="pet__fur pet__outline" cx="69" cy="109" rx="8" ry="27"/>
+                <ellipse class="pet__fur pet__outline" cx="131" cy="109" rx="8" ry="27"/>
+                <path class="pet__fur pet__outline" d="M78 84 C83 78 91 75 100 75 C109 75 117 78 122 84 C132 96 134 119 129 136 C126 146 117 151 100 151 C83 151 74 146 71 136 C66 119 68 96 78 84 Z"/>
+                <ellipse class="pet__belly" cx="100" cy="118" rx="19" ry="29"/>
+                <ellipse class="pet__belly pet__outline" cx="82" cy="158" rx="13" ry="4"/>
+                <ellipse class="pet__belly pet__outline" cx="118" cy="158" rx="13" ry="4"/>
+                <path class="pet__fur pet__tail" d="M120 98 C134 84 147 87 154 100 Q157 93 160 102 C162 106 163 109 165 111 C167 107 170 106 172 109 C174 113 171 117 168 120 C172 121 173 125 171 129 C168 135 164 140 160 142 C155 139 153 134 154 127 C143 139 130 144 117 136 Z"/>
+                <path class="pet__outline pet__line pet__tail" d="M130 98 C134 84 147 87 154 100 Q157 93 160 102 C162 106 163 109 165 111 C167 107 170 106 172 109 C174 113 171 117 168 120 C172 121 173 125 171 129 C168 135 164 140 160 142 C155 139 153 134 154 127 C143 139 133 144 129 136"/>
+                <path class="pet__inner-ear pet__outline" d="M85 87 C70 81 60 91 63 108 C66 122 75 133 85 138 C79 128 81 119 88 113 C80 108 78 97 85 87 Z"/>
+                <path class="pet__inner-ear pet__outline" d="M115 87 C130 81 140 91 137 108 C134 122 125 133 115 138 C121 128 119 119 112 113 C120 108 122 97 115 87 Z"/>
+                <path class="pet__inner-ear pet__outline pet__tail" d="M119 76 Q127 65 130 79 Q139 66 141 82 Q151 70 152 88 Q161 80 161 98 L138 128 L116 107 Z"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="57" rx="40" ry="31"/>
+                <path class="pet__belly" d="M70 43 C64 38 57 27 60 18 C62 12 67 14 70 20 C73 26 78 31 84 36 Z M116 36 C122 31 127 26 130 20 C133 14 138 12 140 18 C143 27 136 38 130 43 Z"/>
+                <path class="pet__outline pet__line" d="M70 37 C64 36 57 27 60 18 C62 12 67 14 70 20 C73 26 78 29 84 29 M116 29 C122 29 127 26 130 20 C133 14 138 12 140 18 C143 27 136 36 130 37"/>
+                <ellipse class="pet__belly" cx="100" cy="71" rx="23" ry="12"/>
+                <circle class="pet__nose" cx="93.5" cy="70" r="2.2"/>
+                <circle class="pet__nose" cx="106.5" cy="70" r="2.2"/>
+                break;
+
+            default:
+                <rect class="pet__fur pet__outline" x="69" y="122" width="22" height="37" rx="11"/>
+                <rect class="pet__fur pet__outline" x="109" y="122" width="22" height="37" rx="11"/>
+                <ellipse class="pet__fur pet__outline" cx="66" cy="107" rx="9" ry="29"/>
+                <ellipse class="pet__fur pet__outline" cx="134" cy="107" rx="9" ry="29"/>
+                <path class="pet__fur pet__outline" d="M74 79 C81 72 90 69 100 69 C110 69 119 72 126 79 C137 92 139 118 133 137 C129 147 119 152 100 152 C81 152 71 147 67 137 C61 118 63 92 74 79 Z"/>
+                <ellipse class="pet__belly" cx="100" cy="119" rx="21" ry="30"/>
+                <ellipse class="pet__belly pet__outline" cx="80" cy="158" rx="14" ry="4"/>
+                <ellipse class="pet__belly pet__outline" cx="120" cy="158" rx="14" ry="4"/>
+                <path class="pet__fur pet__tail" d="M121 93 C136 77 149 80 156 94 Q159 86 162 97 C164 101 165 105 167 108 C169 104 172 103 174 106 C176 110 173 115 170 118 C174 119 175 123 173 128 C170 134 166 140 161 143 C156 140 154 134 155 126 C143 139 129 144 116 135 Z"/>
+                <path class="pet__outline pet__line pet__tail" d="M135 93 C136 77 149 80 156 94 Q159 86 162 97 C164 101 165 105 167 108 C169 104 172 103 174 106 C176 110 173 115 170 118 C174 119 175 123 173 128 C170 134 166 140 161 143 C156 140 154 134 155 126 C143 139 136 144 132 135"/>
+                <path class="pet__inner-ear pet__outline" d="M86 83 C69 75 57 88 61 107 C64 124 74 136 86 141 C79 129 81 118 89 110 C80 105 77 93 86 83 Z"/>
+                <path class="pet__inner-ear pet__outline" d="M114 83 C131 75 143 88 139 107 C136 124 126 136 114 141 C121 129 119 118 111 110 C120 105 123 93 114 83 Z"/>
+                <path class="pet__inner-ear pet__outline pet__tail" d="M118 71 Q127 59 130 74 Q140 60 142 77 Q153 64 154 83 Q164 74 165 93 L139 127 L114 102 Z"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="53" rx="42" ry="32"/>
+                <path class="pet__belly" d="M69 39 C63 34 55 23 58 14 C60 8 66 10 69 16 C72 23 78 27 84 33 Z M116 33 C122 27 128 23 131 16 C134 10 140 8 142 14 C145 23 137 34 131 39 Z"/>
+                <path class="pet__outline pet__line" d="M69 31 C63 31 55 23 58 14 C60 8 66 10 69 16 C72 23 78 24 84 24 M116 24 C122 24 128 23 131 16 C134 10 140 8 142 14 C145 23 137 31 131 31"/>
+                <ellipse class="pet__belly" cx="100" cy="68" rx="24" ry="12"/>
+                <circle class="pet__nose" cx="93" cy="67" r="2.3"/>
+                <circle class="pet__nose" cx="107" cy="67" r="2.3"/>
+                break;
+
+        }
+        break;
+
+    case "bunny":
+        @switch (Stage)
+        {
+            case PetStage.Newborn:
+                <ellipse class="pet__fur pet__outline" cx="100" cy="138" rx="28" ry="23"/>
+                <ellipse class="pet__belly" cx="100" cy="141" rx="16" ry="17"/>
+                <ellipse class="pet__fur pet__outline" cx="75" cy="138" rx="9" ry="13"/>
+                <ellipse class="pet__fur pet__outline" cx="125" cy="138" rx="9" ry="13"/>
+                <ellipse class="pet__belly pet__outline" cx="85" cy="157" rx="12" ry="5"/>
+                <ellipse class="pet__belly pet__outline" cx="115" cy="157" rx="12" ry="5"/>
+                <circle class="pet__fur pet__tail" cx="132" cy="137" r="7"/>
+                <path class="pet__outline pet__line pet__tail" d="M130 130 C139 129 143 139 137 145 C135 147 132 147 129 145"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="88" rx="44" ry="34"/>
+                <path class="pet__fur" d="M72 68 C58 64 45 56 44 46 C43 38 49 33 56 35 C66 39 70 53 84 63 Z M116 63 C115 46 117 25 124 19 C133 26 134 49 127 67 Z"/>
+                <path class="pet__outline pet__line" d="M72 62 C58 64 45 56 44 46 C43 38 49 33 56 35 C66 39 70 53 84 56 M116 56 C115 46 117 25 124 19 C133 26 134 49 127 61"/>
+                <path class="pet__inner-ear" d="M67 59 C57 55 49 49 49 44 C49 40 52 38 56 40 C63 44 67 53 76 59 Z M120 57 C120 44 121 30 124 26 C128 32 129 47 126 59 Z"/>
+                <ellipse class="pet__belly" cx="94" cy="104" rx="11" ry="9"/>
+                <ellipse class="pet__belly" cx="106" cy="104" rx="11" ry="9"/>
+                <circle class="pet__nose" cx="100" cy="103" r="3.5"/>
+                <rect class="pet__belly pet__tooth" x="96" y="106" width="4" height="7" rx="1"/>
+                <rect class="pet__belly pet__tooth" x="100" y="106" width="4" height="7" rx="1"/>
+                <path class="pet__outline pet__line pet__whisker" d="M86 103 Q69 99 55 96 M86 107 Q68 107 52 108 M87 111 Q70 115 56 121"/>
+                <path class="pet__outline pet__line pet__whisker" d="M114 103 Q131 99 145 96 M114 107 Q132 107 148 108 M113 111 Q130 115 144 121"/>
+                break;
+
+            case PetStage.Baby:
+                <ellipse class="pet__fur pet__outline" cx="100" cy="133" rx="31" ry="28"/>
+                <ellipse class="pet__belly" cx="100" cy="136" rx="18" ry="21"/>
+                <ellipse class="pet__fur pet__outline" cx="72" cy="133" rx="10" ry="16"/>
+                <ellipse class="pet__fur pet__outline" cx="128" cy="133" rx="10" ry="16"/>
+                <ellipse class="pet__belly pet__outline" cx="84" cy="157" rx="12" ry="5"/>
+                <ellipse class="pet__belly pet__outline" cx="116" cy="157" rx="12" ry="5"/>
+                <circle class="pet__fur pet__tail" cx="137" cy="134" r="8"/>
+                <path class="pet__outline pet__line pet__tail" d="M134 126 C144 125 149 136 143 142 C140 145 136 145 133 143"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="82" rx="42" ry="35"/>
+                <path class="pet__fur" d="M72 62 C59 55 51 43 54 33 C56 25 63 21 69 25 C77 31 78 47 85 60 Z M115 59 C114 41 117 20 126 13 C135 21 136 44 127 63 Z"/>
+                <path class="pet__outline pet__line" d="M72 56 C59 55 51 43 54 33 C56 25 63 21 69 25 C77 31 78 47 85 49 M115 49 C114 41 117 20 126 13 C135 21 136 44 127 55"/>
+                <path class="pet__inner-ear" d="M66 53 C59 46 57 37 60 32 C62 28 66 28 69 32 C74 38 75 49 79 56 Z M120 54 C120 39 121 25 126 20 C130 27 131 43 126 56 Z"/>
+                <ellipse class="pet__belly" cx="94" cy="99" rx="11.5" ry="9"/>
+                <ellipse class="pet__belly" cx="106" cy="99" rx="11.5" ry="9"/>
+                <circle class="pet__nose" cx="100" cy="98" r="3.4"/>
+                <rect class="pet__belly pet__tooth" x="96" y="101" width="4" height="7" rx="1"/>
+                <rect class="pet__belly pet__tooth" x="100" y="101" width="4" height="7" rx="1"/>
+                <path class="pet__outline pet__line pet__whisker" d="M86 98 Q68 94 53 91 M86 102 Q67 102 50 103 M87 106 Q69 111 54 117"/>
+                <path class="pet__outline pet__line pet__whisker" d="M114 98 Q132 94 147 91 M114 102 Q133 102 150 103 M113 106 Q131 111 146 117"/>
+                break;
+
+            case PetStage.Child:
+                <rect class="pet__fur pet__outline" x="74" y="131" width="20" height="28" rx="10"/>
+                <rect class="pet__fur pet__outline" x="106" y="131" width="20" height="28" rx="10"/>
+                <ellipse class="pet__fur pet__outline" cx="70" cy="116" rx="8" ry="21"/>
+                <ellipse class="pet__fur pet__outline" cx="130" cy="116" rx="8" ry="21"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="119" rx="31" ry="33"/>
+                <ellipse class="pet__belly" cx="100" cy="122" rx="18" ry="27"/>
+                <ellipse class="pet__belly pet__outline" cx="84" cy="158" rx="12" ry="4"/>
+                <ellipse class="pet__belly pet__outline" cx="116" cy="158" rx="12" ry="4"/>
+                <circle class="pet__fur pet__tail" cx="140" cy="123" r="9"/>
+                <path class="pet__outline pet__line pet__tail" d="M137 114 C148 113 153 125 146 132 C143 134 139 134 136 132"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="72" rx="40" ry="33"/>
+                <path class="pet__fur" d="M72 52 C66 37 66 18 75 10 C84 18 85 39 82 55 Z M116 53 C113 36 116 15 126 7 C137 16 137 39 127 57 Z"/>
+                <path class="pet__outline pet__line" d="M72 48 C66 37 66 18 75 10 C84 18 85 39 82 43 M116 42 C113 36 116 15 126 7 C137 16 137 39 127 48"/>
+                <path class="pet__inner-ear" d="M73 45 C70 32 71 18 75 16 C79 22 81 37 79 47 Z M120 47 C118 32 120 18 126 14 C131 21 132 38 126 50 Z"/>
+                <ellipse class="pet__belly" cx="94" cy="87" rx="11.5" ry="9"/>
+                <ellipse class="pet__belly" cx="106" cy="87" rx="11.5" ry="9"/>
+                <circle class="pet__nose" cx="100" cy="86" r="3.3"/>
+                <rect class="pet__belly pet__tooth" x="96" y="89" width="4" height="7" rx="1"/>
+                <rect class="pet__belly pet__tooth" x="100" y="89" width="4" height="7" rx="1"/>
+                <path class="pet__outline pet__line pet__whisker" d="M86 86 Q67 82 51 79 M86 90 Q66 90 48 91 M87 94 Q68 99 52 105"/>
+                <path class="pet__outline pet__line pet__whisker" d="M114 86 Q133 82 149 79 M114 90 Q134 90 152 91 M113 94 Q132 99 148 105"/>
+                break;
+
+            case PetStage.Teen:
+                <rect class="pet__fur pet__outline" x="75" y="126" width="18" height="33" rx="9"/>
+                <rect class="pet__fur pet__outline" x="107" y="126" width="18" height="33" rx="9"/>
+                <ellipse class="pet__fur pet__outline" cx="72" cy="111" rx="7" ry="25"/>
+                <ellipse class="pet__fur pet__outline" cx="128" cy="111" rx="7" ry="25"/>
+                <path class="pet__fur pet__outline" d="M80 91 C85 85 92 82 100 82 C108 82 115 85 120 91 C129 103 130 125 124 139 C120 146 112 149 100 149 C88 149 80 146 76 139 C70 125 71 103 80 91 Z"/>
+                <ellipse class="pet__belly" cx="100" cy="119" rx="17" ry="26"/>
+                <ellipse class="pet__belly pet__outline" cx="84" cy="158" rx="12" ry="4"/>
+                <ellipse class="pet__belly pet__outline" cx="116" cy="158" rx="12" ry="4"/>
+                <circle class="pet__fur pet__tail" cx="143" cy="115" r="10"/>
+                <path class="pet__outline pet__line pet__tail" d="M140 105 C152 104 158 117 150 125 C147 128 142 128 139 125"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="62" rx="38" ry="31"/>
+                <path class="pet__fur" d="M72 55 C66 28 67 11 76 4 C85 12 86 33 81 55 Z M117 55 C112 28 115 9 125 4 C136 10 137 32 127 55 Z"/>
+                <path class="pet__outline pet__line" d="M72 41 C66 28 67 11 76 4 C85 12 86 33 81 35 M117 34 C112 28 115 9 125 4 C136 10 137 32 127 40"/>
+                <path class="pet__inner-ear" d="M73 37 C70 24 71 11 76 9 C81 15 81 30 78 40 Z M120 38 C117 24 119 11 125 8 C131 14 132 30 126 41 Z"/>
+                <ellipse class="pet__belly" cx="94" cy="76" rx="12" ry="9.5"/>
+                <ellipse class="pet__belly" cx="106" cy="76" rx="12" ry="9.5"/>
+                <circle class="pet__nose" cx="100" cy="75" r="3.2"/>
+                <rect class="pet__belly pet__tooth" x="95.8" y="78" width="4.2" height="7" rx="1"/>
+                <rect class="pet__belly pet__tooth" x="100" y="78" width="4.2" height="7" rx="1"/>
+                <path class="pet__outline pet__line pet__whisker" d="M86 75 Q66 71 49 68 M86 79 Q65 79 46 80 M87 83 Q67 88 50 94"/>
+                <path class="pet__outline pet__line pet__whisker" d="M114 75 Q134 71 151 68 M114 79 Q135 79 154 80 M113 83 Q133 88 150 94"/>
+                break;
+
+            case PetStage.Adult:
+                <rect class="pet__fur pet__outline" x="72" y="124" width="20" height="35" rx="10"/>
+                <rect class="pet__fur pet__outline" x="108" y="124" width="20" height="35" rx="10"/>
+                <ellipse class="pet__fur pet__outline" cx="69" cy="109" rx="8" ry="27"/>
+                <ellipse class="pet__fur pet__outline" cx="131" cy="109" rx="8" ry="27"/>
+                <path class="pet__fur pet__outline" d="M78 84 C83 78 91 75 100 75 C109 75 117 78 122 84 C132 96 134 119 129 136 C126 146 117 151 100 151 C83 151 74 146 71 136 C66 119 68 96 78 84 Z"/>
+                <ellipse class="pet__belly" cx="100" cy="118" rx="19" ry="29"/>
+                <ellipse class="pet__belly pet__outline" cx="82" cy="158" rx="13" ry="4"/>
+                <ellipse class="pet__belly pet__outline" cx="118" cy="158" rx="13" ry="4"/>
+                <circle class="pet__fur pet__tail" cx="147" cy="110" r="11"/>
+                <path class="pet__outline pet__line pet__tail" d="M143 100 C156 98 163 112 154 121 C150 124 145 124 141 121"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="57" rx="40" ry="31"/>
+                <path class="pet__fur" d="M70 58 C64 23 66 8 76 3 C86 10 86 30 81 58 Z M119 58 C113 23 115 7 125 3 C136 9 137 29 128 58 Z"/>
+                <path class="pet__outline pet__line" d="M70 37 C64 23 66 8 76 3 C86 10 86 30 81 30 M119 30 C113 23 115 7 125 3 C136 9 137 29 128 35"/>
+                <path class="pet__inner-ear" d="M72 34 C69 20 70 8 76 6 C81 12 82 28 78 37 Z M121 34 C118 20 120 8 125 6 C131 12 132 27 126 37 Z"/>
+                <ellipse class="pet__belly" cx="93.5" cy="71" rx="12.5" ry="10"/>
+                <ellipse class="pet__belly" cx="106.5" cy="71" rx="12.5" ry="10"/>
+                <circle class="pet__nose" cx="100" cy="70" r="3.3"/>
+                <rect class="pet__belly pet__tooth" x="95.5" y="73" width="4.5" height="7.5" rx="1"/>
+                <rect class="pet__belly pet__tooth" x="100" y="73" width="4.5" height="7.5" rx="1"/>
+                <path class="pet__outline pet__line pet__whisker" d="M85 70 Q65 66 47 63 M85 74 Q64 74 44 75 M86 78 Q66 84 48 90"/>
+                <path class="pet__outline pet__line pet__whisker" d="M115 70 Q135 66 153 63 M115 74 Q136 74 156 75 M114 78 Q134 84 152 90"/>
+                break;
+
+            default:
+                <rect class="pet__fur pet__outline" x="69" y="122" width="22" height="37" rx="11"/>
+                <rect class="pet__fur pet__outline" x="109" y="122" width="22" height="37" rx="11"/>
+                <ellipse class="pet__fur pet__outline" cx="66" cy="107" rx="9" ry="29"/>
+                <ellipse class="pet__fur pet__outline" cx="134" cy="107" rx="9" ry="29"/>
+                <path class="pet__fur pet__outline" d="M74 79 C81 72 90 69 100 69 C110 69 119 72 126 79 C137 92 139 118 133 137 C129 147 119 152 100 152 C81 152 71 147 67 137 C61 118 63 92 74 79 Z"/>
+                <ellipse class="pet__belly" cx="100" cy="119" rx="21" ry="30"/>
+                <ellipse class="pet__belly pet__outline" cx="80" cy="158" rx="14" ry="4"/>
+                <ellipse class="pet__belly pet__outline" cx="120" cy="158" rx="14" ry="4"/>
+                <circle class="pet__fur pet__tail" cx="151" cy="106" r="12"/>
+                <path class="pet__outline pet__line pet__tail" d="M146 95 C160 92 168 108 158 118 C154 122 148 122 144 118"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="53" rx="42" ry="32"/>
+                <path class="pet__fur" d="M69 61 C62 20 65 5 76 2 C87 9 87 29 81 61 Z M119 61 C112 21 114 5 125 2 C137 8 138 28 128 61 Z"/>
+                <path class="pet__outline pet__line" d="M69 31 C62 20 65 5 76 2 C87 9 87 29 81 25 M119 25 C112 21 114 5 125 2 C137 8 138 28 128 29"/>
+                <path class="pet__inner-ear" d="M71 31 C68 18 70 6 76 5 C82 11 83 26 78 34 Z M121 32 C118 18 120 6 125 5 C132 11 133 26 126 35 Z"/>
+                <ellipse class="pet__belly" cx="93" cy="68" rx="13" ry="10.5"/>
+                <ellipse class="pet__belly" cx="107" cy="68" rx="13" ry="10.5"/>
+                <circle class="pet__nose" cx="100" cy="67" r="3.4"/>
+                <rect class="pet__belly pet__tooth" x="95.5" y="70" width="4.5" height="7.5" rx="1"/>
+                <rect class="pet__belly pet__tooth" x="100" y="70" width="4.5" height="7.5" rx="1"/>
+                <path class="pet__outline pet__line pet__whisker" d="M85 67 Q64 63 45 60 M85 71 Q63 71 42 72 M86 75 Q65 81 46 88"/>
+                <path class="pet__outline pet__line pet__whisker" d="M115 67 Q136 63 155 60 M115 71 Q137 71 158 72 M114 75 Q135 81 154 88"/>
+                break;
+
+        }
+        break;
+
+    default:
+        @* Tülkü — standart növ. *@
+        @switch (Stage)
+        {
+            case PetStage.Newborn:
+                <path class="pet__fur pet__outline pet__tail" d="M114 134 C125 125 139 117 150 121 C162 126 165 140 157 151 C149 162 133 163 121 155 C116 151 113 141 114 134 Z"/>
+                <path class="pet__belly pet__outline pet__tail" d="M146 121 C154 120 161 126 162 134 C163 141 159 148 153 153 C153 141 147 132 137 127 C140 124 143 122 146 121 Z"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="138" rx="28" ry="23"/>
+                <ellipse class="pet__belly" cx="100" cy="141" rx="16" ry="17"/>
+                <ellipse class="pet__fur pet__outline" cx="75" cy="138" rx="9" ry="13"/>
+                <ellipse class="pet__fur pet__outline" cx="125" cy="138" rx="9" ry="13"/>
+                <ellipse class="pet__belly" cx="75" cy="146" rx="7" ry="5"/>
+                <ellipse class="pet__belly" cx="125" cy="146" rx="7" ry="5"/>
+                <ellipse class="pet__belly pet__outline" cx="85" cy="157" rx="12" ry="5"/>
+                <ellipse class="pet__belly pet__outline" cx="115" cy="157" rx="12" ry="5"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="88" rx="44" ry="34"/>
+                <path class="pet__fur pet__outline" d="M56 88 C56 81 58 76 61 71 C58 61 59 47 66 37 C75 43 80 52 81 61 C87 57 93 54 100 54 C107 54 113 57 119 61 C120 52 125 43 134 37 C141 47 142 61 139 71 C142 76 144 81 144 88 C144 98 140 105 133 110 C139 112 137 118 127 117 C119 121 110 122 100 122 C90 122 81 121 73 117 C63 118 61 112 67 110 C60 105 56 98 56 88 Z"/>
+                <path class="pet__inner-ear" d="M62 57 C62 49 64 42 66 38 C71 42 75 48 77 55 C72 52 67 52 62 57 Z"/>
+                <path class="pet__inner-ear" d="M138 57 C138 49 136 42 134 38 C129 42 125 48 123 55 C128 52 133 52 138 57 Z"/>
+                <path class="pet__ear-tip" d="M62 46 C63 42 64 39 66 37 C69 39 72 42 74 46 C70 44 66 44 62 46 Z"/>
+                <path class="pet__ear-tip" d="M138 46 C137 42 136 39 134 37 C131 39 128 42 126 46 C130 44 134 44 138 46 Z"/>
+                <path class="pet__belly" d="M82 98 Q91 94 100 103 Q109 94 118 98 Q115 107 100 113 Q85 107 82 98 Z"/>
+                <circle class="pet__nose" cx="100" cy="103" r="4"/>
+                break;
+
+            case PetStage.Baby:
+                <path class="pet__fur pet__outline pet__tail" d="M114 132 C124 114 141 104 154 109 C168 115 170 134 160 148 C150 162 132 164 119 152 C114 147 112 138 114 132 Z"/>
+                <path class="pet__belly pet__outline pet__tail" d="M149 108 C158 108 166 115 168 124 C169 132 165 141 159 148 C158 134 151 122 139 116 C142 112 145 110 149 108 Z"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="133" rx="31" ry="28"/>
+                <ellipse class="pet__belly" cx="100" cy="136" rx="18" ry="21"/>
+                <ellipse class="pet__fur pet__outline" cx="72" cy="133" rx="10" ry="16"/>
+                <ellipse class="pet__fur pet__outline" cx="128" cy="133" rx="10" ry="16"/>
+                <ellipse class="pet__belly" cx="72" cy="145" rx="7" ry="5"/>
+                <ellipse class="pet__belly" cx="128" cy="145" rx="7" ry="5"/>
+                <ellipse class="pet__belly pet__outline" cx="84" cy="157" rx="12" ry="5"/>
+                <ellipse class="pet__belly pet__outline" cx="116" cy="157" rx="12" ry="5"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="82" rx="42" ry="35"/>
+                <path class="pet__fur pet__outline" d="M58 82 C58 75 59 71 61 66 C57 55 58 38 64 26 C75 33 80 44 81 55 C87 50 93 47 100 47 C107 47 113 50 119 55 C120 44 125 33 136 26 C142 38 143 55 139 66 C141 71 142 75 142 82 C142 92 138 100 131 105 C138 108 136 114 126 113 C118 116 109 117 100 117 C91 117 82 116 74 113 C64 114 62 108 69 105 C62 100 58 92 58 82 Z"/>
+                <path class="pet__inner-ear" d="M61 58 C61 48 62 36 64 28 C70 33 75 41 77 51 C72 48 66 51 61 58 Z"/>
+                <path class="pet__inner-ear" d="M139 58 C139 48 138 36 136 28 C130 33 125 41 123 51 C128 48 134 51 139 58 Z"/>
+                <path class="pet__ear-tip" d="M60 38 C61 33 62 29 64 26 C68 28 72 33 74 38 C69 36 65 36 60 38 Z"/>
+                <path class="pet__ear-tip" d="M140 38 C139 33 138 29 136 26 C132 28 128 33 126 38 C131 36 135 36 140 38 Z"/>
+                <path class="pet__belly" d="M83 93 Q91 90 100 98 Q109 90 117 93 Q114 103 100 109 Q86 103 83 93 Z"/>
+                <circle class="pet__nose" cx="100" cy="98" r="3.8"/>
+                break;
+
+            case PetStage.Child:
+                <path class="pet__fur pet__outline pet__tail" d="M115 127 C123 102 142 84 157 90 C173 97 173 121 163 140 C153 158 133 164 118 149 C113 143 112 134 115 127 Z"/>
+                <path class="pet__belly pet__outline pet__tail" d="M151 88 C161 88 170 96 172 107 C173 118 168 130 162 140 C160 123 152 108 138 99 C142 93 146 90 151 88 Z"/>
+                <rect class="pet__fur pet__outline" x="74" y="131" width="20" height="28" rx="10"/>
+                <rect class="pet__fur pet__outline" x="106" y="131" width="20" height="28" rx="10"/>
+                <ellipse class="pet__fur pet__outline" cx="70" cy="116" rx="8" ry="21"/>
+                <ellipse class="pet__fur pet__outline" cx="130" cy="116" rx="8" ry="21"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="119" rx="31" ry="33"/>
+                <ellipse class="pet__belly" cx="100" cy="122" rx="18" ry="27"/>
+                <ellipse class="pet__belly" cx="70" cy="130" rx="6" ry="7"/>
+                <ellipse class="pet__belly" cx="130" cy="130" rx="6" ry="7"/>
+                <ellipse class="pet__belly pet__outline" cx="84" cy="158" rx="12" ry="4"/>
+                <ellipse class="pet__belly pet__outline" cx="116" cy="158" rx="12" ry="4"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="72" rx="40" ry="33"/>
+                <path class="pet__fur pet__outline" d="M60 72 C60 66 61 62 63 58 C57 46 57 26 62 14 C75 22 80 34 81 48 C87 42 93 39 100 39 C107 39 113 42 119 48 C120 34 125 22 138 14 C143 26 143 46 137 58 C139 62 140 66 140 72 C140 82 136 91 130 96 C136 99 133 104 124 102 C117 104 109 105 100 105 C91 105 83 104 76 102 C67 104 64 99 70 96 C64 91 60 82 60 72 Z"/>
+                <path class="pet__inner-ear" d="M59 50 C59 39 60 25 62 16 C69 22 75 32 77 44 C71 40 64 43 59 50 Z"/>
+                <path class="pet__inner-ear" d="M141 50 C141 39 140 25 138 16 C131 22 125 32 123 44 C129 40 136 43 141 50 Z"/>
+                <path class="pet__ear-tip" d="M58 28 C59 22 60 17 62 14 C67 17 71 22 74 28 C69 25 63 25 58 28 Z"/>
+                <path class="pet__ear-tip" d="M142 28 C141 22 140 17 138 14 C133 17 129 22 126 28 C131 25 137 25 142 28 Z"/>
+                <path class="pet__belly" d="M84 81 Q92 78 100 86 Q108 78 116 81 Q114 90 100 97 Q86 90 84 81 Z"/>
+                <circle class="pet__nose" cx="100" cy="86" r="3.6"/>
+                break;
+
+            case PetStage.Teen:
+                <path class="pet__fur pet__outline pet__tail" d="M116 122 C123 91 143 68 159 75 C176 82 176 112 165 135 C155 156 134 164 118 147 C112 140 112 130 116 122 Z"/>
+                <path class="pet__belly pet__outline pet__tail" d="M153 72 C164 71 173 80 175 92 C177 105 172 122 165 135 C163 114 154 94 139 84 C143 78 148 74 153 72 Z"/>
+                <rect class="pet__fur pet__outline" x="75" y="126" width="18" height="33" rx="9"/>
+                <rect class="pet__fur pet__outline" x="107" y="126" width="18" height="33" rx="9"/>
+                <ellipse class="pet__fur pet__outline" cx="72" cy="111" rx="7" ry="25"/>
+                <ellipse class="pet__fur pet__outline" cx="128" cy="111" rx="7" ry="25"/>
+                <path class="pet__fur pet__outline" d="M80 91 C85 85 92 82 100 82 C108 82 115 85 120 91 C129 103 130 125 124 139 C120 146 112 149 100 149 C88 149 80 146 76 139 C70 125 71 103 80 91 Z"/>
+                <ellipse class="pet__belly" cx="100" cy="119" rx="17" ry="26"/>
+                <ellipse class="pet__belly" cx="72" cy="129" rx="5.5" ry="7"/>
+                <ellipse class="pet__belly" cx="128" cy="129" rx="5.5" ry="7"/>
+                <ellipse class="pet__belly pet__outline" cx="84" cy="158" rx="12" ry="4"/>
+                <ellipse class="pet__belly pet__outline" cx="116" cy="158" rx="12" ry="4"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="62" rx="38" ry="31"/>
+                <path class="pet__fur pet__outline" d="M62 62 C62 57 63 53 65 49 C57 37 56 18 60 7 C74 15 80 28 81 41 C87 35 93 31 100 31 C107 31 113 35 119 41 C120 28 126 15 140 7 C144 18 143 37 135 49 C137 53 138 57 138 62 C138 72 134 80 128 85 C134 88 131 93 122 90 C115 92 108 93 100 93 C92 93 85 92 78 90 C69 93 66 88 72 85 C66 80 62 72 62 62 Z"/>
+                <path class="pet__inner-ear" d="M57 41 C57 29 58 16 60 9 C68 15 74 26 77 38 C70 34 63 35 57 41 Z"/>
+                <path class="pet__inner-ear" d="M143 41 C143 29 142 16 140 9 C132 15 126 26 123 38 C130 34 137 35 143 41 Z"/>
+                <path class="pet__ear-tip" d="M56 21 C57 15 58 10 60 7 C65 10 70 15 73 21 C67 18 62 18 56 21 Z"/>
+                <path class="pet__ear-tip" d="M144 21 C143 15 142 10 140 7 C135 10 130 15 127 21 C133 18 138 18 144 21 Z"/>
+                <path class="pet__belly" d="M85 70 Q92 67 100 75 Q108 67 115 70 Q113 79 100 86 Q87 79 85 70 Z"/>
+                <circle class="pet__nose" cx="100" cy="75" r="3.4"/>
+                break;
+
+            case PetStage.Adult:
+                <path class="pet__fur pet__outline pet__tail" d="M116 119 C122 84 144 57 161 64 C179 72 179 105 167 131 C157 154 134 164 117 145 C111 138 112 127 116 119 Z"/>
+                <path class="pet__belly pet__outline pet__tail" d="M155 61 C166 59 176 69 178 82 C180 98 174 117 167 131 C165 106 156 83 139 73 C144 67 149 63 155 61 Z"/>
+                <rect class="pet__fur pet__outline" x="72" y="124" width="20" height="35" rx="10"/>
+                <rect class="pet__fur pet__outline" x="108" y="124" width="20" height="35" rx="10"/>
+                <ellipse class="pet__fur pet__outline" cx="69" cy="109" rx="8" ry="27"/>
+                <ellipse class="pet__fur pet__outline" cx="131" cy="109" rx="8" ry="27"/>
+                <path class="pet__fur pet__outline" d="M78 84 C83 78 91 75 100 75 C109 75 117 78 122 84 C132 96 134 119 129 136 C126 146 117 151 100 151 C83 151 74 146 71 136 C66 119 68 96 78 84 Z"/>
+                <ellipse class="pet__belly" cx="100" cy="118" rx="19" ry="29"/>
+                <ellipse class="pet__belly" cx="69" cy="130" rx="6" ry="7"/>
+                <ellipse class="pet__belly" cx="131" cy="130" rx="6" ry="7"/>
+                <ellipse class="pet__belly pet__outline" cx="82" cy="158" rx="13" ry="4"/>
+                <ellipse class="pet__belly pet__outline" cx="118" cy="158" rx="13" ry="4"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="57" rx="40" ry="31"/>
+                <path class="pet__fur pet__outline" d="M60 57 C60 52 62 48 64 44 C55 33 53 14 57 4 C73 13 79 26 81 37 C87 30 93 26 100 26 C107 26 113 30 119 37 C121 26 127 13 143 4 C147 14 145 33 136 44 C138 48 140 52 140 57 C140 67 136 75 130 80 C136 83 133 88 124 85 C117 87 109 88 100 88 C91 88 83 87 76 85 C67 88 64 83 70 80 C64 75 60 67 60 57 Z"/>
+                <path class="pet__inner-ear" d="M54 35 C54 23 55 11 57 6 C66 12 74 24 77 35 C70 31 61 31 54 35 Z"/>
+                <path class="pet__inner-ear" d="M146 35 C146 23 145 11 143 6 C134 12 126 24 123 35 C130 31 139 31 146 35 Z"/>
+                <path class="pet__ear-tip" d="M53 17 C54 11 55 6 57 4 C63 7 68 12 72 18 C65 15 59 14 53 17 Z"/>
+                <path class="pet__ear-tip" d="M147 17 C146 11 145 6 143 4 C137 7 132 12 128 18 C135 15 141 14 147 17 Z"/>
+                <path class="pet__belly" d="M83 65 Q91 62 100 70 Q109 62 117 65 Q114 76 100 83 Q86 76 83 65 Z"/>
+                <circle class="pet__nose" cx="100" cy="70" r="3.5"/>
+                break;
+
+            default:
+                <path class="pet__fur pet__outline pet__tail" d="M115 116 C121 77 145 47 163 55 C181 63 181 99 169 127 C159 153 135 165 116 144 C109 136 111 124 115 116 Z"/>
+                <path class="pet__belly pet__outline pet__tail" d="M157 52 C169 50 179 60 180 75 C182 92 176 113 169 127 C167 99 157 75 139 65 C144 59 151 54 157 52 Z"/>
+                <rect class="pet__fur pet__outline" x="69" y="122" width="22" height="37" rx="11"/>
+                <rect class="pet__fur pet__outline" x="109" y="122" width="22" height="37" rx="11"/>
+                <ellipse class="pet__fur pet__outline" cx="66" cy="107" rx="9" ry="29"/>
+                <ellipse class="pet__fur pet__outline" cx="134" cy="107" rx="9" ry="29"/>
+                <path class="pet__fur pet__outline" d="M74 79 C81 72 90 69 100 69 C110 69 119 72 126 79 C137 92 139 118 133 137 C129 147 119 152 100 152 C81 152 71 147 67 137 C61 118 63 92 74 79 Z"/>
+                <ellipse class="pet__belly" cx="100" cy="119" rx="21" ry="30"/>
+                <path class="pet__belly" d="M84 86 C88 81 93 82 96 86 C98 80 102 80 104 86 C108 82 113 81 116 86 C114 96 108 103 100 108 C92 103 86 96 84 86 Z"/>
+                <ellipse class="pet__belly" cx="66" cy="130" rx="6.5" ry="7.5"/>
+                <ellipse class="pet__belly" cx="134" cy="130" rx="6.5" ry="7.5"/>
+                <ellipse class="pet__belly pet__outline" cx="80" cy="158" rx="14" ry="4"/>
+                <ellipse class="pet__belly pet__outline" cx="120" cy="158" rx="14" ry="4"/>
+                <ellipse class="pet__fur pet__outline" cx="100" cy="53" rx="42" ry="32"/>
+                <path class="pet__fur pet__outline" d="M58 53 C58 48 60 44 63 40 C53 30 51 11 55 3 C72 11 79 24 81 34 C87 26 93 21 100 21 C107 21 113 26 119 34 C121 24 128 11 145 3 C149 11 147 30 137 40 C140 44 142 48 142 53 C142 63 138 72 131 77 C137 80 134 85 125 82 C117 84 109 85 100 85 C91 85 83 84 75 82 C66 85 63 80 69 77 C62 72 58 63 58 53 Z"/>
+                <path class="pet__inner-ear" d="M52 31 C52 20 53 8 55 4 C65 10 74 22 77 33 C69 29 59 28 52 31 Z"/>
+                <path class="pet__inner-ear" d="M148 31 C148 20 147 8 145 4 C135 10 126 22 123 33 C131 29 141 28 148 31 Z"/>
+                <path class="pet__ear-tip" d="M51 15 C52 9 53 5 55 3 C61 5 67 10 71 16 C64 13 57 12 51 15 Z"/>
+                <path class="pet__ear-tip" d="M149 15 C148 9 147 5 145 3 C139 5 133 10 129 16 C136 13 143 12 149 15 Z"/>
+                <path class="pet__belly" d="M82 62 Q91 59 100 67 Q109 59 118 62 Q115 73 100 79 Q85 73 82 62 Z"/>
+                <circle class="pet__nose" cx="100" cy="67" r="3.6"/>
+                break;
+
+        }
+        break;
+
+}
+
+@code {
+    /// <summary>fox · cat · dragon · bunny — naməlum dəyər tülküyə düşür.</summary>
+    [Parameter] public string Species { get; set; } = "fox";
+
+    [Parameter] public PetStage Stage { get; set; } = PetStage.Baby;
+}

@@ -1,0 +1,123 @@
+@inject Loc Loc
+
+@* Kəşf kolleksiyası. Eyni siyahı iki yerdə göstərilir — uşağın "Kəşf" ekranında
+   və valideyn panelində — ona görə burada, tək yerdə saxlanılır; fərq yalnız
+   şəklin hansı ünvandan gəlməsindədir (bax LoadPhoto).
+
+   Şəkil sətirlə birlikdə yüklənmir: kolleksiyada onlarla şəkil ola bilər və
+   hər biri meqabaytlarladır. Sətrə toxunanda bir dəfə alınır və açıq qaldığı
+   müddətdə yaddaşda saxlanılır. *@
+
+@if (Items.Count == 0)
+{
+    <div class="card">
+        <p class="card__subtitle">@(EmptyText ?? Loc.T("Hələ kəşf yoxdur.", "No discoveries yet."))</p>
+    </div>
+}
+else
+{
+    <div class="card">
+        @foreach (var discovery in Items)
+        {
+            var id = discovery.Id;
+            var open = _open.Contains(id);
+
+            <div class="discovery">
+                @* Şəkli olmayan sətir açılmır — düymə kimi görünüb heç nə etməməsi
+                   uşaq üçün ən çaşdırıcı haldır. *@
+                <button type="button"
+                        class="mission @(discovery.HasPhoto ? "mission--tap" : null)"
+                        disabled="@(!discovery.HasPhoto)"
+                        aria-expanded="@(discovery.HasPhoto ? open.ToString().ToLowerInvariant() : null)"
+                        @onclick="() => ToggleAsync(id)">
+                    <span class="mission__icon" aria-hidden="true">@CategoryIcon(discovery.CategoryKey)</span>
+                    <span class="mission__body">
+                        <span class="mission__title">@discovery.Label</span>
+                        <span class="mission__meta">
+                            <span>@discovery.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                            @if (discovery.StarsEarned > 0)
+                            {
+                                <span>⭐ @discovery.StarsEarned</span>
+                            }
+                            @if (discovery.HasPhoto)
+                            {
+                                <span>📷 @(open ? Loc.T("gizlət", "hide") : Loc.T("şəklə bax", "see the photo"))</span>
+                            }
+                        </span>
+                    </span>
+                </button>
+
+                @if (open)
+                {
+                    <div class="discovery__photo">
+                        @if (_photos.TryGetValue(id, out var dataUrl))
+                        {
+                            <img src="@dataUrl" alt="@discovery.Label" />
+                        }
+                        else if (_errors.TryGetValue(id, out var error))
+                        {
+                            <div class="alert alert--error" style="margin:0">@error</div>
+                        }
+                        else
+                        {
+                            <div class="discovery__loading">@Loc.T("Şəkil yüklənir…", "Loading the photo…")</div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<DiscoveryDto> Items { get; set; } = [];
+
+    /// <summary>
+    /// Şəkli gətirən funksiya. Uşaq və valideyn eyni şəkli fərqli ünvandan alır
+    /// (biri öz sessiyası, digəri valideyn tokeni ilə) — komponent bunu bilmir.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public Func<Guid, Task<ApiResult<string>>> LoadPhoto { get; set; } = default!;
+
+    [Parameter]
+    public string? EmptyText { get; set; }
+
+    private readonly HashSet<Guid> _open = [];
+    private readonly Dictionary<Guid, string> _photos = [];
+    private readonly Dictionary<Guid, string> _errors = [];
+
+    private async Task ToggleAsync(Guid id)
+    {
+        if (!_open.Add(id))
+        {
+            _open.Remove(id);
+            return;
+        }
+
+        // Bir dəfə alınan şəkil yenidən çəkilmir: sətir bağlanıb açılanda
+        // eyni meqabaytları ikinci dəfə endirmək mənasızdır.
+        if (_photos.ContainsKey(id))
+            return;
+
+        _errors.Remove(id);
+
+        var result = await LoadPhoto(id);
+
+        // İstifadəçi cavab gələnə qədər sətri bağlaya bilər — onda nəticə
+        // saxlanılır (növbəti açılışda hazır olur), amma ekran dartılmır.
+        if (result.Succeeded && !string.IsNullOrEmpty(result.Value))
+            _photos[id] = result.Value;
+        else
+            _errors[id] = result.Error;
+    }
+
+    private static string CategoryIcon(string category) => category switch
+    {
+        "animal" => "🐞",
+        "rock" => "🪨",
+        "sky" => "☁️",
+        "other" => "✨",
+        _ => "🌿"
+    };
+}

@@ -1,0 +1,159 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap">
+  <style>
+    /* Profil və PIN */
+    body {
+      margin: 0;
+      font-family: 'Nunito', ui-rounded, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+
+      /* İSTİQAMƏT B — yumşaldılmış. Ailə adları və mənaları eynidir; yalnız xroma
+      və səth parlaqlığı azalıb. Bütün mətn cütləri WCAG 4.5:1-dən yuxarıdadır. */
+      --pp-primary: #6F5AD8;
+      --pp-primary-dark: #54419E;
+      --pp-primary-soft: #E9E4F7;
+      --pp-primary-lift: #8A78E4;
+      --pp-primary-edge: #4E3BA8;
+
+      --pp-life: #35A57A;
+      --pp-life-deep: #156F4F;
+      --pp-life-soft: #DCEEE4;
+      --pp-life-lift: #4FBB91;
+      --pp-life-edge: #156F4F;
+      --pp-on-life: #06301D;
+
+      --pp-spark: #E89A3C;
+      --pp-spark-deep: #93540E;
+      --pp-spark-soft: #FAEBD6;
+      --pp-spark-lift: #F2B166;
+      --pp-spark-edge: #93540E;
+      --pp-on-spark: #3A1D00;
+
+      --pp-alert: #B7304C;
+      --pp-alert-soft: #F7E1E5;
+      --pp-alert-edge: #8A2038;
+
+      --pp-bg: #F0EBE0;
+      --pp-card: #FBF7EF;
+      --pp-card-soft: #F6F1E6;
+      --pp-glass: rgba(251, 247, 239, 0.94);
+
+      --pp-ink: #241E38;
+      --pp-ink-soft: #5C5470;
+      --pp-ink-muted: #8A82A0;
+
+      --pp-border: #E4DCCE;
+      --pp-track: #E8E2D6;
+
+      --pp-edge-neutral: rgba(96, 74, 46, 0.20);
+      --pp-shadow-sm: 0 2px 8px rgba(96, 74, 46, 0.10);
+      --pp-shadow-md: 0 8px 24px rgba(96, 74, 46, 0.13);
+      --pp-shadow-lg: 0 16px 40px rgba(96, 74, 46, 0.18);
+      --pp-gloss: inset 0 2px 0 rgba(255, 255, 255, 0.40);
+
+      /* Səhnə — süd kimi səma, sakit çəmən */
+      --sc-sky-1: #BEDFEE;
+      --sc-sky-2: #D3E9F1;
+      --sc-sky-3: #E8F1E8;
+      --sc-sun: #EFCE7C;
+      --sc-sun-halo: #F5E3B4;
+      --sc-cloud: #FBF8F2;
+      --sc-hill-1: #CFE3D2;
+      --sc-hill-2: #A5D3B7;
+      --sc-hill-3: #77BE97;
+      --sc-hill-4: #35A57A;
+    }
+    a { color: var(--pp-primary-dark); }
+    a:hover { color: var(--pp-primary); }
+  </style>
+</helmet>
+<div class="pp-root" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: linear-gradient(180deg, var(--pp-primary-soft) 0%, var(--pp-bg) 52%); color: var(--pp-ink);">
+
+  <!-- ===== BREND ===== -->
+  <div style="position: absolute; top: 88px; left: 16px; right: 16px; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+    <div style="display: flex; align-items: center; justify-content: center; width: 96px; height: 96px; border-radius: 999px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-md);">
+      <div style="width: 84px; height: 84px; overflow: hidden;">
+        <div style="transform: translate(-8px, 4px);">
+<svg viewBox="0 0 200 200" width="100" height="100" role="img" aria-label="Aylinin pet-i">
+      <ellipse cx="100" cy="168" rx="43.24" ry="9" fill="rgba(0,0,0,0.12)" />
+      <g transform="translate(100 162) scale(0.94) translate(-100 -162)">
+        <path d="M132 132c22 4 34-10 34-26 0-12-7-22-16-24 4 10 2 22-6 29-7 6-15 8-22 8z" fill="#F3A05A" />
+        <path d="M150 84c6 3 10 10 10 18 0 6-2 11-5 15 1-12-1-24-5-33z" fill="#FFFFFF" opacity="0.75" />
+        <ellipse cx="100" cy="128" rx="38" ry="34" fill="#F3A05A" />
+        <ellipse cx="100" cy="136" rx="24" ry="23" fill="#FFF3E2" />
+        <ellipse cx="80" cy="158" rx="13" ry="8" fill="#FFF3E2" />
+        <ellipse cx="120" cy="158" rx="13" ry="8" fill="#FFF3E2" />
+        <path d="M64 60l-6-30 28 16z" fill="#F3A05A" />
+        <path d="M136 60l6-30-28 16z" fill="#F3A05A" />
+        <path d="M67 57l-3-17 16 9z" fill="#FFD3A8" />
+        <path d="M133 57l3-17-16 9z" fill="#FFD3A8" />
+        <ellipse cx="100" cy="74" rx="36" ry="32" fill="#F3A05A" />
+        <ellipse cx="100" cy="86" rx="26" ry="18" fill="#FFF3E2" />
+        <path d="M78 74q8 -11 16 0" stroke="#2B2140" stroke-width="5" fill="none" stroke-linecap="round" /><path d="M106 74q8 -11 16 0" stroke="#2B2140" stroke-width="5" fill="none" stroke-linecap="round" />
+        <ellipse cx="100" cy="84" rx="6" ry="4.5" fill="#2B2140" />
+        <path d="M92 92q8 9 16 0" stroke="#2B2140" stroke-width="3.5" fill="none" stroke-linecap="round" />
+        <ellipse cx="72" cy="86" rx="7" ry="4.5" fill="#FF9EA8" opacity="0.65" /><ellipse cx="128" cy="86" rx="7" ry="4.5" fill="#FF9EA8" opacity="0.65" />
+        <path d="M76 100q24 14 48 0" stroke="var(--pp-primary)" stroke-width="7" fill="none" stroke-linecap="round" />
+        <circle cx="100" cy="110" r="7" fill="var(--pp-spark)" stroke="var(--pp-spark-deep)" stroke-width="2" />
+        
+      </g>
+      
+    </svg>
+        </div>
+      </div>
+    </div>
+    <div style="font-size: 24px; font-weight: 900; line-height: 1.15; text-align: center;">Salam, Aylin!</div>
+    <div style="font-size: 14px; font-weight: 700; color: var(--pp-ink-soft);">PIN kodunu daxil et</div>
+  </div>
+
+  <!-- ===== PIN NOQTELERI ===== -->
+  <div style="position: absolute; top: 312px; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: 16px;">
+    <span style="width: 20px; height: 20px; border-radius: 999px; background: var(--pp-primary); box-shadow: 0 3px 0 var(--pp-primary-edge);"></span>
+    <span style="width: 20px; height: 20px; border-radius: 999px; background: var(--pp-primary); box-shadow: 0 3px 0 var(--pp-primary-edge);"></span>
+    <span style="width: 20px; height: 20px; border-radius: 999px; background: var(--pp-card); box-shadow: inset 0 0 0 3px var(--pp-border);"></span>
+    <span style="width: 20px; height: 20px; border-radius: 999px; background: var(--pp-card); box-shadow: inset 0 0 0 3px var(--pp-border);"></span>
+  </div>
+
+  <!-- ===== PIN KLAVIATURASI: her duyme 72px, 6 yasli barmaq ucun ===== -->
+  <div style="position: absolute; top: 380px; left: 46px; right: 46px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px;">
+
+    <div style="display: flex; align-items: center; justify-content: center; height: 72px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss); font-size: 28px; font-weight: 900;">1</div>
+    <div style="display: flex; align-items: center; justify-content: center; height: 72px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss); font-size: 28px; font-weight: 900;">2</div>
+    <div style="display: flex; align-items: center; justify-content: center; height: 72px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss); font-size: 28px; font-weight: 900;">3</div>
+    <div style="display: flex; align-items: center; justify-content: center; height: 72px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss); font-size: 28px; font-weight: 900;">4</div>
+    <div style="display: flex; align-items: center; justify-content: center; height: 72px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss); font-size: 28px; font-weight: 900;">5</div>
+    <div style="display: flex; align-items: center; justify-content: center; height: 72px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss); font-size: 28px; font-weight: 900;">6</div>
+    <div style="display: flex; align-items: center; justify-content: center; height: 72px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss); font-size: 28px; font-weight: 900;">7</div>
+    <div style="display: flex; align-items: center; justify-content: center; height: 72px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss); font-size: 28px; font-weight: 900;">8</div>
+    <div style="display: flex; align-items: center; justify-content: center; height: 72px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss); font-size: 28px; font-weight: 900;">9</div>
+
+    <div style="display: flex; align-items: center; justify-content: center; height: 72px; border-radius: 22px; background: var(--pp-card-soft); box-shadow: 0 5px 0 var(--pp-edge-neutral); font-size: 15px; font-weight: 900; color: var(--pp-ink-soft);">Geri</div>
+    <div style="display: flex; align-items: center; justify-content: center; height: 72px; border-radius: 22px; background: var(--pp-card); box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss); font-size: 28px; font-weight: 900;">0</div>
+    <div style="display: flex; align-items: center; justify-content: center; height: 72px; border-radius: 22px; background: var(--pp-card-soft); box-shadow: 0 5px 0 var(--pp-edge-neutral);">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true">
+        <path d="M8.6 5.4h10a2 2 0 0 1 2 2v9.2a2 2 0 0 1-2 2h-10L2.8 12z" stroke="var(--pp-ink-soft)" stroke-width="2" stroke-linejoin="round" />
+        <path d="M11.6 9.6l5 4.8M16.6 9.6l-5 4.8" stroke="var(--pp-ink-soft)" stroke-width="2" stroke-linecap="round" />
+      </svg>
+    </div>
+  </div>
+
+  <div style="position: absolute; bottom: 44px; left: 16px; right: 16px; text-align: center; font-size: 12px; font-weight: 800; line-height: 1.45; color: var(--pp-ink-soft);">PIN uşaqların bir-birinin inkişafına təsadüfən girməsinin qarşısını alır.</div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

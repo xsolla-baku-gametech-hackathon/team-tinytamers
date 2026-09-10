@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="utf-8" />
+    <!-- viewport-fit=cover → notch/gesture bar sahələri CSS env() ilə idarə olunur. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <title>AI Pets for Kids</title>
+    <base href="/" />
+
+    <link rel="stylesheet" href="_content/PetPal.App.Ui/css/theme.css" />
+    <link rel="stylesheet" href="_content/PetPal.App.Ui/css/app.css" />
+    <link rel="stylesheet" href="_content/PetPal.App.Ui/css/pet.css" />
+
+    <!-- Kətanı ekrana sığışdırır (--pp-zoom). Blazor-dan ƏVVƏL işə düşür ki,
+         açılış ekranı da düzgün ölçüdə olsun. -->
+    <script src="_content/PetPal.App.Ui/js/appFrame.js"></script>
+    <script src="_content/PetPal.App.Ui/js/share.js"></script>
+    <link rel="stylesheet" href="PetPal.App.styles.css" />
+    <link rel="icon" href="data:," />
+</head>
+
+<body>
+    <div id="app">
+        <div class="state">
+            <div class="spinner" aria-hidden="true"></div>
+            <div data-text="splash">AI Pets for Kids açılır…</div>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui" data-nosnippet>
+        <span data-text="error">Gözlənilməz xəta baş verdi.</span>
+        <a href="." class="reload" data-text="reload">Yenidən yüklə</a>
+        <span class="dismiss">🗙</span>
+    </div>
+
+    <script>
+        // Bu ekran Blazor işə düşməmişdən ƏVVƏL görünür, yəni app-in dil
+        // servisi (Loc) hələ yoxdur. Ona görə dili özü seçir: əvvəl uşağın
+        // seçdiyi və brauzerdə saxlanmış dil, sonra cihazın dili.
+        (function () {
+            var stored = null;
+            try { stored = localStorage.getItem('petpal.language'); } catch (e) { }
+
+            var language = stored || (navigator.language || 'az').slice(0, 2).toLowerCase();
+            if (language !== 'en') { return; }   // Azərbaycanca variant onsuz da HTML-dədir
+
+            var english = {
+                splash: 'AI Pets for Kids is opening…',
+                error: 'Something went wrong.',
+                reload: 'Reload'
+            };
+
+            Object.keys(english).forEach(function (key) {
+                var node = document.querySelector('[data-text="' + key + '"]');
+                if (node) { node.textContent = english[key]; }
+            });
+        })();
+    </script>
+
+    <script src="_framework/blazor.webview.js" autostart="false"></script>
+</body>
+</html>

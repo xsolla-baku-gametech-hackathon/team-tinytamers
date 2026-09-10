@@ -1,0 +1,1922 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap">
+  <style>
+    /* Otaq · Yuxu (işıq sönüb) — pet yatır, otaq gecəyə keçir.
+       Aşağıdakı qaydalar tətbiqin app.css/pet.css-indən OLDUĞU KİMİ köçürülüb
+       (əl ilə yazılmayıb). Tətbiqin həmin bölmələri dəyişəndə bu artboard da
+       yenidən qurulmalıdır — kanvas kodu güzgüləyir. */
+    body {
+      margin: 0;
+      font-family: 'Nunito', ui-rounded, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* theme.css-in element sıfırlamaları: onsuz düymələr brauzerin öz çərçivəsi
+       ilə çıxır (məsələn oyun avtomatının arxasında ağ qutu). */
+    *,
+    *::before,
+    *::after { box-sizing: border-box; }
+
+    button {
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      border: none;
+      background: none;
+      padding: 0;
+    }
+
+    img,
+    svg { max-width: 100%; display: block; }
+
+    :root {
+        /* Brend */
+        --pp-primary: #6F5AD8;
+        --pp-primary-dark: #54419E;
+        --pp-primary-soft: #E9E4F7;
+    
+        /* ---- Üç rəng ailəsi ----
+         * Hər ailənin bir işi var, ona görə oxumağı hələ yaxşı bacarmayan uşaq da
+         * ekranda nə baş verdiyini rəngdən anlayır:
+         *
+         *   bənövşəyi — ağıl      : brend, öyrənmə, gem, əsas düymələr
+         *   yaşıl     — canlılıq  : pet, dünya, doğru cavab, sağlam statlar
+         *   narıncı   — enerji    : ulduz, seriya, mini oyunlar, kəşf
+         *
+         * Səhv rəngi qəsdən moruğa çalır. Narıncı "qazandın" deməkdir, ona görə
+         * səhv ondan aydın seçilməlidir: köhnə mərcan (#FF7A6B) narıncıya cəmi
+         * ~14° yaxın idi, moruq isə ~45° aralıdır.
+         */
+    
+        /* Yaşıl — canlılıq */
+        --pp-life: #35A57A;
+        --pp-life-deep: #156F4F;   /* ağ mətn daşıya bilən yeganə yaşıl — 6.1:1 */
+        --pp-life-soft: #DCEEE4;
+        --pp-on-life: #06301D;     /* parlaq yaşıl dolgunun üstündəki mətn */
+    
+        /* Narıncı — enerji */
+        --pp-spark: #E89A3C;
+        --pp-spark-deep: #93540E;  /* açıq fonda narıncı mətn — 5.0:1 */
+        --pp-spark-soft: #FAEBD6;
+        --pp-on-spark: #3A1D00;    /* narıncının üstündə ağ mətn 2.3:1 verir — istifadə olunmur */
+    
+        /* Moruq — yalnız səhv */
+        --pp-alert: #B7304C;
+        --pp-alert-soft: #F7E1E5;
+        --pp-on-alert: #FFFFFF;
+    
+        /* Səthlər */
+        --pp-bg: #F0EBE0;
+        --pp-card: #FBF7EF;
+        --pp-card-soft: #F6F1E6;
+        --pp-overlay: rgba(38, 30, 18, 0.58);
+    
+        /* Mətn */
+        --pp-ink: #241E38;
+        --pp-ink-soft: #5C5470;
+        --pp-ink-muted: #8A82A0;
+        --pp-on-primary: #FFFFFF;
+    
+        /* Sərhəd */
+        --pp-border: #E4DCCE;
+        --pp-track: #E8E2D6;
+    
+        /* Kölgə — rəngli, "oyuncaq" hissi verir */
+        --pp-shadow-sm: 0 2px 8px rgba(96, 74, 46, 0.10);
+        --pp-shadow-md: 0 8px 24px rgba(96, 74, 46, 0.13);
+        --pp-shadow-lg: 0 16px 40px rgba(96, 74, 46, 0.18);
+    
+        /* ---- Səth resepti ----
+         * Mobil oyun düymələri düz dolğu deyil: yuxarısı işıqlı ("lift"), altında
+         * isə bir neçə piksellik tünd kənar ("edge") var — həmin kənar düymənin
+         * qalınlığıdır və basılanda azalır, ona görə element fiziki hiss olunur.
+         * Yeni rəng ailəsi əlavə olunmur; hər dəyər mövcud ailənin çalarıdır.
+         */
+        --pp-primary-lift: #8A78E4;
+        --pp-primary-edge: #4E3BA8;
+        --pp-life-lift: #4FBB91;
+        --pp-life-edge: #156F4F;
+        --pp-spark-lift: #F2B166;
+        --pp-spark-edge: #93540E;
+        --pp-alert-lift: #C94764;
+        --pp-alert-edge: #8A2038;
+    
+        /* Neytral səthlərin (kart, kapsul, dok) kənarı — rəngsiz, sadəcə dərinlik. */
+        --pp-edge-neutral: rgba(96, 74, 46, 0.20);
+    
+        /* Üst kənardakı işıq zolağı — plastik parıltı hissi. */
+        --pp-gloss: inset 0 2px 0 rgba(255, 255, 255, 0.40);
+    
+        /* Forma */
+        --pp-radius-sm: 14px;
+        --pp-radius: 22px;
+        --pp-radius-lg: 30px;
+        --pp-radius-pill: 999px;
+    
+        /* Ölçü */
+        --pp-tap: 56px;
+        --pp-gutter: 18px;
+    
+        /* Cihaz safe-area */
+        --pp-safe-top: env(safe-area-inset-top, 0px);
+        --pp-safe-bottom: env(safe-area-inset-bottom, 0px);
+    
+        color-scheme: light;
+    }
+    }
+
+    .pp-root {
+      --pp-safe-top: 0px;
+      --pp-safe-bottom: 0px;
+    }
+
+    /* ==================== PET AVATAR ====================
+     * Pet tamamilə inline SVG-dir — xarici asset yoxdur, ölçüdən asılı olmayaraq
+     * kəskin görünür və mərhələ/əhval dəyişəndə anında yenilənir.
+     * ==================================================== */
+    
+    .pet {
+        width: min(210px, 62vw);
+        height: auto;
+        transform-origin: 50% 92%;
+        animation: pet-breathe 3.4s ease-in-out infinite;
+        filter: drop-shadow(0 10px 14px rgba(60, 40, 20, 0.22));
+    }
+    
+    .pet--excited { animation: pet-hop 900ms cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
+    .pet--sad,
+    .pet--sleepy { animation: pet-slow-breathe 5s ease-in-out infinite; }
+    .pet--hungry { animation: pet-wobble 2.4s ease-in-out infinite; }
+    
+    /* Quyruq həmişə yüngülcə tərpənir — pet "canlı" görünsün. */
+    .pet__tail {
+        transform-origin: 68% 72%;
+        animation: pet-wag 1.9s ease-in-out infinite;
+    }
+    
+    .pet--excited .pet__tail { animation-duration: 700ms; }
+    .pet--sad .pet__tail,
+    .pet--sleepy .pet__tail { animation-duration: 4s; }
+    
+    /* Göz qırpma — nadir və qısa, diqqəti yayındırmır. */
+    .pet__eyelid {
+        transform-origin: center;
+        animation: pet-blink 5.5s ease-in-out infinite;
+    }
+    
+    .pet--sleepy .pet__eyelid { animation: none; }
+    
+    .pet__zzz {
+        animation: pet-float 2.6s ease-in-out infinite;
+    }
+    
+    .pet__sparkle {
+        transform-origin: center;
+        animation: pet-sparkle 1.8s ease-in-out infinite;
+    }
+    
+    .pet-stage-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        padding: 5px 14px;
+        border-radius: var(--pp-radius-pill);
+        background: rgba(255, 255, 255, 0.85);
+        color: #3B2A66;
+        font-size: 12px;
+        font-weight: 800;
+    }
+    
+    /* Yaş nişanın içində ayrıca kapsuldur: mərhələ adı ilə rəqəm bir-birinə
+       qarışmasın deyə. */
+    .pet-stage-label__age {
+        padding: 2px 8px;
+        border-radius: var(--pp-radius-pill);
+        background: var(--pp-primary-soft);
+        color: var(--pp-primary-dark);
+        font-size: 11px;
+        font-weight: 900;
+    }
+    
+    @keyframes pet-breathe {
+        0%, 100% { transform: scaleY(1) scaleX(1); }
+        50% { transform: scaleY(1.025) scaleX(0.99); }
+    }
+    
+    @keyframes pet-slow-breathe {
+        0%, 100% { transform: scaleY(1) translateY(0); }
+        50% { transform: scaleY(0.985) translateY(3px); }
+    }
+    
+    @keyframes pet-hop {
+        0%, 100% { transform: translateY(0) scaleY(1); }
+        35% { transform: translateY(-14px) scaleY(1.04); }
+        55% { transform: translateY(0) scaleY(0.94); }
+        70% { transform: translateY(0) scaleY(1); }
+    }
+    
+    @keyframes pet-wobble {
+        0%, 100% { transform: rotate(0deg); }
+        30% { transform: rotate(-2.5deg); }
+        70% { transform: rotate(2.5deg); }
+    }
+    
+    @keyframes pet-wag {
+        0%, 100% { transform: rotate(-7deg); }
+        50% { transform: rotate(9deg); }
+    }
+    
+    @keyframes pet-blink {
+        0%, 92%, 100% { transform: scaleY(0); }
+        94%, 97% { transform: scaleY(1); }
+    }
+    
+    @keyframes pet-float {
+        0% { opacity: 0; transform: translate(0, 0) scale(0.8); }
+        40% { opacity: 1; }
+        100% { opacity: 0; transform: translate(10px, -22px) scale(1.1); }
+    }
+    
+    @keyframes pet-sparkle {
+        0%, 100% { opacity: 0.25; transform: scale(0.8) rotate(0deg); }
+        50% { opacity: 1; transform: scale(1.15) rotate(20deg); }
+    }
+    
+    /* Yumurta mərhələsi — hələ "yatır", yalnız yüngül tərpənir. */
+    .pet--egg {
+        animation: pet-egg-rock 3s ease-in-out infinite;
+    }
+    
+    @keyframes pet-egg-rock {
+        0%, 100% { transform: rotate(-3deg); }
+        50% { transform: rotate(3deg); }
+    }
+    
+    /* ---------- Bədənin rəngləri ----------
+       Rəsm bir dənədir, rəng isə növdən gəlir: PetAvatar SVG-nin üstündə
+       --pet-fur / --pet-belly / --pet-inner-ear dəyişənlərini qoyur, ona görə
+       eyni yol dörd növə (tülkü, pişik, əjdaha, dovşan) xidmət edir. */
+    .pet__fur { fill: var(--pet-fur, #F3A05A); }
+    .pet__belly { fill: var(--pet-belly, #FFF3E2); }
+    .pet__inner-ear { fill: var(--pet-inner-ear, #FFD3A8); }
+    
+    /* Kontur bütün mərhələlərdə eyni qalınlıqdadır — kiçik ölçüdə forma
+       yumşalmasın deyə. */
+    .pet__outline {
+        stroke: #2B2140;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    
+    .pet__eye,
+    .pet__nose { fill: #2B2140; }
+    
+    .pet__mouth {
+        fill: none;
+        stroke: #2B2140;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    
+    /* Yumulmuş və gülən gözlər xətdir, dolgu deyil. */
+    .pet__lash {
+        fill: none;
+        stroke: #2B2140;
+        stroke-width: 4;
+        stroke-linecap: round;
+    }
+    
+    /* Tam ekran otaqlarda pet öz qutusunu doldurur. Standart `.pet` eni
+       `min(210px, 62vw)`-dir — səhnə üçün doğrudur, amma otaqda qutunun ölçüsünü
+       səhnə özü seçir (güzgünün qarşısı, vanna, yataq) və pet həmin qutuya
+       oturmalıdır, yoxsa sola sürüşür və ya qutudan daşır. */
+    .bathroom__pet .pet,
+    .bedroom__pet .pet,
+    .closet__pet .pet {
+        width: 100%;
+        max-width: none;
+    }
+    
+    /* Növə xas detallar: tülkünün qulaq ucları, pişik və dovşanın bığları.
+       Bunlar tükün rəngindən asılı deyil — həmişə tünd, çünki siluetin oxunması
+       onlardan asılıdır. */
+    .pet__ear-tip { fill: #2B2140; }
+    
+    .pet__whisker {
+        fill: none;
+        stroke: #2B2140;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    
+    /* Yalnız konturla çəkilən formalar (əjdahanın silsiləsi, dovşanın qulaq
+       cizgiləri) və dovşanın ön dişləri. */
+    .pet__line { fill: none; }
+    
+    .pet__tooth {
+        stroke: #2B2140;
+        stroke-width: 1.4;
+        stroke-linejoin: round;
+    }
+    
+
+    .bedroom {
+        --bd-wall-top: #F3E7DA;
+        --bd-wall-bottom: #EADCC8;
+        --bd-wall-pattern: #E9E4F7;
+        --bd-floor-top: #E6CBA4;
+        --bd-floor-bottom: #D9BA8E;
+        --bd-floor-line: #E4DCCE;
+        --bd-trim: #FBF7EF;
+        --bd-trim-edge: #E4DCCE;
+        --bd-window-top: #F3E7DA;
+        --bd-window-bottom: #F2B166;
+        --bd-window-frame: #FBF7EF;
+        --bd-window-hill: #54419E;
+        --bd-rug-top: #E9E4F7;
+        --bd-rug-bottom: #8A78E4;
+        --bd-frame-main: #6F5AD8;
+        --bd-frame-lift: #8A78E4;
+        --bd-cabinet-main: #6F5AD8;
+        --bd-cabinet-lift: #8A78E4;
+        --bd-lamp-shade: #F2B166;
+        --bd-lamp-edge: #E89A3C;
+        --bd-lamp-metal: #5C5470;
+        --bd-shadow-soft: rgba(96,74,46,0.13);
+        --bd-shadow-strong: rgba(96,74,46,0.18);
+        --bd-sleep-color: #E9E4F7;
+        --bd-moonlight: rgba(233,228,247,0.46);
+        --bd-moonlight-clear: rgba(138,120,228,0);
+        /* Yataq otağı da şkaf kimi AYRICA TAM EKRAN otaqdır: statlar, dok və alt
+           naviqasiya yox olur, uşaq otağa girir və işığı söndürüb çıxır. */
+        position: absolute;
+        inset: 0;
+        z-index: 60;
+        overflow: hidden;
+        background-color: var(--bd-wall-top);
+        animation: pp-closet-in 220ms ease-out;
+    }
+    
+    .bedroom--dark {
+        --bd-wall-top: #3A3168;
+        --bd-wall-bottom: #2B2360;
+        --bd-wall-pattern: #54419E;
+        --bd-floor-top: #3E3470;
+        --bd-floor-bottom: #2C2552;
+        --bd-floor-line: #3A3168;
+        --bd-trim: #3A3168;
+        --bd-trim-edge: #5C5470;
+        --bd-window-top: #3A3168;
+        --bd-window-bottom: #2B2360;
+        --bd-window-frame: #5C5470;
+        --bd-window-hill: #241E38;
+        --bd-rug-top: #54419E;
+        --bd-rug-bottom: #6F5AD8;
+        --bd-frame-main: #54419E;
+        --bd-frame-lift: #6F5AD8;
+        --bd-cabinet-main: #54419E;
+        --bd-cabinet-lift: #6F5AD8;
+        --bd-lamp-shade: #3A3168;
+        --bd-lamp-edge: #8A78E4;
+        --bd-lamp-metal: #5C5470;
+        --bd-shadow-soft: rgba(12,8,30,0.45);
+        --bd-shadow-strong: rgba(12,8,30,0.45);
+    }
+    
+    .bedroom,
+    .bedroom *,
+    
+    .bedroom *::before,
+    .bedroom *::after {
+        transition:
+            background-color 800ms ease,
+            background-image 800ms ease,
+            border-color 800ms ease,
+            box-shadow 800ms ease,
+            color 800ms ease,
+            filter 800ms ease,
+            opacity 800ms ease;
+    }
+    
+    .bedroom__wall {
+        position: absolute;
+        z-index: 0;
+        inset: -700px 0 auto;
+        /* Divar yuxarı uzanır: uzun ekranda tavan boşluğu naxışsız qalmasın. */
+        height: 1084px;
+        background: linear-gradient(180deg, var(--bd-wall-top), var(--bd-wall-bottom));
+    }
+    
+    .bedroom__wall-pattern {
+        position: absolute;
+        inset: 0 0 0;
+        background-image:
+            radial-gradient(circle at 8px 8px, var(--bd-wall-pattern) 0 2px, transparent 2.5px),
+            radial-gradient(circle at 29px 29px, var(--bd-wall-pattern) 0 1.5px, transparent 2px);
+        background-size: 38px 38px;
+        opacity: 0.62;
+    }
+    
+    .bedroom__window {
+        position: absolute;
+        z-index: 2;
+        top: 103px;
+        left: 269px;
+        width: 97px;
+        height: 126px;
+        padding: 7px;
+        overflow: hidden;
+        border: 3px solid var(--bd-trim-edge);
+        border-radius: 17px 17px 10px 10px;
+        background: var(--bd-window-frame);
+        box-shadow: 0 7px 0 var(--bd-shadow-soft);
+    }
+    
+    .bedroom__window::before,
+    .bedroom__window::after {
+        content: "";
+        position: absolute;
+        z-index: 6;
+        background: var(--bd-window-frame);
+    }
+    
+    .bedroom__window::before {
+        top: 7px;
+        bottom: 7px;
+        left: 45px;
+        width: 6px;
+    }
+    
+    .bedroom__window::after {
+        top: 58px;
+        right: 7px;
+        left: 7px;
+        height: 6px;
+    }
+    
+    .bedroom__window-view {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        border-radius: 9px 9px 4px 4px;
+        background: linear-gradient(180deg, var(--bd-window-top), var(--bd-window-bottom));
+    }
+    
+    .bedroom__sun,
+    .bedroom__moon {
+        position: absolute;
+        border-radius: 50%;
+    }
+    
+    .bedroom__sun {
+        right: 9px;
+        bottom: 17px;
+        width: 38px;
+        height: 38px;
+        background: #F2B166;
+        box-shadow: 0 0 0 8px rgba(242,177,102,0.34);
+        opacity: 1;
+    }
+    
+    .bedroom__moon {
+        top: 12px;
+        left: 48px;
+        width: 28px;
+        height: 28px;
+        border: 3px solid #E9E4F7;
+        background: #F6F1E6;
+        box-shadow: 0 0 0 6px rgba(233,228,247,0.18);
+        opacity: 0;
+    }
+    
+    .bedroom__moon::before,
+    .bedroom__moon::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        background: #E4DCCE;
+    }
+    
+    .bedroom__moon::before {
+        top: 5px;
+        left: 5px;
+        width: 6px;
+        height: 6px;
+    }
+    
+    .bedroom__moon::after {
+        right: 4px;
+        bottom: 5px;
+        width: 4px;
+        height: 4px;
+    }
+    
+    .bedroom__window-star {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        clip-path: polygon(50% 0, 62% 37%, 100% 50%, 62% 63%, 50% 100%, 38% 63%, 0 50%, 38% 37%);
+        background: #F2B166;
+        opacity: 0;
+    }
+    
+    .bedroom__window-star:nth-of-type(3) {
+        top: 16px;
+        left: 12px;
+    }
+    
+    .bedroom__window-star:nth-of-type(4) {
+        top: 39px;
+        left: 33px;
+        width: 6px;
+        height: 6px;
+    }
+    
+    .bedroom__window-star:nth-of-type(5) {
+        top: 11px;
+        left: 37px;
+        width: 5px;
+        height: 5px;
+    }
+    
+    .bedroom__window-star:nth-of-type(6) {
+        top: 45px;
+        right: 10px;
+        width: 5px;
+        height: 5px;
+    }
+    
+    .bedroom__window-hill {
+        position: absolute;
+        right: -17px;
+        bottom: -17px;
+        width: 78px;
+        height: 54px;
+        border-radius: 70% 0 0;
+        background: var(--bd-window-hill);
+    }
+    
+    .bedroom__window-hill::before {
+        content: "";
+        position: absolute;
+        right: 43px;
+        bottom: 6px;
+        width: 62px;
+        height: 34px;
+        border-radius: 50% 50% 0 0;
+        background: var(--bd-window-hill);
+    }
+    
+    .bedroom--dark .bedroom__sun {
+        opacity: 0;
+    }
+    
+    .bedroom--dark .bedroom__moon,
+    .bedroom--dark .bedroom__window-star {
+        opacity: 1;
+    }
+    
+    .bedroom__clock {
+        position: absolute;
+        z-index: 2;
+        top: 108px;
+        left: 22px;
+        width: 59px;
+        height: 59px;
+        border: 6px solid var(--bd-frame-main);
+        border-radius: 50%;
+        background: #FBF7EF;
+        box-shadow: 0 6px 0 var(--bd-shadow-soft);
+    }
+    
+    .bedroom__clock::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        z-index: 3;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #E89A3C;
+        transform: translate(-50%, -50%);
+    }
+    
+    .bedroom__clock-hand {
+        position: absolute;
+        left: 50%;
+        bottom: 50%;
+        width: 4px;
+        border-radius: 4px;
+        background: #241E38;
+        transform-origin: 50% 100%;
+    }
+    
+    .bedroom__clock-hand--hour {
+        height: 13px;
+        transform: translateX(-50%) rotate(33deg);
+    }
+    
+    .bedroom__clock-hand--minute {
+        height: 18px;
+        transform: translateX(-50%) rotate(122deg);
+    }
+    
+    .bedroom__picture {
+        position: absolute;
+        z-index: 2;
+        top: 101px;
+        left: 108px;
+        width: 86px;
+        height: 73px;
+        padding: 7px;
+        border: 3px solid var(--bd-frame-main);
+        border-radius: 8px;
+        background: var(--bd-frame-lift);
+        box-shadow: 0 7px 0 var(--bd-shadow-soft);
+        transform: rotate(-2deg);
+    }
+    
+    .bedroom__picture-art {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        border-radius: 3px;
+        background: #E9E4F7;
+    }
+    
+    .bedroom__picture-hill {
+        position: absolute;
+        right: -9px;
+        bottom: -13px;
+        width: 72px;
+        height: 45px;
+        border-radius: 60% 0 0;
+        background: #4FBB91;
+    }
+    
+    .bedroom__picture-paw {
+        position: absolute;
+        top: 23px;
+        left: 28px;
+        width: 21px;
+        height: 18px;
+        border-radius: 48% 48% 55% 55%;
+        background: #6F5AD8;
+        transform: rotate(-8deg);
+    }
+    
+    .bedroom__picture-paw::before,
+    .bedroom__picture-paw::after {
+        content: "";
+        position: absolute;
+        top: -10px;
+        width: 8px;
+        height: 10px;
+        border-radius: 50%;
+        background: #6F5AD8;
+    }
+    
+    .bedroom__picture-paw::before {
+        left: 1px;
+        box-shadow: 13px 0 0 #6F5AD8;
+    }
+    
+    .bedroom__picture-paw::after {
+        top: -14px;
+        left: 8px;
+        width: 7px;
+        height: 9px;
+    }
+    
+    .bedroom__shelf {
+        position: absolute;
+        z-index: 2;
+        top: 65px;
+        left: 17px;
+        width: 119px;
+        height: 13px;
+        border: 3px solid #D9BA8E;
+        border-radius: 7px 7px 4px 4px;
+        background: #E6CBA4;
+        box-shadow: 0 5px 0 var(--bd-shadow-soft);
+    }
+    
+    .bedroom__shelf::before {
+        content: "";
+        position: absolute;
+        bottom: 10px;
+        left: 20px;
+        width: 31px;
+        height: 31px;
+        background:
+            radial-gradient(circle at 11px 18px, #241E38 0 1.5px, transparent 2px),
+            radial-gradient(circle at 20px 18px, #241E38 0 1.5px, transparent 2px),
+            radial-gradient(circle at 15.5px 23px, #E89A3C 0 2.5px, transparent 3px),
+            radial-gradient(circle at 6px 6px, #FBF7EF 0 3px, transparent 3.5px),
+            radial-gradient(circle at 6px 6px, #241E38 0 5.5px, transparent 6px),
+            radial-gradient(circle at 25px 6px, #FBF7EF 0 3px, transparent 3.5px),
+            radial-gradient(circle at 25px 6px, #241E38 0 5.5px, transparent 6px),
+            radial-gradient(ellipse at 15.5px 19px, #FBF7EF 0 11px, #241E38 11.5px 13px, transparent 13.5px);
+    }
+    
+    .bedroom__shelf::after {
+        content: "";
+        position: absolute;
+        right: 24px;
+        bottom: 10px;
+        width: 22px;
+        height: 13px;
+        border: 2px solid #241E38;
+        border-radius: 3px;
+        background: #4FBB91;
+        box-shadow:
+            6px -12px 0 -2px #F2B166,
+            6px -12px 0 0 #241E38,
+            -1px -23px 0 -4px #8A78E4,
+            -1px -23px 0 -2px #241E38;
+    }
+    
+    .bedroom__garland {
+        position: absolute;
+        z-index: 2;
+        top: 25px;
+        right: 14px;
+        width: 145px;
+        height: 66px;
+    }
+    
+    .bedroom__garland::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        left: 0;
+        height: 34px;
+        border-bottom: 2px solid #54419E;
+        border-radius: 0 0 50% 50%;
+        opacity: 0.7;
+    }
+    
+    .bedroom__garland::after {
+        content: "\2726";
+        position: absolute;
+        top: 22px;
+        left: 0;
+        color: #F2B166;
+        font: 16px/1 Arial, sans-serif;
+        text-shadow:
+            32px 9px 0 #F2B166,
+            68px 14px 0 #F2B166,
+            104px 9px 0 #F2B166,
+            132px -1px 0 #F2B166;
+        opacity: 0.86;
+    }
+    
+    .bedroom__night-light {
+        position: absolute;
+        z-index: 2;
+        top: 333px;
+        left: 7px;
+        width: 18px;
+        height: 27px;
+        isolation: isolate;
+        border: 2px solid var(--bd-trim-edge);
+        border-radius: 7px 7px 5px 5px;
+        background: #FBF7EF;
+        box-shadow: 0 4px 0 var(--bd-shadow-soft);
+    }
+    
+    .bedroom__night-light::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        inset: -19px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(242,177,102,0.42), rgba(242,177,102,0) 68%);
+        filter: blur(4px);
+        opacity: 0.62;
+    }
+    
+    .bedroom__night-light::after {
+        content: "";
+        position: absolute;
+        right: 3px;
+        bottom: 3px;
+        left: 3px;
+        height: 3px;
+        border-radius: 3px;
+        background: #E4DCCE;
+    }
+    
+    .bedroom__night-light-star {
+        position: absolute;
+        top: 4px;
+        left: 3px;
+        width: 8px;
+        height: 8px;
+        clip-path: polygon(50% 0, 62% 36%, 100% 50%, 62% 64%, 50% 100%, 38% 64%, 0 50%, 38% 36%);
+        background: #F2B166;
+    }
+    
+    .bedroom--dark .bedroom__night-light::before {
+        opacity: 1;
+    }
+    
+    .bedroom__floor {
+        position: absolute;
+        z-index: 1;
+        inset: 384px 0 0;
+        background: linear-gradient(180deg, var(--bd-floor-top), var(--bd-floor-bottom));
+    }
+    
+    .bedroom__floor-planks {
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(96deg, transparent 0 24%, rgba(251,247,239,0.22) 25%, transparent 27% 66%, rgba(228,220,206,0.24) 67%, transparent 69%) 0 0 / 184px 45px;
+        opacity: 0.52;
+    }
+    
+    .bedroom__floor-planks::before,
+    .bedroom__floor-planks::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+    }
+    
+    .bedroom__floor-planks::before {
+        background: repeating-linear-gradient(to bottom, transparent 0 43px, var(--bd-floor-line) 43px 45px);
+    }
+    
+    .bedroom__floor-planks::after {
+        background:
+            linear-gradient(90deg, transparent 0 116px, var(--bd-floor-line) 116px 118px) 0 0 / 118px 43px repeat-x,
+            linear-gradient(90deg, transparent 0 116px, var(--bd-floor-line) 116px 118px) 59px 45px / 118px 43px repeat-x,
+            linear-gradient(90deg, transparent 0 116px, var(--bd-floor-line) 116px 118px) 18px 90px / 118px 43px repeat-x,
+            linear-gradient(90deg, transparent 0 116px, var(--bd-floor-line) 116px 118px) 78px 135px / 118px 43px repeat-x,
+            linear-gradient(90deg, transparent 0 116px, var(--bd-floor-line) 116px 118px) 34px 180px / 118px 43px repeat-x,
+            linear-gradient(90deg, transparent 0 116px, var(--bd-floor-line) 116px 118px) 92px 225px / 118px 43px repeat-x;
+    }
+    
+    .bedroom__skirting {
+        position: absolute;
+        z-index: 3;
+        top: 372px;
+        right: 0;
+        left: 0;
+        height: 17px;
+        border-top: 3px solid var(--bd-trim-edge);
+        border-bottom: 3px solid var(--bd-trim-edge);
+        background: var(--bd-trim);
+        box-shadow: 0 5px 0 var(--bd-shadow-soft);
+    }
+    
+    .bedroom__rug {
+        position: absolute;
+        z-index: 3;
+        top: 459px;
+        left: 53px;
+        width: 274px;
+        height: 101px;
+        border: 3px solid var(--bd-trim-edge);
+        border-radius: 50%;
+        background: radial-gradient(ellipse at 50% 31%, var(--bd-rug-top), var(--bd-rug-bottom) 74%);
+        box-shadow: 0 10px 18px var(--bd-shadow-soft), inset 0 -8px 14px var(--bd-shadow-soft);
+        opacity: 0.72;
+    }
+    
+    .bedroom__rug::before {
+        content: "";
+        position: absolute;
+        inset: 14px 27px;
+        border: 2px solid rgba(251,247,239,0.42);
+        border-radius: 50%;
+    }
+    
+    .bedroom__moonlight {
+        position: absolute;
+        z-index: 4;
+        top: 398px;
+        left: 30px;
+        width: 330px;
+        height: 108px;
+        border-radius: 50%;
+        background: radial-gradient(ellipse, var(--bd-moonlight), var(--bd-moonlight-clear) 72%);
+        filter: blur(3px);
+        opacity: 0;
+        transform: rotate(-8deg);
+    }
+    
+    .bedroom--dark .bedroom__moonlight {
+        opacity: 0.82;
+    }
+    
+    .bedroom__bed {
+        position: absolute;
+        z-index: 7;
+        top: 252px;
+        left: 25px;
+        width: 300px;
+        height: 268px;
+    }
+    
+    .bedroom__bed-shadow {
+        position: absolute;
+        z-index: 0;
+        top: 250px;
+        left: 8px;
+        width: 292px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--bd-shadow-strong);
+        box-shadow: 0 5px 12px var(--bd-shadow-soft);
+        filter: blur(6px);
+    }
+    
+    .bedroom__headboard {
+        position: absolute;
+        z-index: 1;
+        top: 18px;
+        left: 0;
+        width: 76px;
+        height: 220px;
+    }
+    
+    .bedroom__headboard-panel {
+        position: absolute;
+        top: 28px;
+        left: 10px;
+        width: 56px;
+        height: 155px;
+        border: 4px solid var(--bd-frame-main);
+        border-radius: 13px 13px 6px 6px;
+        background: linear-gradient(90deg, var(--bd-frame-lift), var(--bd-frame-main));
+        box-shadow: inset 0 -8px 0 var(--bd-shadow-soft);
+    }
+    
+    .bedroom__headboard-panel::before {
+        content: "";
+        position: absolute;
+        inset: 17px 12px;
+        border: 3px solid var(--bd-frame-lift);
+        border-radius: 20px 20px 8px 8px;
+    }
+    
+    .bedroom__headboard-post {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 13px;
+        border: 3px solid var(--bd-frame-main);
+        border-radius: 7px 7px 4px 4px;
+        background: var(--bd-frame-lift);
+        box-shadow: 0 6px 0 var(--bd-shadow-soft);
+    }
+    
+    .bedroom__headboard-post:first-of-type {
+        left: 0;
+    }
+    
+    .bedroom__headboard-post:last-of-type {
+        right: 0;
+    }
+    
+    .bedroom__headboard-post::before {
+        content: "";
+        position: absolute;
+        top: -9px;
+        left: 50%;
+        width: 17px;
+        height: 12px;
+        border: 3px solid var(--bd-frame-main);
+        border-radius: 50%;
+        background: var(--bd-frame-lift);
+        transform: translateX(-50%);
+    }
+    
+    .bedroom__mattress {
+        position: absolute;
+        z-index: 3;
+        top: 75px;
+        left: 30px;
+        width: 270px;
+        height: 152px;
+        overflow: hidden;
+        border: 4px solid #E4DCCE;
+        border-radius: 19px 17px 13px 16px;
+        background: #FBF7EF;
+        box-shadow: 0 7px 0 #E4DCCE, 0 14px 16px var(--bd-shadow-strong);
+    }
+    
+    .bedroom__mattress::before {
+        content: "";
+        position: absolute;
+        z-index: 4;
+        top: 0;
+        right: 12px;
+        left: 12px;
+        height: 7px;
+        border-radius: 0 0 50% 50%;
+        background: linear-gradient(90deg, rgba(251,247,239,0), #FBF7EF 22% 78%, rgba(251,247,239,0));
+        opacity: 0.92;
+    }
+    
+    .bedroom__mattress::after {
+        content: "";
+        position: absolute;
+        z-index: 4;
+        top: 13px;
+        right: 3px;
+        width: 7px;
+        height: 96px;
+        border-radius: 50%;
+        background: linear-gradient(180deg, rgba(251,247,239,0.76), rgba(233,228,247,0));
+    }
+    
+    .bedroom__sheet-surface {
+        position: absolute;
+        z-index: 1;
+        inset: 0 0 auto;
+        height: 118px;
+        background:
+            radial-gradient(ellipse at 24% 12%, #FBF7EF 0 34%, rgba(251,247,239,0) 58%),
+            linear-gradient(180deg, #FBF7EF, #E9E4F7);
+    }
+    
+    .bedroom__sheet-edge {
+        position: absolute;
+        z-index: 2;
+        inset: 118px 0 0;
+        border-top: 5px solid #FBF7EF;
+        background:
+            linear-gradient(90deg, rgba(138,120,228,0.12), rgba(251,247,239,0.56) 16%, rgba(251,247,239,0) 52%, rgba(84,65,158,0.15)),
+            linear-gradient(180deg, #E9E4F7, #E4DCCE);
+        box-shadow: inset 0 -6px 0 rgba(84,65,158,0.12);
+    }
+    
+    .bedroom__pillow {
+        position: absolute;
+        z-index: 4;
+        top: 92px;
+        left: 8px;
+        width: 60px;
+        height: 58px;
+        border: 4px solid #E4DCCE;
+        border-radius: 45% 39% 44% 36%;
+        background: #FBF7EF;
+        box-shadow: inset -7px -7px 0 #E9E4F7, 0 5px 9px var(--bd-shadow-soft);
+        transform: rotate(-5deg) translateY(2px);
+    }
+    
+    .bedroom__pillow::before {
+        content: "";
+        position: absolute;
+        inset: 9px 10px;
+        border: 2px solid #E4DCCE;
+        border-radius: inherit;
+    }
+    
+    .bedroom__pillow::after {
+        content: "";
+        position: absolute;
+        right: 9px;
+        bottom: 5px;
+        left: 9px;
+        height: 7px;
+        border-radius: 50%;
+        background: rgba(84,65,158,0.12);
+        filter: blur(2px);
+    }
+    
+    .bedroom__blanket {
+        position: absolute;
+        z-index: 6;
+        top: 201px;
+        left: 111px;
+        width: 189px;
+        height: 57px;
+    }
+    
+    .bedroom__blanket-body {
+        position: absolute;
+        inset: 14px 0 0;
+        border: 4px solid #54419E;
+        border-radius: 0 0 17px 10px;
+        background:
+            linear-gradient(102deg, transparent 0 25%, rgba(233,228,247,0.24) 26% 28%, transparent 30% 52%, rgba(84,65,158,0.24) 53% 55%, transparent 57%),
+            linear-gradient(180deg, #8A78E4, #6F5AD8);
+        box-shadow: inset 0 -10px 0 var(--bd-shadow-soft);
+    }
+    
+    .bedroom__blanket-body::before {
+        content: "";
+        position: absolute;
+        top: 4px;
+        left: 63px;
+        width: 38px;
+        height: 27px;
+        border-left: 3px solid rgba(84,65,158,0.38);
+        border-radius: 50%;
+        transform: rotate(-12deg);
+    }
+    
+    .bedroom__blanket-body::after {
+        content: "";
+        position: absolute;
+        right: 22px;
+        bottom: 10px;
+        width: 44px;
+        height: 7px;
+        border-radius: 50%;
+        background: #54419E;
+        filter: blur(1px);
+        opacity: 0.38;
+    }
+    
+    .bedroom__blanket-fold {
+        position: absolute;
+        z-index: 2;
+        inset: 0 0 auto;
+        height: 19px;
+        border: 4px solid #54419E;
+        border-radius: 11px 11px 7px 7px;
+        background:
+            radial-gradient(ellipse at 28% 100%, rgba(84,65,158,0.24), rgba(84,65,158,0) 35%),
+            radial-gradient(ellipse at 71% 0, rgba(251,247,239,0.62), rgba(251,247,239,0) 34%),
+            linear-gradient(180deg, #E9E4F7, #8A78E4);
+        box-shadow: 0 5px 0 var(--bd-shadow-soft);
+    }
+    
+    .bedroom__blanket-fold::before,
+    .bedroom__blanket-fold::after {
+        content: "";
+        position: absolute;
+        top: 4px;
+        width: 31px;
+        height: 7px;
+        border-top: 2px solid rgba(84,65,158,0.38);
+        border-radius: 50%;
+    }
+    
+    .bedroom__blanket-fold::before {
+        left: 35px;
+        transform: rotate(8deg);
+    }
+    
+    .bedroom__blanket-fold::after {
+        right: 42px;
+        transform: rotate(-7deg);
+    }
+    
+    .bedroom__bed-front {
+        position: absolute;
+        z-index: 2;
+        top: 224px;
+        left: 30px;
+        width: 270px;
+        height: 31px;
+        border: 4px solid var(--bd-frame-main);
+        border-radius: 5px 5px 11px 11px;
+        background: linear-gradient(180deg, var(--bd-frame-lift), var(--bd-frame-main));
+        box-shadow: inset 0 5px 0 rgba(233,228,247,0.24), inset 0 -8px 0 #54419E, 0 8px 11px var(--bd-shadow-soft);
+    }
+    
+    .bedroom__bed-footpost {
+        position: absolute;
+        z-index: 7;
+        top: 190px;
+        right: -5px;
+        width: 15px;
+        height: 68px;
+        border: 3px solid var(--bd-frame-main);
+        border-radius: 8px 8px 5px 5px;
+        background: var(--bd-frame-lift);
+    }
+    
+    .bedroom__bed-footpost::before {
+        content: "";
+        position: absolute;
+        top: -8px;
+        left: 50%;
+        width: 18px;
+        height: 11px;
+        border: 3px solid var(--bd-frame-main);
+        border-radius: 50%;
+        background: var(--bd-frame-lift);
+        transform: translateX(-50%);
+    }
+    
+    .bedroom__bed-leg {
+        position: absolute;
+        z-index: 1;
+        top: 250px;
+        width: 19px;
+        height: 16px;
+        border: 3px solid var(--bd-frame-main);
+        border-radius: 0 0 7px 7px;
+        background: var(--bd-frame-main);
+    }
+    
+    .bedroom__bed-leg--left {
+        left: 47px;
+    }
+    
+    .bedroom__bed-leg--right {
+        right: 17px;
+    }
+    
+    .bedroom__nightstand {
+        position: absolute;
+        z-index: 8;
+        top: 360px;
+        left: 313px;
+        width: 65px;
+        height: 137px;
+    }
+    
+    .bedroom__nightstand-top {
+        position: absolute;
+        z-index: 3;
+        top: 0;
+        left: -4px;
+        width: 73px;
+        height: 17px;
+        border: 3px solid var(--bd-frame-main);
+        border-radius: 9px;
+        background: var(--bd-cabinet-lift);
+        box-shadow: 0 6px 0 var(--bd-shadow-soft);
+    }
+    
+    .bedroom__nightstand-body {
+        position: absolute;
+        top: 11px;
+        left: 2px;
+        width: 61px;
+        height: 98px;
+        border: 4px solid var(--bd-frame-main);
+        border-radius: 5px 5px 10px 10px;
+        background: linear-gradient(90deg, var(--bd-cabinet-lift), var(--bd-cabinet-main));
+        box-shadow: inset 0 -8px 0 var(--bd-shadow-soft);
+    }
+    
+    .bedroom__nightstand-drawer {
+        position: absolute;
+        top: 28px;
+        left: 10px;
+        width: 41px;
+        height: 29px;
+        border: 3px solid var(--bd-frame-main);
+        border-radius: 7px;
+        background: var(--bd-cabinet-lift);
+    }
+    
+    .bedroom__nightstand-drawer::after {
+        content: "";
+        position: absolute;
+        bottom: 5px;
+        left: 50%;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #F2B166;
+        transform: translateX(-50%);
+    }
+    
+    .bedroom__nightstand-leg {
+        position: absolute;
+        z-index: 1;
+        top: 104px;
+        width: 13px;
+        height: 27px;
+        border-radius: 0 0 6px 6px;
+        background: var(--bd-frame-main);
+    }
+    
+    .bedroom__nightstand-leg:first-of-type {
+        left: 8px;
+    }
+    
+    .bedroom__nightstand-leg:last-of-type {
+        right: 8px;
+    }
+    
+    .bedroom__lamp {
+        position: absolute;
+        z-index: 10;
+        top: 223px;
+        left: 307px;
+        width: 71px;
+        height: 139px;
+    }
+    
+    .bedroom__lamp-glow {
+        position: absolute;
+        z-index: -1;
+        top: 28px;
+        left: -244px;
+        width: 287px;
+        height: 236px;
+        clip-path: none;
+        border-radius: 46% 54% 57% 43% / 20% 25% 75% 80%;
+        background: radial-gradient(ellipse at 94% 4%, rgba(242,177,102,0.5) 0, rgba(242,177,102,0.29) 25%, rgba(232,154,60,0.13) 49%, rgba(242,177,102,0) 76%);
+        filter: blur(13px);
+        opacity: 0.84;
+        pointer-events: none;
+        transform: rotate(-5deg);
+        transform-origin: 100% 0;
+    }
+    
+    .bedroom__lamp-glow::before {
+        content: "";
+        position: absolute;
+        top: 51px;
+        right: -5px;
+        width: 102px;
+        height: 132px;
+        border-radius: 50%;
+        background: radial-gradient(ellipse at 72% 15%, rgba(242,177,102,0.34), rgba(232,154,60,0.12) 44%, rgba(242,177,102,0) 73%);
+        filter: blur(8px);
+    }
+    
+    .bedroom__lamp-glow::after {
+        content: "";
+        position: absolute;
+        right: 5px;
+        bottom: 13px;
+        width: 238px;
+        height: 61px;
+        border-radius: 50%;
+        background: radial-gradient(ellipse, rgba(242,177,102,0.24), rgba(232,154,60,0.1) 48%, rgba(242,177,102,0) 74%);
+        filter: blur(9px);
+    }
+    
+    .bedroom__lamp-shade {
+        position: absolute;
+        z-index: 4;
+        top: 0;
+        left: 0;
+        width: 71px;
+        height: 49px;
+        clip-path: polygon(20% 0, 80% 0, 100% 100%, 0 100%);
+        border: 4px solid var(--bd-lamp-edge);
+        background: var(--bd-lamp-shade);
+        filter: drop-shadow(0 6px 0 var(--bd-shadow-soft));
+    }
+    
+    .bedroom__lamp-shade::after {
+        content: "";
+        position: absolute;
+        right: 6px;
+        bottom: 5px;
+        left: 6px;
+        height: 7px;
+        border-radius: 50%;
+        background: #E89A3C;
+        opacity: 0.7;
+    }
+    
+    .bedroom__lamp-stem {
+        position: absolute;
+        z-index: 2;
+        top: 44px;
+        left: 32px;
+        width: 8px;
+        height: 65px;
+        border: 2px solid #241E38;
+        border-radius: 6px;
+        background: var(--bd-lamp-metal);
+    }
+    
+    .bedroom__lamp-pull {
+        position: absolute;
+        z-index: 5;
+        top: 41px;
+        right: 8px;
+        width: 4px;
+        height: 31px;
+        border-radius: 3px;
+        background: #5C5470;
+    }
+    
+    .bedroom__lamp-pull::after {
+        content: "";
+        position: absolute;
+        bottom: -9px;
+        left: 50%;
+        width: 13px;
+        height: 13px;
+        border: 3px solid #241E38;
+        border-radius: 50%;
+        background: #E89A3C;
+        transform: translateX(-50%);
+    }
+    
+    .bedroom__lamp-base {
+        position: absolute;
+        z-index: 4;
+        top: 101px;
+        left: 13px;
+        width: 46px;
+        height: 31px;
+        border: 4px solid #241E38;
+        border-radius: 50% 50% 12px 12px;
+        background: var(--bd-cabinet-lift);
+        box-shadow: 0 7px 0 var(--bd-shadow-soft);
+    }
+    
+    .bedroom__lamp-base::after {
+        content: "";
+        position: absolute;
+        right: -8px;
+        bottom: -8px;
+        left: -8px;
+        height: 14px;
+        border: 4px solid #241E38;
+        border-radius: 50%;
+        background: var(--bd-cabinet-main);
+    }
+    
+    .bedroom--dark .bedroom__lamp-glow {
+        opacity: 0;
+    }
+    
+    .bedroom--dark .bedroom__lamp-shade {
+        filter: drop-shadow(0 2px 0 #5C5470);
+    }
+    
+    .bedroom--dark .bedroom__lamp-shade::after {
+        background: #8A78E4;
+        opacity: 0.28;
+    }
+    
+    .bedroom__toy-chest {
+        position: absolute;
+        z-index: 9;
+        top: 433px;
+        left: 7px;
+        width: 91px;
+        height: 69px;
+    }
+    
+    .bedroom__toy-chest-lid {
+        position: absolute;
+        z-index: 2;
+        top: 0;
+        left: -3px;
+        width: 97px;
+        height: 22px;
+        border: 4px solid #241E38;
+        border-radius: 14px 14px 6px 6px;
+        background: #4FBB91;
+        box-shadow: 0 6px 0 var(--bd-shadow-soft);
+    }
+    
+    .bedroom__toy-chest-body {
+        position: absolute;
+        top: 15px;
+        left: 2px;
+        width: 87px;
+        height: 52px;
+        border: 4px solid #241E38;
+        border-radius: 4px 4px 10px 10px;
+        background: linear-gradient(90deg, #4FBB91, #35A57A);
+        box-shadow: inset 0 -8px 0 var(--bd-shadow-soft);
+    }
+    
+    .bedroom__toy-chest-lock {
+        position: absolute;
+        z-index: 4;
+        top: 18px;
+        left: 37px;
+        width: 18px;
+        height: 22px;
+        border: 3px solid #241E38;
+        border-radius: 4px 4px 7px 7px;
+        background: #F2B166;
+    }
+    
+    .bedroom__slippers {
+        position: absolute;
+        z-index: 11;
+        top: 489px;
+        left: 104px;
+        width: 87px;
+        height: 27px;
+    }
+    
+    .bedroom__slipper {
+        position: absolute;
+        top: 2px;
+        width: 39px;
+        height: 19px;
+        border: 3px solid #6F5AD8;
+        border-radius: 60% 48% 55% 45%;
+        background: #E9E4F7;
+        box-shadow: 0 5px 0 var(--bd-shadow-soft);
+        transform: rotate(8deg);
+    }
+    
+    .bedroom__slipper::before {
+        content: "";
+        position: absolute;
+        top: -7px;
+        left: 8px;
+        width: 20px;
+        height: 13px;
+        border: 3px solid #6F5AD8;
+        border-bottom: 0;
+        border-radius: 50% 50% 0 0;
+        background: #8A78E4;
+    }
+    
+    .bedroom__slipper:first-child {
+        left: 0;
+    }
+    
+    .bedroom__slipper:last-child {
+        right: 0;
+        transform: rotate(-6deg);
+    }
+    
+    .bedroom__sleep-mark {
+        position: absolute;
+        z-index: 12;
+        width: 15px;
+        height: 15px;
+        opacity: 0;
+    }
+    
+    .bedroom__sleep-mark::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        clip-path: polygon(0 0, 100% 0, 100% 20%, 30% 80%, 100% 80%, 100% 100%, 0 100%, 0 80%, 70% 20%, 0 20%);
+        background: var(--bd-sleep-color);
+    }
+    
+    .bedroom__sleep-mark--one {
+        top: 306px;
+        left: 119px;
+        width: 13px;
+        height: 13px;
+    }
+    
+    .bedroom__sleep-mark--two {
+        top: 278px;
+        left: 144px;
+        width: 17px;
+        height: 17px;
+    }
+    
+    .bedroom__sleep-mark--three {
+        top: 247px;
+        left: 174px;
+        width: 21px;
+        height: 21px;
+    }
+    
+    .bedroom--dark .bedroom__sleep-mark {
+        animation: bed-dream-rise 3.2s ease-in-out infinite;
+    }
+    
+    .bedroom--dark .bedroom__sleep-mark--one {
+        animation-delay: -0.4s;
+    }
+    
+    .bedroom--dark .bedroom__sleep-mark--two {
+        animation-delay: -1.35s;
+    }
+    
+    .bedroom--dark .bedroom__sleep-mark--three {
+        animation-delay: -2.3s;
+    }
+    
+    @keyframes bed-dream-rise {
+        0% {
+            opacity: 0.12;
+            transform: translateY(8px) scale(0.82);
+        }
+        38% {
+            opacity: 0.88;
+        }
+        72% {
+            opacity: 0.64;
+        }
+        100% {
+            opacity: 0;
+            transform: translateY(-18px) scale(1.08);
+        }
+    }
+    
+    .bedroom--dark .bedroom__window-star {
+        animation: bed-star-shimmer 2.6s ease-in-out infinite alternate;
+    }
+    
+    .bedroom--dark .bedroom__window-star:nth-of-type(even) {
+        animation-delay: -1.1s;
+    }
+    
+    @keyframes bed-star-shimmer {
+        from {
+            opacity: 0.42;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    
+    .bedroom__room {
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        width: 390px;
+        height: 620px;
+        /* Miqyas JS-dən gəlir (petCare.js → fitRooms): otaq ekranı doldurur,
+           nisbət qorunur, artıq hissə kəsilir. Origin aşağıdadır ki, döşəmə
+           həmişə ekranın altında qalsın. */
+        transform: translateX(-50%) scale(var(--room-scale, 1));
+        transform-origin: bottom center;
+    }
+    
+    .bedroom__decor {
+        position: absolute;
+        inset: 0;
+        isolation: isolate;
+        z-index: 0;
+    }
+    
+    .bedroom__pet {
+        position: absolute;
+        left: 96px;
+        bottom: 165px;
+        width: 190px;
+        z-index: 2;
+        transform: translate(-8px, 150px) scale(1.16);
+        transition: transform 640ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    
+    .bedroom__pet--in-bed { transform: none; }
+    
+    .bedroom__quilt {
+        position: absolute;
+        left: 40px;
+        bottom: 128px;
+        width: 270px;
+        height: 78px;
+        z-index: 3;
+        border-radius: 26px 26px 14px 14px;
+        background: linear-gradient(180deg, var(--pp-primary-lift) 0%, var(--pp-primary) 62%, var(--pp-primary-dark) 100%);
+        box-shadow: 0 -3px 0 rgba(255, 255, 255, 0.16), 0 10px 22px rgba(12, 8, 30, 0.28);
+    }
+    
+    .bedroom__quilt::before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        top: -9px;
+        height: 26px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #FBF7EF 0%, #EFE9DC 100%);
+        box-shadow: 0 3px 0 rgba(96, 74, 46, 0.10);
+    }
+    
+    .bedroom__lampbtn {
+        position: absolute;
+        left: 300px;
+        bottom: 250px;
+        width: 86px;
+        height: 155px;
+        z-index: 4;
+        border-radius: 20px;
+        transition: transform 140ms ease;
+    }
+    
+    .bedroom__lampbtn:active { transform: scale(0.94); }
+    
+    .bedroom__lampbtn::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 22px;
+        width: 86px;
+        height: 86px;
+        margin-left: -43px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(242, 177, 102, 0.5) 0%, rgba(242, 177, 102, 0.18) 45%, rgba(242, 177, 102, 0) 72%);
+        animation: bed-lamp-hint 1.9s ease-in-out infinite;
+    }
+    
+    .bedroom--dark .bedroom__lampbtn::after { display: none; }
+    
+    @keyframes bed-lamp-hint {
+        0%, 100% { opacity: 0.25; transform: scale(0.98); }
+        50% { opacity: 0.9; transform: scale(1.02); }
+    }
+    
+    .bedroom__bar {
+        position: absolute;
+        top: calc(12px + var(--pp-safe-top));
+        left: var(--pp-gutter);
+        z-index: 5;
+    }
+    
+    .bedroom__hint {
+        position: absolute;
+        left: 50%;
+        bottom: calc(18px + var(--pp-safe-bottom));
+        transform: translateX(-50%);
+        z-index: 5;
+        max-width: 86%;
+        padding: 11px 18px;
+        border-radius: var(--pp-radius-pill);
+        background: var(--pp-card);
+        color: var(--pp-ink);
+        font-size: 13.5px;
+        font-weight: 800;
+        text-align: center;
+        box-shadow: var(--pp-shadow-md);
+    }
+    
+    .bedroom--dark .bedroom__hint {
+        background: rgba(58, 49, 104, 0.92);
+        color: #EFEAFF;
+    }
+    
+    @keyframes pp-closet-in {
+        from { opacity: 0; transform: scale(1.03); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    
+    .overlay-close {
+        display: grid;
+        place-items: center;
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: linear-gradient(180deg, var(--pp-card) 0%, var(--pp-card-soft) 100%);
+        border: 3px solid var(--pp-border);
+        box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-md);
+        font-size: 20px;
+        font-weight: 900;
+        color: var(--pp-ink);
+        transition: transform 130ms ease, box-shadow 130ms ease;
+    }
+    
+    .overlay-close:active {
+        transform: translateY(3px);
+        box-shadow: 0 1px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);
+    }
+  </style>
+</helmet>
+<div class="pp-root" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--pp-bg); color: var(--pp-ink);">
+  <div class="bedroom bedroom--dark" style="animation: none;">
+    <div class="bedroom__room" style="--room-scale: 1;">
+<div class="bedroom__decor" aria-hidden="true">
+        <div class="bedroom__wall">
+          <div class="bedroom__wall-pattern"></div>
+          <div class="bedroom__night-light">
+            <div class="bedroom__night-light-star"></div>
+          </div>
+        </div>
+        <div class="bedroom__shelf"></div>
+        <div class="bedroom__garland"></div>
+
+        <div class="bedroom__window">
+          <div class="bedroom__window-view">
+            <div class="bedroom__sun"></div>
+            <div class="bedroom__moon"></div>
+            <div class="bedroom__window-star"></div>
+            <div class="bedroom__window-star"></div>
+            <div class="bedroom__window-star"></div>
+            <div class="bedroom__window-star"></div>
+            <div class="bedroom__window-hill"></div>
+          </div>
+        </div>
+
+        <div class="bedroom__clock">
+          <div class="bedroom__clock-hand bedroom__clock-hand--hour"></div>
+          <div class="bedroom__clock-hand bedroom__clock-hand--minute"></div>
+        </div>
+        <div class="bedroom__picture">
+          <div class="bedroom__picture-art">
+            <div class="bedroom__picture-hill"></div>
+            <div class="bedroom__picture-paw"></div>
+          </div>
+        </div>
+
+        <div class="bedroom__floor">
+          <div class="bedroom__floor-planks"></div>
+        </div>
+        <div class="bedroom__skirting"></div>
+        <div class="bedroom__rug"></div>
+        <div class="bedroom__moonlight"></div>
+
+        <div class="bedroom__bed">
+          <div class="bedroom__bed-shadow"></div>
+          <div class="bedroom__headboard">
+            <div class="bedroom__headboard-panel"></div>
+            <div class="bedroom__headboard-post"></div>
+            <div class="bedroom__headboard-post"></div>
+          </div>
+          <div class="bedroom__mattress">
+            <div class="bedroom__sheet-surface"></div>
+            <div class="bedroom__sheet-edge"></div>
+          </div>
+          <div class="bedroom__pillow"></div>
+          <div class="bedroom__bed-front"></div>
+          <div class="bedroom__blanket">
+            <div class="bedroom__blanket-body"></div>
+            <div class="bedroom__blanket-fold"></div>
+          </div>
+          <div class="bedroom__bed-footpost"></div>
+          <div class="bedroom__bed-leg bedroom__bed-leg--left"></div>
+          <div class="bedroom__bed-leg bedroom__bed-leg--right"></div>
+        </div>
+
+        <div class="bedroom__nightstand">
+          <div class="bedroom__nightstand-top"></div>
+          <div class="bedroom__nightstand-body">
+            <div class="bedroom__nightstand-drawer"></div>
+          </div>
+          <div class="bedroom__nightstand-leg"></div>
+          <div class="bedroom__nightstand-leg"></div>
+        </div>
+        <div class="bedroom__lamp">
+          <div class="bedroom__lamp-glow"></div>
+          <div class="bedroom__lamp-shade"></div>
+          <div class="bedroom__lamp-stem"></div>
+          <div class="bedroom__lamp-pull"></div>
+          <div class="bedroom__lamp-base"></div>
+        </div>
+
+        <div class="bedroom__toy-chest">
+          <div class="bedroom__toy-chest-lid"></div>
+          <div class="bedroom__toy-chest-body"></div>
+          <div class="bedroom__toy-chest-lock"></div>
+        </div>
+        <div class="bedroom__slippers">
+          <div class="bedroom__slipper"></div>
+          <div class="bedroom__slipper"></div>
+        </div>
+
+        <div class="bedroom__sleep-mark bedroom__sleep-mark--one"></div>
+        <div class="bedroom__sleep-mark bedroom__sleep-mark--two"></div>
+        <div class="bedroom__sleep-mark bedroom__sleep-mark--three"></div>
+</div>
+      <div class="bedroom__pet bedroom__pet--in-bed"><div class="pet-wrap"><svg class="pet" viewBox="0 0 200 200" style="--pet-fur:#F3A05A;--pet-belly:#FFF3E2;--pet-inner-ear:#FFD3A8">
+<path class="pet__fur pet__outline pet__tail" d="M115 127 C123 102 142 84 157 90 C173 97 173 121 163 140 C153 158 133 164 118 149 C113 143 112 134 115 127 Z"/>
+<path class="pet__belly pet__outline pet__tail" d="M151 88 C161 88 170 96 172 107 C173 118 168 130 162 140 C160 123 152 108 138 99 C142 93 146 90 151 88 Z"/>
+<rect class="pet__fur pet__outline" x="74" y="131" width="20" height="28" rx="10"/>
+<rect class="pet__fur pet__outline" x="106" y="131" width="20" height="28" rx="10"/>
+<ellipse class="pet__fur pet__outline" cx="70" cy="116" rx="8" ry="21"/>
+<ellipse class="pet__fur pet__outline" cx="130" cy="116" rx="8" ry="21"/>
+<ellipse class="pet__fur pet__outline" cx="100" cy="119" rx="31" ry="33"/>
+<ellipse class="pet__belly" cx="100" cy="122" rx="18" ry="27"/>
+<ellipse class="pet__belly" cx="70" cy="130" rx="6" ry="7"/>
+<ellipse class="pet__belly" cx="130" cy="130" rx="6" ry="7"/>
+<ellipse class="pet__belly pet__outline" cx="84" cy="158" rx="12" ry="4"/>
+<ellipse class="pet__belly pet__outline" cx="116" cy="158" rx="12" ry="4"/>
+<ellipse class="pet__fur pet__outline" cx="100" cy="72" rx="40" ry="33"/>
+<path class="pet__fur pet__outline" d="M60 72 C60 66 61 62 63 58 C57 46 57 26 62 14 C75 22 80 34 81 48 C87 42 93 39 100 39 C107 39 113 42 119 48 C120 34 125 22 138 14 C143 26 143 46 137 58 C139 62 140 66 140 72 C140 82 136 91 130 96 C136 99 133 104 124 102 C117 104 109 105 100 105 C91 105 83 104 76 102 C67 104 64 99 70 96 C64 91 60 82 60 72 Z"/>
+<path class="pet__inner-ear" d="M59 50 C59 39 60 25 62 16 C69 22 75 32 77 44 C71 40 64 43 59 50 Z"/>
+<path class="pet__inner-ear" d="M141 50 C141 39 140 25 138 16 C131 22 125 32 123 44 C129 40 136 43 141 50 Z"/>
+<path class="pet__ear-tip" d="M58 28 C59 22 60 17 62 14 C67 17 71 22 74 28 C69 25 63 25 58 28 Z"/>
+<path class="pet__ear-tip" d="M142 28 C141 22 140 17 138 14 C133 17 129 22 126 28 C131 25 137 25 142 28 Z"/>
+<path class="pet__belly" d="M84 81 Q92 78 100 86 Q108 78 116 81 Q114 90 100 97 Q86 90 84 81 Z"/>
+<circle class="pet__nose" cx="100" cy="86" r="3.6"/>
+<path class="pet__lash" d="M76 71 q8 6.8 16 0"/><path class="pet__lash" d="M108 71 q8 6.8 16 0"/>
+<path class="pet__mouth" d="M91 90 Q100 100 109 90"/></svg></div></div>
+      <div class="bedroom__quilt"></div>
+      <button class="bedroom__lampbtn"></button>
+    </div>
+
+    <div class="bedroom__bar"><button class="overlay-close">✕</button></div>
+    <div class="bedroom__hint">Max yuxuya getdi — sakit ol!</div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

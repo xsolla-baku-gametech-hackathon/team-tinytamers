@@ -1,0 +1,389 @@
+@implements IDisposable
+@inject Loc Loc
+
+@* Baloncuq ovu: səhnədə rəqəmlər aramsız üzür, uşaq yalnız qaydaya uyğun
+   olanları partladır. Səhv baloncuğa toxunmaq bir cana başa gəlir —
+   məqsəd sürət deyil, seçicilikdir.
+
+   Axın raunddan asılı deyil: baloncuqlar öz vaxtına görə doğulur və yuxarıda
+   sönür, raund dəyişəndə isə YALNIZ qayda dəyişir. Səhnəni təzədən düzmək
+   uşağın ritmini pozurdu — indi eyni baloncuqlar sadəcə yeni şərtlə oxunur,
+   dəyişikliyi isə qayda zolağının döyünməsi bildirir.
+
+   Hərəkət tamamilə CSS-dədir; C# yalnız siyahını saxlayır, kadr-kadr render yoxdur.
+   @key vacibdir: element yenidən istifadə olunmasa, davam edən animasiya
+   sıfırlanar və baloncuq aşağıdan yenidən başlayardı. *@
+
+<GameShell Title="@Loc.T("Baloncuq ovu", "Bubble Pop")"
+           Round="_round" RoundTotal="RoundCount"
+           Lives="_lives" Hit="_hit" Over="_over"
+           Rule="@_rule" RuleTone="life" RuleChanged="IsFlashing"
+           TimerPercent="TimerPercent"
+           ScoreValue="@_correct.ToString()"
+           ScoreLabel="@Loc.T("doğru partladıldı", "popped right")">
+
+    <Backdrop><div class="gsbg gsbg--water"></div></Backdrop>
+
+    <ChildContent>
+        <div class="bubbles">
+            @foreach (var bubble in _bubbles)
+            {
+                var current = bubble;
+
+                <button @key="current.Id" class="bubble-pop @BubbleClass(current)"
+                        style="--x:@(current.X)%; --dur:@(current.LifetimeMs)ms; --start:@(current.StartOffsetMs)ms"
+                        disabled="@current.Popped"
+                        aria-label="@current.Value"
+                        @onclick="() => Pop(current)">
+                    <span class="bubble-pop__body">@current.Value</span>
+                </button>
+            }
+        </div>
+    </ChildContent>
+</GameShell>
+
+@code {
+    private const int RoundCount = 5;
+    private const int SecondsPerRound = 12;
+
+    /// <summary>Bir baloncuğun aşağıdan yuxarıya keçmə müddəti.</summary>
+    private const int MinLifetimeMs = 6200;
+    private const int MaxLifetimeMs = 7800;
+
+    /// <summary>Yeni baloncuqlar arasındakı fasilə — səhnədə 4–6 baloncuq saxlayır.</summary>
+    private const int MinSpawnGapMs = 850;
+    private const int MaxSpawnGapMs = 1450;
+
+    private const int MaxOnScreen = 7;
+    private const int PopFadeMs = 320;
+    private const int FlashMs = 1500;
+
+    /// <summary>100 bal üçün lazım olan xalis nəticə (doğru − səhv).</summary>
+    private const int TargetPops = RoundCount * 4;
+
+    private const int LaneCount = 5;
+
+    private sealed class Bubble
+    {
+        public required int Id { get; init; }
+        public required int Value { get; init; }
+        public required int X { get; init; }
+        public required int LifetimeMs { get; init; }
+
+        /// <summary>
+        /// Mənfi <c>animation-delay</c>: baloncuq animasiyanın ortasından başlayır.
+        /// Yalnız açılışda işlədilir ki, səhnə boş açılmasın.
+        /// </summary>
+        public int StartOffsetMs { get; init; }
+
+        /// <summary>Bu andan sonra siyahıdan çıxarılır (yuxarı çatdı və ya partladı).</summary>
+        public DateTime ExpiresAt { get; set; }
+
+        public bool Popped { get; set; }
+        public bool WasWrong { get; set; }
+    }
+
+    [Parameter] public EventCallback<(int Score, int DurationMs)> OnFinished { get; set; }
+
+    private readonly Random _random = new();
+    private readonly List<Bubble> _bubbles = [];
+
+    private string _rule = string.Empty;
+    private Func<int, bool> _matches = _ => false;
+
+    private int _round;
+    private int _correct;
+
+    /// <summary>Üç can: səhv baloncuq partlatmaq artıq yalnız bal itkisi deyil.</summary>
+    private const int StartingLives = 3;
+
+    private int _lives = StartingLives;
+    private bool _hit;
+    private bool _over;
+    private int _mistakes;
+    private int _nextId;
+    private int _lastLane = -1;
+    private int _shownSeconds = -1;
+    private bool _done;
+    private bool _flashJustEnded;
+
+    private DateTime _roundEndsAt;
+    private DateTime _nextSpawnAt;
+    private DateTime _flashUntil;
+
+    /// <summary>Nəticə yalnız bir dəfə göndərilir — canlar və oyunun sonu üst-üstə düşə bilər.</summary>
+    private bool _finished;
+
+    private DateTime _startedAt;
+
+    private System.Timers.Timer? _timer;
+
+    private bool IsFlashing => DateTime.UtcNow < _flashUntil;
+
+    private int SecondsLeft =>
+        Math.Max(0, (int)Math.Ceiling((_roundEndsAt - DateTime.UtcNow).TotalSeconds));
+
+    private int TimerPercent => Math.Clamp(SecondsLeft * 100 / SecondsPerRound, 0, 100);
+
+    protected override void OnInitialized()
+    {
+        _startedAt = DateTime.UtcNow;
+        StartRound();
+
+        // Oyun boş səhnə ilə açılmasın: ilk üç baloncuq artıq yolun ortasındadır.
+        for (var i = 0; i < 3; i++)
+            AddBubble(_startedAt, startedMsAgo: 1500 + i * 1600);
+
+        // Axını hamar saxlamaq üçün saniyədən tez döyünür; render isə yalnız
+        // nəsə dəyişəndə çağırılır.
+        _timer = new System.Timers.Timer(250);
+        _timer.Elapsed += OnTick;
+        _timer.Start();
+    }
+
+    /// <summary>Raund yalnız qaydanı və sayğacı dəyişir — baloncuqlara toxunmur.</summary>
+    private void StartRound()
+    {
+        _round++;
+        _roundEndsAt = DateTime.UtcNow.AddSeconds(SecondsPerRound);
+        _flashUntil = DateTime.UtcNow.AddMilliseconds(FlashMs);
+
+        var previous = _rule;
+        for (var attempt = 0; attempt < 6; attempt++)
+        {
+            var (rule, matches) = PickRule();
+            _rule = rule;
+            _matches = matches;
+
+            // Eyni qaydanın ardıcıl təkrarı raundun dəyişdiyini gizlədir.
+            if (rule != previous)
+                break;
+        }
+    }
+
+    private (string Rule, Func<int, bool> Matches) PickRule()
+    {
+        var threshold = _random.Next(4, 12);
+
+        return _random.Next(4) switch
+        {
+            0 => (Loc.T("Cüt rəqəmləri partlat", "Pop the even numbers"), n => n % 2 == 0),
+            1 => (Loc.T("Tək rəqəmləri partlat", "Pop the odd numbers"), n => n % 2 != 0),
+            2 => (Loc.T($"{Ablative(threshold)} böyük rəqəmləri partlat", $"Pop numbers bigger than {threshold}"),
+                  n => n > threshold),
+            _ => (Loc.T($"{Ablative(threshold)} kiçik rəqəmləri partlat", $"Pop numbers smaller than {threshold}"),
+                  n => n < threshold)
+        };
+    }
+
+    /// <summary>
+    /// Çıxışlıq hal şəkilçisi sayın oxunuşuna görə dəyişir: altı-dan, doqquz-dan,
+    /// on-dan; qalanları isə -dən. Uşaq mətni ucadan oxuyur, ona görə vacibdir.
+    /// İngiliscədə belə şəkilçi yoxdur — orada rəqəm birbaşa yazılır.
+    /// </summary>
+    private static string Ablative(int number) => number switch
+    {
+        6 or 9 or 10 => $"{number}-dan",
+        _ => $"{number}-dən"
+    };
+
+    private async void OnTick(object? sender, System.Timers.ElapsedEventArgs e)
+    {
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                if (_done)
+                    return;
+
+                var now = DateTime.UtcNow;
+                var changed = Cleanup(now) | Spawn(now);
+
+                if (now >= _roundEndsAt)
+                {
+                    if (_round >= RoundCount)
+                    {
+                        await FinishAsync();
+                        return;
+                    }
+
+                    StartRound();
+                    changed = true;
+                }
+
+                // Sayğac və effekt yalnız göründükləri an render tələb edir.
+                if (_shownSeconds != SecondsLeft)
+                {
+                    _shownSeconds = SecondsLeft;
+                    changed = true;
+                }
+
+                if (IsFlashing || _flashJustEnded)
+                    changed = true;
+
+                _flashJustEnded = IsFlashing;
+
+                if (changed)
+                    StateHasChanged();
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+            // Oyun bağlananda taymer son bir dəfə işə düşə bilər.
+        }
+    }
+
+    /// <summary>Vaxtı bitmiş və partladılmış baloncuqları siyahıdan çıxarır.</summary>
+    private bool Cleanup(DateTime now) => _bubbles.RemoveAll(b => now >= b.ExpiresAt) > 0;
+
+    private bool Spawn(DateTime now)
+    {
+        if (now < _nextSpawnAt || _bubbles.Count >= MaxOnScreen)
+            return false;
+
+        AddBubble(now);
+        _nextSpawnAt = now.AddMilliseconds(_random.Next(MinSpawnGapMs, MaxSpawnGapMs));
+        return true;
+    }
+
+    /// <param name="startedMsAgo">
+    /// Baloncuğun "neçə millisaniyə əvvəl doğulduğu". Açılışda səhnəni doldurmaq
+    /// üçün işlədilir: CSS mənfi delay ilə animasiyanı ortadan götürür.
+    /// </param>
+    private void AddBubble(DateTime now, int startedMsAgo = 0)
+    {
+        var lifetime = _random.Next(MinLifetimeMs, MaxLifetimeMs);
+
+        _bubbles.Add(new Bubble
+        {
+            Id = ++_nextId,
+            Value = NextValue(),
+            X = NextLane(),
+            LifetimeMs = lifetime,
+            StartOffsetMs = -startedMsAgo,
+            ExpiresAt = now.AddMilliseconds(lifetime - startedMsAgo)
+        });
+    }
+
+    /// <summary>
+    /// Səhnədə həmişə həm uyğun, həm uyğunsuz rəqəm olsun deyə növbəti dəyər
+    /// cari mənzərəyə görə seçilir — yoxsa uşaq ya boş gözləyir, ya da düşünmədən
+    /// hamısını partladır.
+    /// </summary>
+    private int NextValue()
+    {
+        var value = _random.Next(1, 20);
+        var alive = _bubbles.Where(b => !b.Popped).ToList();
+
+        if (alive.Count < 2)
+            return value;
+
+        if (!alive.Any(b => _matches(b.Value)) && !_matches(value))
+            return PickValue(_matches);
+
+        if (alive.All(b => _matches(b.Value)) && _matches(value))
+            return PickValue(n => !_matches(n));
+
+        return value;
+    }
+
+    private int PickValue(Func<int, bool> predicate)
+    {
+        var candidates = Enumerable.Range(1, 19).Where(predicate).ToList();
+        return candidates.Count == 0 ? _random.Next(1, 20) : candidates[_random.Next(candidates.Count)];
+    }
+
+    /// <summary>Ardıcıl iki baloncuq eyni zolaqda doğulmur — üst-üstə düşməsinlər.</summary>
+    private int NextLane()
+    {
+        int lane;
+        do
+        {
+            lane = _random.Next(LaneCount);
+        }
+        while (lane == _lastLane);
+
+        _lastLane = lane;
+        return 6 + lane * 18 + _random.Next(-3, 4);
+    }
+
+    private void Pop(Bubble bubble)
+    {
+        if (bubble.Popped || _done)
+            return;
+
+        bubble.Popped = true;
+        bubble.WasWrong = !_matches(bubble.Value);
+        bubble.ExpiresAt = DateTime.UtcNow.AddMilliseconds(PopFadeMs);
+
+        if (bubble.WasWrong)
+        {
+            _mistakes++;
+            _ = LoseLifeAsync();
+        }
+        else
+        {
+            _correct++;
+        }
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Can gedir; sonuncu da bitəndə oyun dayanır. Baloncuqlar öz vaxtı ilə
+    /// üzdüyünə görə burada dayandırma <c>FinishAsync</c> vasitəsilə olur.
+    /// </summary>
+    private async Task LoseLifeAsync()
+    {
+        _lives--;
+        _hit = true;
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(420);
+        _hit = false;
+
+        if (_lives > 0)
+        {
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _over = true;
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(900);
+        await InvokeAsync(FinishAsync);
+    }
+
+    private async Task FinishAsync()
+    {
+        if (_finished)
+            return;
+
+        _finished = true;
+
+        _done = true;
+        _timer?.Stop();
+
+        var score = Math.Clamp((_correct - _mistakes) * 100 / TargetPops, 0, 100);
+        var duration = (int)(DateTime.UtcNow - _startedAt).TotalMilliseconds;
+
+        await OnFinished.InvokeAsync((score, duration));
+    }
+
+    private static string BubbleClass(Bubble bubble) => bubble switch
+    {
+        { Popped: true, WasWrong: true } => "bubble-pop--wrong",
+        { Popped: true } => "bubble-pop--gone",
+        _ => string.Empty
+    };
+
+    public void Dispose()
+    {
+        if (_timer is null)
+            return;
+
+        _timer.Elapsed -= OnTick;
+        _timer.Dispose();
+    }
+}
