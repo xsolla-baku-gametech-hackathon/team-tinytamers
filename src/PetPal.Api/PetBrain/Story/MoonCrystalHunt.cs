@@ -213,6 +213,15 @@ public static class MoonCrystalHunt
                 ],
                 Transitions:
                 [
+                    // İLK seçim burada, sonda özünü göstərir: dərin kraterdən
+                    // gələn uşaq kristalı zirvəyə qaldıra bilmir, çünki yol
+                    // yuxarı deyil, AŞAĞI gedirdi. Eyni düymə, başqa nəticə —
+                    // budaq bəzək deyil.
+                    new ExperienceTransition("carry-too-steep",
+                        RequiredOptionKey: "summit-route",
+                        RequiredFlag: DeepFlag,
+                        Priority: 5),
+
                     On("summit-route", "ending-explorer"),
                     On("signal-relay", "ending-scientist"),
                     On("lantern-cradle", "ending-caring"),
@@ -221,6 +230,18 @@ public static class MoonCrystalHunt
                 Effects: [],
                 SceneVariant: "moon-carry",
                 MemoryCallbackKey: "moon-first-choice"),
+
+            new ExperienceNode(
+                Id: "carry-too-steep",
+                Kind: PetBrainStageKind.Consequence,
+                PromptAz: "Yoxuş kristal üçün çox dikdir",
+                PromptEn: "The climb is too steep for the crystal",
+                PetLineAz: "Biz dərinlikdən gəlmişdik — zirvə çox uzaqdadır. Gəl ona beşik düzəldək!",
+                PetLineEn: "We came up from the deep — the summit is too far. Let us build it a cradle instead!",
+                Options: [],
+                Transitions: [Fallback("ending-caring")],
+                Effects: [],
+                SceneVariant: "moon-carry"),
 
             // ---------- Üç sonluq ----------
             new ExperienceNode(

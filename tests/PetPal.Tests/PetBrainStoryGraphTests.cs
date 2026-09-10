@@ -325,3 +325,72 @@ public class StoryRuntimeTests
         Assert.Null(StoryRuntime.UpcomingPuzzle(graph, graph.Find("crystal-awake")!));
     }
 }
+
+/// <summary>
+/// İLK seçim SON seçimin nəticəsini dəyişir.
+///
+/// <para>Bu, budaqlanan hekayənin ən asan itirilən vədidir: seçimlər ayrı-ayrı
+/// ekranlar yaradır, amma bir-birinə toxunmursa, hekayə hələ də xəttidir —
+/// sadəcə üç fərqli rəngdə.</para>
+/// </summary>
+public class MoonBranchCarryOverTests
+{
+    /// <summary>
+    /// Dərin kraterdən gələn uşaq üçün «zirvədən apar» başqa yerə çıxır:
+    /// aşağıdan qalxmaq mümkün deyil.
+    /// </summary>
+    [Fact]
+    public void DerinKrater_ZirveSeciminiDeyisir()
+    {
+        var graph = MoonCrystalHunt.Definition;
+        var carry = graph.Find("carry-choice")!;
+
+        var fromDeep = StoryRuntime.Next(graph, carry, new StoryInput(
+            "summit-route", PetBrainStageResult.None,
+            new HashSet<string>(StringComparer.Ordinal) { MoonCrystalHunt.DeepFlag }))!;
+
+        var fromNorth = StoryRuntime.Next(graph, carry, new StoryInput(
+            "summit-route", PetBrainStageResult.None,
+            new HashSet<string>(StringComparer.Ordinal) { MoonCrystalHunt.NorthFlag }))!;
+
+        Assert.NotEqual(fromDeep.Id, fromNorth.Id);
+        Assert.Equal("carry-too-steep", fromDeep.Id);
+        Assert.Equal(MoonCrystalHunt.ExplorerEnding, fromNorth.EndingKey);
+    }
+
+    /// <summary>
+    /// Yolun dəyişməsi uşağı DALANDA qoymur — o, yenə bir sonluğa çatır.
+    /// </summary>
+    [Fact]
+    public void DeyisenYol_YeneSonluqlaBitir()
+    {
+        var graph = MoonCrystalHunt.Definition;
+        var rerouted = graph.Find("carry-too-steep")!;
+
+        var ending = StoryRuntime.Next(graph, rerouted, new StoryInput(
+            string.Empty, PetBrainStageResult.None,
+            new HashSet<string>(StringComparer.Ordinal) { MoonCrystalHunt.DeepFlag }))!;
+
+        Assert.True(ending.IsEnding);
+        Assert.Equal(MoonCrystalHunt.CaringEnding, ending.EndingKey);
+    }
+
+    /// <summary>
+    /// Şimal və parlaq budaqlarda «zirvədən apar» hələ də kəşfiyyatçı
+    /// sonluğuna aparır — dəyişiklik yalnız ONA aid olan budağa toxunur.
+    /// </summary>
+    [Theory]
+    [InlineData(MoonCrystalHunt.NorthFlag)]
+    [InlineData(MoonCrystalHunt.BrightFlag)]
+    public void DigerBudaqlar_ToxunulmazQalir(string flag)
+    {
+        var graph = MoonCrystalHunt.Definition;
+        var carry = graph.Find("carry-choice")!;
+
+        var next = StoryRuntime.Next(graph, carry, new StoryInput(
+            "summit-route", PetBrainStageResult.None,
+            new HashSet<string>(StringComparer.Ordinal) { flag }))!;
+
+        Assert.Equal(MoonCrystalHunt.ExplorerEnding, next.EndingKey);
+    }
+}
