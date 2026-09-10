@@ -67,7 +67,7 @@ public static class RecapStoryboard
             new(0.0, 3.0,
                 $"the pet lands softly on the Moon and sets off into {MoonCraterMotion(crater)}",
                 Localized.T(language,
-                    $"{MoonCraterAz(crater)} ilə başladıq.",
+                    $"{MoonCraterAz(crater)} başladıq.",
                     $"We started at {MoonCraterEn(crater)}."),
                 MoonCraterIcon(crater)),
 
@@ -95,9 +95,9 @@ public static class RecapStoryboard
 
     private static string MoonCraterAz(string key) => key switch
     {
-        "deep-crater" => "dərin krater",
-        "bright-crater" => "parlaq krater",
-        _ => "şimal krateri"
+        "deep-crater" => "Dərin kraterdən",
+        "bright-crater" => "Parlaq kraterdən",
+        _ => "Şimal kraterindən"
     };
 
     private static string MoonCraterEn(string key) => key switch

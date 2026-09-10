@@ -74,10 +74,28 @@ public class GameApiClient : ApiClientBase
     /// Ekranda görünən şablon. Server onu ÖZ tövsiyəsi ilə tutuşdurur — klient
     /// kataloqdan istədiyini seçə bilmir.
     /// </param>
+    /// <param name="decisionId">
+    /// Ekranda görünən kartın qərar id-si. Server onu YOXLAYIR: yad və ya
+    /// köhnəlmiş qərar rədd olunur, uyğun qərar isə məhz görünən kartı
+    /// başladır.
+    /// </param>
     public Task<ApiResult<PetBrainRunDto>> StartPetBrainRunAsync(
-        string? templateKey = null, CancellationToken ct = default) =>
+        string? templateKey = null, Guid? decisionId = null, CancellationToken ct = default) =>
         PostAsync<StartPetBrainRunRequest, PetBrainRunDto>(
-            "api/pet-brain/runs", new StartPetBrainRunRequest { TemplateKey = templateKey }, ct);
+            "api/pet-brain/runs",
+            new StartPetBrainRunRequest { TemplateKey = templateKey, DecisionId = decisionId }, ct);
+
+    /// <summary>
+    /// «Başqa fikir» və «sonra».
+    ///
+    /// <para>Klient burada NƏ şablon, NƏ də bal dəyişikliyi göndərmir — yalnız
+    /// serverin verdiyi qərar id-sini. Cavab yeni vəziyyəti qaytarır.</para>
+    /// </summary>
+    public Task<ApiResult<PetBrainStateDto>> SendPetBrainFeedbackAsync(
+        Guid decisionId, PetBrainRecommendationFeedback feedback, CancellationToken ct = default) =>
+        PostAsync<PetBrainFeedbackRequest, PetBrainStateDto>(
+            "api/pet-brain/recommendation/feedback",
+            new PetBrainFeedbackRequest { DecisionId = decisionId, Feedback = feedback }, ct);
 
     /// <summary>Yenilənmədən sonra macərəni bərpa edir.</summary>
     public Task<ApiResult<PetBrainRunDto>> GetPetBrainRunAsync(Guid runId, CancellationToken ct = default) =>
@@ -88,10 +106,10 @@ public class GameApiClient : ApiClientBase
     /// gəlməsə <c>409</c> qayıdır, yəni iki dəfə basmaq mərhələ atlatmır.
     /// </param>
     public Task<ApiResult<PetBrainRunDto>> SubmitPetBrainChoiceAsync(
-        Guid runId, int stageIndex, string optionKey, CancellationToken ct = default) =>
+        Guid runId, int stageIndex, string optionKey, string? nodeId = null, CancellationToken ct = default) =>
         PostAsync<PetBrainChoiceRequest, PetBrainRunDto>(
             $"api/pet-brain/runs/{runId}/choices",
-            new PetBrainChoiceRequest { StageIndex = stageIndex, OptionKey = optionKey }, ct);
+            new PetBrainChoiceRequest { StageIndex = stageIndex, NodeId = nodeId, OptionKey = optionKey }, ct);
 
     /// <summary>
     /// Tapmaca cavabı — YALNIZ seçilmiş elementlərin id-ləri.
@@ -101,17 +119,21 @@ public class GameApiClient : ApiClientBase
     /// "mükafat" sahəsi ümumiyyətlə yoxdur.</para>
     /// </summary>
     public Task<ApiResult<PetBrainRunDto>> SubmitPetBrainPuzzleAsync(
-        Guid runId, int stageIndex, List<string> selectedIds, CancellationToken ct = default) =>
+        Guid runId, int stageIndex, List<string> selectedIds,
+        string? nodeId = null, CancellationToken ct = default) =>
         PostAsync<PetBrainChoiceRequest, PetBrainRunDto>(
             $"api/pet-brain/runs/{runId}/choices",
-            new PetBrainChoiceRequest { StageIndex = stageIndex, SelectedIds = selectedIds }, ct);
+            new PetBrainChoiceRequest
+            {
+                StageIndex = stageIndex, NodeId = nodeId, SelectedIds = selectedIds
+            }, ct);
 
     /// <summary>İpucu istəyi — mərhələ irəliləmir.</summary>
     public Task<ApiResult<PetBrainRunDto>> RequestPetBrainHintAsync(
-        Guid runId, int stageIndex, CancellationToken ct = default) =>
+        Guid runId, int stageIndex, string? nodeId = null, CancellationToken ct = default) =>
         PostAsync<PetBrainChoiceRequest, PetBrainRunDto>(
             $"api/pet-brain/runs/{runId}/choices",
-            new PetBrainChoiceRequest { StageIndex = stageIndex, RequestHint = true }, ct);
+            new PetBrainChoiceRequest { StageIndex = stageIndex, NodeId = nodeId, RequestHint = true }, ct);
 
     /// <summary>Mükafat serverdə DƏQİQ BİR DƏFƏ verilir — təkrar çağırış təhlükəsizdir.</summary>
     public Task<ApiResult<PetBrainRunDto>> CompletePetBrainRunAsync(Guid runId, CancellationToken ct = default) =>

@@ -31,6 +31,7 @@
                          OnExit="ExitRunAsync">
 
             <ExperienceScene SceneKey="@_run.SceneKey" Choices="_run.Choices" Icon="@RunIcon"
+                             SceneVariant="@_run.Stage?.SceneVariant"
                              SceneImage="@AdventureSceneImage" Awakening="@SceneAwaited" />
 
             @if (_run.Summary is not null)
@@ -50,6 +51,37 @@
                        tanış giriş nöqtəsi onun DEDİYİdir. *@
                     <div class="pbx__bubble" aria-live="polite">@_run.Stage.PetLine</div>
 
+                    @if (!string.IsNullOrWhiteSpace(_run.Stage.MemoryCallback))
+                    {
+                        @* "Mən bunu xatırlayıram" — yaddaşın GÖRÜNƏN anı.
+                           Cümlə serverin strukturlu faktından qurulur; pet
+                           uydurmur. *@
+                        <div class="pbx__recall" aria-live="polite">
+                            <span class="pbx__recall-icon" aria-hidden="true">💭</span>
+                            <span class="pbx__recall-label">
+                                @Loc.T("Mən bunu xatırlayıram", "I remember this")
+                            </span>
+                            <span class="pbx__recall-text">@_run.Stage.MemoryCallback</span>
+                        </div>
+                    }
+
+                    @if (_run.Path.Count > 0)
+                    {
+                        @* Budaqlanan hekayədə "5-dən 3-cü" ifadəsi YANLIŞDIR:
+                           yollar müxtəlif uzunluqdadır. Ona görə uşağa faiz
+                           yox, ÖZ CIĞIRI göstərilir. Rəng tək daşıyıcı deyil —
+                           hər addımın işarəsi və mətn etiketi var. *@
+                        <ol class="pbx-path" aria-label="@Loc.T("Sənin yolun", "Your path")">
+                            @foreach (var step in _run.Path)
+                            {
+                                <li class="pbx-path__step @(step.WasChoice ? "pbx-path__step--choice" : null)">
+                                    <span class="pbx-path__icon" aria-hidden="true">@step.Icon</span>
+                                    <span class="pbx-path__label">@step.Label</span>
+                                </li>
+                            }
+                        </ol>
+                    }
+
                     <div class="pbx__panel">
                         @* Göstəriş mərhələ boyu QALIR: uşaq onu yadda saxlamağa
                            yox, tətbiq etməyə məşq edir (GameShell ilə eyni qayda).
@@ -66,6 +98,23 @@
                             <button class="btn btn--primary btn--block" disabled="@_busy"
                                     @onclick="ContinueAsync">
                                 @Loc.T("Gedək!", "Let us go!")
+                            </button>
+                        }
+                        else if (_run.Stage.Kind == PetBrainStageKind.Consequence)
+                        {
+                            @* Seçimin NƏTİCƏSİ ayrıca ekrandır: uşaq nə etdiyini
+                               dərhal görməlidir. Seçimlə birləşdirmək nəticəni
+                               bəzəyə çevirərdi. *@
+                            <button class="btn btn--primary btn--block" disabled="@_busy"
+                                    @onclick="ContinueAsync">
+                                @Loc.T("Davam", "Keep going")
+                            </button>
+                        }
+                        else if (_run.Stage.Kind == PetBrainStageKind.Ending)
+                        {
+                            <button class="btn btn--primary btn--block" disabled="@_busy"
+                                    @onclick="CompleteAsync">
+                                @Loc.T("Macərəni bitir", "Finish the adventure")
                             </button>
                         }
                         else if (_run.Stage.Puzzle is { } puzzle)
@@ -123,10 +172,23 @@
                     <span>@_state.PersonalityLabel</span>
                 </div>
 
+                @* Bağ artıq sadəcə faiz barı DEYİL: uşaq hansı mərtəbədə
+                   olduğunu ADI ilə görür. Rəng tək daşıyıcı deyil — pillənin
+                   adı, işarəsi və bar birlikdə gəlir. *@
+                <div class="pbx-tier">
+                    <span class="pbx-tier__emote" aria-hidden="true">@_state.BondEmote</span>
+                    <span class="pbx-tier__label">@_state.BondTierLabel</span>
+                </div>
+
                 <div class="pbx-bond pbx-bond--intro" role="img"
-                     aria-label="@Loc.T($"Bağ {_state.Bond} / 100", $"Bond {_state.Bond} of 100")">
+                     aria-label="@BondAriaLabel">
                     <span class="pbx-bond__fill" style="width:@_state.Bond%"></span>
                 </div>
+
+                @if (!string.IsNullOrWhiteSpace(_state.BondUnlockLine))
+                {
+                    <p class="pbx-tier__line">@_state.BondUnlockLine</p>
+                }
             </section>
 
             @if (_state.ScreenTimeBlocked)
@@ -152,6 +214,12 @@
 
                     <p class="pbx-card__intro">@recommendation.Intro</p>
 
+                    @if (!string.IsNullOrWhiteSpace(recommendation.PetLine))
+                    {
+                        @* Pet-in ÖZ cümləsi — xarakter burada eşidilir. *@
+                        <p class="pbx-card__petline">@recommendation.PetLine</p>
+                    }
+
                     @* Düymə səbəblərdən ƏVVƏLdir və bu, ölçmə ilə qərara alınıb:
                        sürüşən sahənin görünən hündürlüyü 550px-dir (kətan 690 −
                        üst boşluq − naviqasiya üçün ayrılan 104px). Səbəblər
@@ -162,6 +230,27 @@
                             disabled="@_busy" @onclick="StartAsync">
                         @(_busy ? Loc.T("Hazırlaşırıq…", "Getting ready…") : Loc.T("Macərəyə başla", "Start the adventure"))
                     </button>
+
+                    @* Uşağın "yox" demək HÜQUQU. Bir kart məcburiyyət deyil:
+                       "başqa fikir" növbəti təhlükəsiz namizədi gətirir, "sonra"
+                       isə sadəcə indi uyğun olmadığını bildirir. Heç biri marağı
+                       AZALTMIR — bax ProfileLearningRules. *@
+                    <div class="pbx-card__more">
+                        @if (recommendation.CanShowAnother)
+                        {
+                            <button class="btn btn--ghost pbx-card__alt" disabled="@_busy"
+                                    @onclick="ShowAnotherAsync">
+                                <span aria-hidden="true">🔄</span>
+                                @Loc.T("Başqa fikir", "Another idea")
+                            </button>
+                        }
+
+                        <button class="btn btn--ghost pbx-card__alt" disabled="@_busy"
+                                @onclick="NotNowAsync">
+                            <span aria-hidden="true">🕒</span>
+                            @Loc.T("Sonra", "Later")
+                        </button>
+                    </div>
 
                     @if (recommendation.Reasons.Count > 0)
                     {
@@ -315,6 +404,27 @@
 
     private string RunIcon => _state?.Recommendation?.Icon ?? "✨";
 
+    /// <summary>
+    /// Ekran oxuyucusu üçün bağ mətni: pillənin adı + növbəti pilləyə qalan yol.
+    /// Rəqəm tək başına uşağa heç nə demir, pillənin adı isə deyir.
+    /// </summary>
+    private string BondAriaLabel
+    {
+        get
+        {
+            if (_state is null)
+                return string.Empty;
+
+            var tier = _state.BondTierLabel;
+
+            return _state.BondNextThreshold > 0
+                ? Loc.T(
+                    $"Bağ: {tier}. Növbəti pilləyə {_state.BondNextThreshold - _state.Bond} bal qalıb.",
+                    $"Bond: {tier}. {_state.BondNextThreshold - _state.Bond} points to the next tier.")
+                : Loc.T($"Bağ: {tier}. Ən yuxarı pillə.", $"Bond: {tier}. The highest tier.");
+        }
+    }
+
     private string PersonalityIcon => _state?.Personality switch
     {
         PetBrainPersonality.CuriousScientist => "🔬",
@@ -363,7 +473,8 @@
 
         _busy = true;
 
-        var result = await Api.StartPetBrainRunAsync(_state.Recommendation.TemplateKey);
+        var result = await Api.StartPetBrainRunAsync(
+            _state.Recommendation.TemplateKey, _state.Recommendation.DecisionId);
 
         _busy = false;
 
@@ -375,6 +486,42 @@
 
         _run = result.Value;
         Brain.Invalidate();
+    }
+
+    /// <summary>
+    /// «Başqa fikir» — növbəti təhlükəsiz namizəd.
+    ///
+    /// <para>Bu, marağı AZALTMIR: bir dəfə başqasını istəmək bir mövzunu
+    /// sevməmək deyil. Sonsuz da deyil — server sessiya başına limit qoyur və
+    /// limit dolanda düymə gizlənir.</para>
+    /// </summary>
+    private Task ShowAnotherAsync() => SendFeedbackAsync(PetBrainRecommendationFeedback.ShowAnother);
+
+    /// <summary>«Sonra» — indi uyğun deyil. Profilə heç nə yazılmır.</summary>
+    private Task NotNowAsync() => SendFeedbackAsync(PetBrainRecommendationFeedback.NotNow);
+
+    private async Task SendFeedbackAsync(PetBrainRecommendationFeedback feedback)
+    {
+        if (_busy || _state?.Recommendation is null)
+            return;
+
+        _busy = true;
+
+        var result = await Api.SendPetBrainFeedbackAsync(_state.Recommendation.DecisionId, feedback);
+
+        _busy = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            // Cavab getməsə ekran boş qalmır: mövcud kart yerində qalır və
+            // uşaq yenidən cəhd edə bilir.
+            _error = result.Error;
+            return;
+        }
+
+        _state = result.Value;
+        Brain.Apply(_state);
+        _run = _state.ActiveRun;
     }
 
     /// <summary>Giriş mərhələsi: seçim yoxdur, yalnız "davam".</summary>
@@ -497,7 +644,8 @@
 
         _busy = true;
 
-        var result = await Api.SubmitPetBrainPuzzleAsync(_run.RunId, _run.Stage.Index, selectedIds);
+        var result = await Api.SubmitPetBrainPuzzleAsync(
+            _run.RunId, _run.Stage.Index, selectedIds, NodeIdOrNull);
 
         _busy = false;
 
@@ -509,7 +657,26 @@
 
         _run = result.Value;
 
-        if (_run.Stage is null && _run.CurrentStage >= _run.StageCount)
+        await CompleteIfFinishedAsync();
+    }
+
+    /// <summary>
+    /// Cari ekranın açarı — budaqlanan hekayədə serverin təsdiq üçün gözlədiyi
+    /// dəyər; xətti macərada boş qalır.
+    /// </summary>
+    private string? NodeIdOrNull =>
+        string.IsNullOrEmpty(_run?.Stage?.NodeId) ? null : _run.Stage.NodeId;
+
+    /// <summary>
+    /// Macəra bitibsə yekunu açır.
+    ///
+    /// <para>Xətti macərada şərt "bütün mərhələlər keçildi"dir; budaqlanan
+    /// hekayədə isə SONLUQ ekranıdır — orada uşaq özü "bitir" düyməsinə basır,
+    /// çünki sonluq mətni oxunmağa dəyər.</para>
+    /// </summary>
+    private async Task CompleteIfFinishedAsync()
+    {
+        if (_run?.Stage is null && _run is not null && _run.CurrentStage >= _run.StageCount)
             await CompleteAsync();
     }
 
@@ -521,7 +688,8 @@
         _busy = true;
         _pending = optionKey;
 
-        var result = await Api.SubmitPetBrainChoiceAsync(_run.RunId, _run.Stage.Index, optionKey);
+        var result = await Api.SubmitPetBrainChoiceAsync(
+            _run.RunId, _run.Stage.Index, optionKey, NodeIdOrNull);
 
         _busy = false;
         _pending = null;
@@ -536,8 +704,7 @@
 
         // Bütün mərhələlər bitdi: yekunu server hesablayır və mükafatı
         // DƏQİQ BİR DƏFƏ verir — təkrar çağırış təhlükəsizdir.
-        if (_run.Stage is null && _run.CurrentStage >= _run.StageCount)
-            await CompleteAsync();
+        await CompleteIfFinishedAsync();
     }
 
     private async Task HintAsync()
@@ -547,7 +714,7 @@
 
         _busy = true;
 
-        var result = await Api.RequestPetBrainHintAsync(_run.RunId, _run.Stage.Index);
+        var result = await Api.RequestPetBrainHintAsync(_run.RunId, _run.Stage.Index, NodeIdOrNull);
 
         _busy = false;
 

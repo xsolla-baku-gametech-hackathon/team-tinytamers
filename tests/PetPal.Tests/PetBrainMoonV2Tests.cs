@@ -226,7 +226,7 @@ public class PetBrainMoonV2Tests : IClassFixture<TestWebAppFactory>
         Assert.Contains("siqnal", captions, StringComparison.OrdinalIgnoreCase);
 
         // Seçilməyən yol HEÇ VAXT göstərilmir.
-        Assert.DoesNotContain("şimal krateri", captions, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("şimal krater", captions, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("zirvə", captions, StringComparison.OrdinalIgnoreCase);
     }
 

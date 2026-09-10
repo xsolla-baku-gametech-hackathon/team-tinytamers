@@ -92,6 +92,60 @@
             </div>
             break;
 
+        case "moon":
+            @* Ayın ÖZ səhnəsi. Ümumi fon buradan çıxarıldı, çünki Ay macərası
+               artıq budaqlanır: krater seçimi relyefi, tapmaca kristalın
+               işığını, daşıma seçimi isə finalı dəyişir. Ümumi səhnə bunların
+               heç birini göstərə bilmirdi.
+
+               Variant SERVERDƏN gəlir (düyünün öz açarı) — klient onu
+               uydurmur. *@
+            <div class="pbx-moon pbx-moon--@MoonVariant">
+                <span class="pbx-moon__sky"></span>
+                <span class="pbx-moon__star pbx-moon__star--a"></span>
+                <span class="pbx-moon__star pbx-moon__star--b"></span>
+                <span class="pbx-moon__star pbx-moon__star--c"></span>
+                <span class="pbx-moon__earth"></span>
+
+                @* Relyef uşağın seçdiyi kraterdir. *@
+                <span class="pbx-moon__ground pbx-moon__ground--@MoonTerrain"></span>
+
+                @if (Has("north-crater"))
+                {
+                    <span class="pbx-moon__ribbon"></span>
+                }
+                @if (Has("bright-crater"))
+                {
+                    <span class="pbx-moon__echo pbx-moon__echo--a"></span>
+                    <span class="pbx-moon__echo pbx-moon__echo--b"></span>
+                }
+
+                <span class="pbx-moon__crystal @(CrystalAwake ? "pbx-moon__crystal--awake" : null)"></span>
+
+                @if (Has("lantern-cradle"))
+                {
+                    <span class="pbx-moon__lantern"></span>
+                }
+                @if (Has("signal-relay"))
+                {
+                    <span class="pbx-moon__ship"></span>
+                }
+                @if (Has("summit-route"))
+                {
+                    <span class="pbx-moon__summit"></span>
+                }
+
+                <span class="pbx-rover pbx-rover--moon">
+                    <span class="pbx-rover__wheel pbx-rover__wheel--left"></span>
+                    <span class="pbx-rover__wheel pbx-rover__wheel--right"></span>
+                    <span class="pbx-rover__body"></span>
+                    <span class="pbx-rover__mast"></span>
+                    <span class="pbx-rover__head"></span>
+                    <span class="pbx-rover__eye @(CrystalAwake ? "pbx-rover__eye--on" : null)"></span>
+                </span>
+            </div>
+            break;
+
         default:
             @* Ümumi səhnə: mövzunun rəngi + sadə üfüq. Kataloqa yeni macəra
                əlavə edən adam ayrıca rəsm çəkməyə məcbur deyil. *@
@@ -119,6 +173,15 @@
 
     /// <summary>İndiyə qədər seçilmiş variantların açarları.</summary>
     [Parameter] public IReadOnlyList<string> Choices { get; set; } = [];
+
+    /// <summary>
+    /// Cari düyünün SƏHNƏ VARİANTI — serverin tərifindən gəlir.
+    ///
+    /// <para>Budaqlanan hekayədə səhnə yalnız seçimlərdən deyil, hekayənin
+    /// hansı anında olduğumuzdan da asılıdır: eyni seçimlərlə "kristal
+    /// sönükdür" və "kristal parlayır" fərqli kadrdır.</para>
+    /// </summary>
+    [Parameter] public string? SceneVariant { get; set; }
 
     /// <summary>Ümumi səhnədə göstərilən emoji — kataloqdakı şablon ikonudur.</summary>
     [Parameter] public string Icon { get; set; } = "✨";
@@ -148,4 +211,25 @@
     private string Palette => Choices.FirstOrDefault(Palettes.Contains) ?? "blank";
 
     private string? Pattern => Choices.FirstOrDefault(Patterns.Contains);
+
+    /// <summary>Ay səhnəsinin təsdiqlənmiş variantları — naməlum açar ümumi kadra düşür.</summary>
+    private static readonly string[] MoonVariants =
+    [
+        "moon-arrival", "moon-three-craters", "moon-light-ribbon", "moon-deep-hum",
+        "moon-echo-walls", "moon-mirror-field", "moon-crystal-bright", "moon-crystal-glow",
+        "moon-carry", "moon-summit-finale", "moon-signal-finale", "moon-lantern-finale"
+    ];
+
+    private string MoonVariant =>
+        SceneVariant is not null && MoonVariants.Contains(SceneVariant, StringComparer.Ordinal)
+            ? SceneVariant
+            : "moon-arrival";
+
+    private string MoonTerrain =>
+        Has("deep-crater") ? "deep" : Has("bright-crater") ? "bright" : Has("north-crater") ? "north" : "plain";
+
+    /// <summary>Kristal yalnız tapmacadan SONRA parlayır — vəd əvvəlcədən verilmir.</summary>
+    private bool CrystalAwake =>
+        MoonVariant is "moon-crystal-bright" or "moon-crystal-glow" or "moon-carry"
+            or "moon-summit-finale" or "moon-signal-finale" or "moon-lantern-finale";
 }

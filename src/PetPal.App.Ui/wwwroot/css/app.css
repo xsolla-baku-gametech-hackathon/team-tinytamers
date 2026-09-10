@@ -11155,3 +11155,281 @@
     .pbx-recap__shot { transition: none; }
     .pbx-recap__shot--on { transform: none; }
 }
+
+/* ================================================================
+   Pet Brain V2 — bağ pilləsi, alternativ təklif, yol və yaddaş
+   ================================================================ */
+
+/* ---------- Bağın PİLLƏSİ ----------
+   Faiz barı tək başına uşağa heç nə demirdi: 41-dən 44-ə qalxmaq görünməz
+   irəliləyişdir. Pillənin ADI isə görünəndir və barın üstündə durur. */
+.pbx-tier {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: var(--pp-radius-pill);
+    background: var(--pp-card);
+    box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);
+}
+
+.pbx-tier__emote { font-size: 18px; line-height: 1; }
+
+.pbx-tier__label {
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--pp-ink);
+}
+
+.pbx-tier__line {
+    max-width: 300px;
+    margin: 2px 0 0;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--pp-ink-soft);
+    text-align: center;
+}
+
+/* ---------- Kartın alternativ yolları ----------
+   "Başqa fikir" və "sonra" ƏSAS düymədən sonra və ondan sakit gəlir: uşağın
+   ilk baxdığı şey macərəya başlamaq olmalıdır, imtina isə həmişə əlçatan
+   qalmalıdır. */
+.pbx-card__petline {
+    margin: 8px 0 0;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--pp-primary-dark);
+}
+
+.pbx-card__more {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.pbx-card__alt {
+    flex: 1 1 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    /* Toxunuş hədəfi dizayn həddindən (44px) AŞAĞI düşmür. */
+    min-height: 44px;
+    padding: 0 10px;
+    font-size: 13px;
+}
+
+/* ---------- Uşağın YOLU ----------
+   Budaqlanan hekayədə "5 mərhələdən 3-cü" yanlışdır: yollar müxtəlif
+   uzunluqdadır. Ona görə faiz yox, keçilmiş addımlar göstərilir.
+
+   Rəng TƏK daşıyıcı deyil: seçim addımının həm işarəsi, həm qalın çərçivəsi,
+   həm də mətn etiketi var. */
+.pbx-path {
+    display: flex;
+    gap: 6px;
+    margin: 0 0 8px;
+    padding: 0 2px;
+    list-style: none;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.pbx-path::-webkit-scrollbar { display: none; }
+
+.pbx-path__step {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex: 0 0 auto;
+    max-width: 148px;
+    padding: 5px 10px;
+    border-radius: var(--pp-radius-pill);
+    border: 2px solid transparent;
+    background: rgba(255, 255, 255, 0.82);
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--pp-ink);
+}
+
+.pbx-path__step--choice {
+    border-color: var(--pp-primary);
+    background: var(--pp-card);
+}
+
+.pbx-path__icon { font-size: 13px; line-height: 1; }
+
+.pbx-path__label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---------- "Mən bunu xatırlayıram" ----------
+   Yaddaşın GÖRÜNƏN anı. Cümlə serverin strukturlu faktından qurulur, ona görə
+   burada göstərilən şey pet-in həqiqətən bildiyi bir şeydir. */
+.pbx__recall {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+    max-width: 340px;
+    margin: 0 auto 8px;
+    padding: 8px 12px;
+    border-radius: var(--pp-radius);
+    background: var(--pp-primary-soft);
+    color: var(--pp-primary-dark);
+}
+
+.pbx__recall-icon { font-size: 15px; line-height: 1; }
+
+.pbx__recall-label {
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.pbx__recall-text {
+    flex: 1 1 100%;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+/* ================================================================
+   Ay səhnəsi — macəranın ÖZ dünyası
+   ================================================================
+   Əvvəl Ay ümumi səhnə ilə çəkilirdi: mövzunun rəngi + emoji. Macəra
+   budaqlandıqdan sonra bu yetərsizdir — krater seçimi relyefi, tapmaca
+   kristalın işığını, daşıma seçimi isə finalı dəyişməlidir. */
+.pbx-moon { position: absolute; inset: 0; }
+
+.pbx-moon__sky {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #05060F 0%, #101733 52%, #23304F 100%);
+}
+
+.pbx-moon__star {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #F2F6FF;
+    opacity: 0.9;
+}
+
+.pbx-moon__star--a { top: 40px; left: 46px; }
+.pbx-moon__star--b { top: 74px; left: 254px; width: 4px; height: 4px; }
+.pbx-moon__star--c { top: 118px; left: 132px; }
+
+.pbx-moon__earth {
+    position: absolute;
+    top: 46px;
+    right: 38px;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 36% 30%, #8FC7F0 0%, #3B7FC4 56%, #1B4C82 100%);
+    box-shadow: 0 0 24px rgba(120, 186, 240, 0.32);
+}
+
+.pbx-moon__ground {
+    position: absolute;
+    left: -6%;
+    right: -6%;
+    bottom: 0;
+    height: var(--pbx-horizon);
+    background: linear-gradient(180deg, #C9CEDC 0%, #9098AC 56%, #6E7688 100%);
+}
+
+.pbx-moon__ground--plain { border-radius: 44% 56% 0 0 / 22% 20% 0 0; }
+.pbx-moon__ground--north { border-radius: 38% 62% 0 0 / 30% 18% 0 0; }
+.pbx-moon__ground--deep { border-radius: 50% 50% 0 0 / 46% 46% 0 0; }
+.pbx-moon__ground--bright { border-radius: 62% 38% 0 0 / 26% 34% 0 0; }
+
+/* Şimal kraterindəki işıq zolağı — uşağın seçdiyi yol görünür. */
+.pbx-moon__ribbon {
+    position: absolute;
+    left: 12%;
+    right: 34%;
+    bottom: calc(var(--pbx-horizon) - 8px);
+    height: 6px;
+    border-radius: var(--pp-radius-pill);
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, #EAF3FF 46%, rgba(255, 255, 255, 0) 100%);
+    opacity: 0.85;
+}
+
+/* Parlaq kraterin əks-sədası — halqalar. */
+.pbx-moon__echo {
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--pbx-horizon) + 10%);
+    border: 2px solid rgba(234, 243, 255, 0.5);
+    border-radius: 50%;
+    transform: translateX(-50%);
+}
+
+.pbx-moon__echo--a { width: 90px; height: 90px; }
+.pbx-moon__echo--b { width: 138px; height: 138px; opacity: 0.55; }
+
+.pbx-moon__crystal {
+    position: absolute;
+    right: 52px;
+    bottom: calc(var(--pbx-horizon) + 2%);
+    width: 34px;
+    height: 56px;
+    clip-path: polygon(50% 0%, 100% 34%, 78% 100%, 22% 100%, 0% 34%);
+    background: linear-gradient(180deg, #6E7A96 0%, #4A5468 100%);
+}
+
+/* Kristal yalnız tapmacadan SONRA parlayır — vəd əvvəlcədən verilmir. */
+.pbx-moon__crystal--awake {
+    background: linear-gradient(180deg, #BFF0FF 0%, #6FC7F5 58%, #3E8FD0 100%);
+    box-shadow: 0 0 30px rgba(150, 224, 255, 0.6);
+}
+
+.pbx-moon__lantern {
+    position: absolute;
+    left: 62%;
+    bottom: calc(var(--pbx-horizon) + 6%);
+    width: 26px;
+    height: 32px;
+    border-radius: 10px 10px 12px 12px;
+    background: linear-gradient(180deg, #FFE9B0 0%, #FFC259 100%);
+    box-shadow: 0 0 22px rgba(255, 206, 122, 0.55);
+}
+
+.pbx-moon__ship {
+    position: absolute;
+    right: 26px;
+    bottom: calc(var(--pbx-horizon) + 12%);
+    width: 70px;
+    height: 32px;
+    border-radius: 50% 50% 44% 44%;
+    background: linear-gradient(180deg, #EEF2FA 0%, #A6AEC4 100%);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
+}
+
+.pbx-moon__summit {
+    position: absolute;
+    left: 8%;
+    bottom: calc(var(--pbx-horizon) - 2px);
+    width: 120px;
+    height: 78px;
+    clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+    background: linear-gradient(180deg, #E4E9F4 0%, #98A0B4 100%);
+}
+
+.pbx-rover--moon { left: 42%; }
+
+/* Hərəkət həssaslığı: kristalın parıltısı sabit qalır — o, dekorasiya deyil,
+   hekayənin nəticəsidir və hərəkətsiz də oxunur. */
+@media (prefers-reduced-motion: reduce) {
+    .pbx-moon__crystal { transition: none; }
+    .pbx-moon__echo { animation: none; }
+}
