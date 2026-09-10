@@ -12,7 +12,7 @@ using PetPal.Api.Data;
 namespace PetPal.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260910174828_PetBrainPersonalization")]
+    [Migration("20260910184507_PetBrainPersonalization")]
     partial class PetBrainPersonalization
     {
         /// <inheritdoc />
@@ -1660,7 +1660,9 @@ namespace PetPal.Api.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("ModelVersion")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
 
                     b.Property<int>("NegativeEvidence")
                         .HasColumnType("integer");

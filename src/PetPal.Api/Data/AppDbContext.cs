@@ -381,6 +381,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         {
             e.Property(x => x.Key).HasMaxLength(40).IsRequired();
 
+            // Miqrasiyadan ƏVVƏL yaradılmış sətirlər də BİRİNCİ model versiyası
+            // ilə yazılıb: sütun defoltu olmasa, onlar «versiya 0» görünərdi və
+            // valideyn panelindəki audit sətri mənasız olardı.
+            e.Property(x => x.ModelVersion).HasDefaultValue(1);
+
             // Bir uşaqda bir kateqoriya + açar cütü YALNIZ BİR DƏFƏ olur. Bu, təkcə
             // səliqə deyil: iki eyni vaxtlı hadisə eyni xassəni yaratmağa çalışsa,
             // ikincisi bazada dayanır və bal ikiqat artmır.

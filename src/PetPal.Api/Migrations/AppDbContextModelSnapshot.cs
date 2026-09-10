@@ -1657,7 +1657,9 @@ namespace PetPal.Api.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("ModelVersion")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
 
                     b.Property<int>("NegativeEvidence")
                         .HasColumnType("integer");
