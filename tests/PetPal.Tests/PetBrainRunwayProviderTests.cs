@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -17,14 +18,17 @@ namespace PetPal.Tests;
 /// <c>id</c> və <c>estimatedCost</c>, tapşırıq isə <c>status</c>,
 /// <c>output</c>, <c>cost</c> və uğursuzluqda <c>failureCode</c> daşıyır. Hazır
 /// fayl API hostunda deyil, CDN-dədir.</para>
+///
+/// <para>Şəkil və video tapşırıqları AYRI izlənilir: id-si marşrutdan gəlir
+/// (<c>img-1</c>, <c>vid-1</c>), hazır fayl isə həmin növün baytlarıdır.</para>
 /// </summary>
 public sealed class RunwayEmulator : HttpMessageHandler
 {
     public const string ApiHost = "api.dev.runwayml.com";
-    public const string CdnUrl = "https://dnznrvs05pmza.cloudfront.net/task-1.bin?_jwt=signed";
+    public const string CdnHost = "dnznrvs05pmza.cloudfront.net";
 
+    private readonly ConcurrentDictionary<string, int> _pollsByTask = new(StringComparer.Ordinal);
     private int _creates;
-    private int _polls;
 
     /// <summary>Tutulan sorğular və gövdələri.</summary>
     public List<(HttpRequestMessage Request, string Body)> Requests { get; } = [];
@@ -46,7 +50,12 @@ public sealed class RunwayEmulator : HttpMessageHandler
 
     public int Cost { get; set; } = 5;
 
+    /// <summary>Növü ayrılmayan hallarda qaytarılan bayt.</summary>
     public byte[] Output { get; set; } = [];
+
+    public byte[] ImageOutput { get; set; } = [];
+
+    public byte[] VideoOutput { get; set; } = [];
 
     public int Creates => Volatile.Read(ref _creates);
 
@@ -66,30 +75,51 @@ public sealed class RunwayEmulator : HttpMessageHandler
         lock (Requests)
             Requests.Add((request, body));
 
-        if (request.RequestUri!.Host != ApiHost)
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(Output) };
+        var path = request.RequestUri!.AbsolutePath;
+
+        if (request.RequestUri.Host != ApiHost)
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(FileFor(path)) };
 
         if (request.Method == HttpMethod.Post)
         {
-            if (Interlocked.Increment(ref _creates) == 1 && DropFirstCreate)
+            var created = Interlocked.Increment(ref _creates);
+
+            if (created == 1 && DropFirstCreate)
                 throw new HttpRequestException("connection reset");
 
             if (CreateFailures.TryDequeue(out var failure))
                 return new HttpResponseMessage(failure);
 
-            return Json("""{"id":"task-1","estimatedCost":{"credits":5}}""");
+            var kind = path.EndsWith("text_to_image", StringComparison.Ordinal) ? "img" : "vid";
+
+            return Json($$"""{"estimatedCost":{"credits":5},"id":"{{kind}}-{{created}}"}""");
         }
 
         if (PollFailures.TryDequeue(out var pollFailure))
             return new HttpResponseMessage(pollFailure);
 
-        if (Interlocked.Increment(ref _polls) <= RunningPolls)
-            return Json("""{"id":"task-1","status":"RUNNING","progress":0.4}""");
+        var taskId = path[(path.LastIndexOf('/') + 1)..];
+        var polls = _pollsByTask.AddOrUpdate(taskId, 1, (_, seen) => seen + 1);
+
+        if (polls <= RunningPolls)
+            return Json($$"""{"id":"{{taskId}}","status":"RUNNING","progress":0.4}""");
 
         if (FailureCode is not null)
-            return Json($$"""{"id":"task-1","status":"FAILED","failure":"internal diagnostics","failureCode":"{{FailureCode}}","cost":0}""");
+            return Json($$"""{"id":"{{taskId}}","status":"FAILED","failure":"internal diagnostics","failureCode":"{{FailureCode}}","cost":0}""");
 
-        return Json($$"""{"id":"task-1","status":"SUCCEEDED","output":["{{CdnUrl}}"],"cost":{{Cost}}}""");
+        return Json($$"""{"id":"{{taskId}}","status":"SUCCEEDED","output":["https://{{CdnHost}}/{{taskId}}.bin?_jwt=signed"],"cost":{{Cost}}}""");
+    }
+
+    /// <summary>Hazır fayl: hansı tapşırığın nəticəsidirsə, onun baytları.</summary>
+    private byte[] FileFor(string path)
+    {
+        if (path.Contains("/img-", StringComparison.Ordinal) && ImageOutput.Length > 0)
+            return ImageOutput;
+
+        if (path.Contains("/vid-", StringComparison.Ordinal) && VideoOutput.Length > 0)
+            return VideoOutput;
+
+        return Output;
     }
 
     private static HttpResponseMessage Json(string payload) => new(HttpStatusCode.OK)
@@ -103,8 +133,8 @@ public sealed class RunwayEmulator : HttpMessageHandler
 ///
 /// <para>Əvvəlki saxta cavablar yaratma sorğusuna <c>status</c> qaytarırdı, real
 /// API isə qaytarmır. Bu fərq canlı sistemdə hər pullu tapşırığı «uğursuz»
-/// sayıb atırdı, testlər isə yaşıl qalırdı. Burada adapterlər məhz sənədləşdirilmiş
-/// müqaviləyə qarşı yoxlanılır.</para>
+/// sayıb atırdı, testlər isə yaşıl qalırdı. Burada adapterlər məhz
+/// sənədləşdirilmiş müqaviləyə qarşı yoxlanılır.</para>
 /// </summary>
 public class PetBrainRunwayProviderTests
 {
@@ -117,7 +147,7 @@ public class PetBrainRunwayProviderTests
     [Fact]
     public async Task Sekil_TamAxin_AcarYalnizApiSorgularinda()
     {
-        var emulator = new RunwayEmulator { Output = Png(720, 1280) };
+        var emulator = new RunwayEmulator { ImageOutput = Png(720, 1280) };
         var spec = MarsScene();
 
         var result = await ImageProvider(emulator).RenderAsync(spec, SafePuzzleIllustrationPromptBuilder.Build(spec));
@@ -147,7 +177,7 @@ public class PetBrainRunwayProviderTests
     [Fact]
     public async Task Sekil_Gen4ImageIleMetndenGedir()
     {
-        var emulator = new RunwayEmulator { Output = Png(720, 1280) };
+        var emulator = new RunwayEmulator { ImageOutput = Png(720, 1280) };
         var spec = MarsScene();
 
         await ImageProvider(emulator).RenderAsync(spec, SafePuzzleIllustrationPromptBuilder.Build(spec));
@@ -171,7 +201,7 @@ public class PetBrainRunwayProviderTests
         var spec = MarsScene();
         var prompt = SafePuzzleIllustrationPromptBuilder.Build(spec);
 
-        var throttled = new RunwayEmulator { Output = Png(720, 1280) };
+        var throttled = new RunwayEmulator { ImageOutput = Png(720, 1280) };
         throttled.CreateFailures.Enqueue(HttpStatusCode.TooManyRequests);
 
         var retried = await ImageProvider(throttled).RenderAsync(spec, prompt);
@@ -179,7 +209,7 @@ public class PetBrainRunwayProviderTests
         Assert.True(retried.Succeeded, retried.Reason);
         Assert.Equal(2, throttled.Creates);
 
-        var dropped = new RunwayEmulator { Output = Png(720, 1280), DropFirstCreate = true };
+        var dropped = new RunwayEmulator { ImageOutput = Png(720, 1280), DropFirstCreate = true };
 
         var failed = await ImageProvider(dropped).RenderAsync(spec, prompt);
 
@@ -192,7 +222,7 @@ public class PetBrainRunwayProviderTests
     [Fact]
     public async Task Sekil_IzlemeXetasiTapsiriqiOldurmur()
     {
-        var emulator = new RunwayEmulator { Output = Png(720, 1280), RunningPolls = 0 };
+        var emulator = new RunwayEmulator { ImageOutput = Png(720, 1280), RunningPolls = 0 };
         emulator.PollFailures.Enqueue(HttpStatusCode.ServiceUnavailable);
 
         var spec = MarsScene();
@@ -227,7 +257,7 @@ public class PetBrainRunwayProviderTests
         var started = await VideoProvider(emulator).StartAsync(MarsRecap(), "three shots", Jpeg(720, 1280));
 
         Assert.True(started.Started, started.Reason);
-        Assert.Equal("task-1", started.JobId);
+        Assert.Equal("vid-1", started.JobId);
 
         var create = Assert.Single(emulator.ApiRequests);
 
@@ -260,7 +290,7 @@ public class PetBrainRunwayProviderTests
     [Fact]
     public async Task Video_IzlemeVeYukleme()
     {
-        var emulator = new RunwayEmulator { Output = FakeRecapVideoProvider.Mp4(720, 1280, 10.0), Cost = 50 };
+        var emulator = new RunwayEmulator { VideoOutput = FakeRecapVideoProvider.Mp4(720, 1280, 10.0), Cost = 50 };
         emulator.PollFailures.Enqueue(HttpStatusCode.BadGateway);
 
         var provider = VideoProvider(emulator);
@@ -342,7 +372,7 @@ public class PetBrainRunwayProviderTests
         SceneSpecHash: "scene");
 
     /// <summary>Minimal PNG: imza + IHDR ölçüləri — yoxlayıcı ölçünü buradan oxuyur.</summary>
-    private static byte[] Png(int width, int height)
+    internal static byte[] Png(int width, int height)
     {
         var bytes = new byte[64];
 
