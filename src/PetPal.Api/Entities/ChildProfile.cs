@@ -109,7 +109,16 @@ public class ChildProfile
     /// <summary>Xarakter sonuncu dəfə nə vaxt dəyişdi — nümayiş və audit üçün.</summary>
     public DateTime? PersonalityChangedAt { get; set; }
 
+    /// <summary>
+    /// AÇIQ fərdiləşdirmə ayarları — təxminlərdən ayrı yaşayır.
+    /// Sətir ilk ehtiyac anında yaradılır; <c>null</c> = hələ heç kim
+    /// toxunmayıb və məhsulun standartları işləyir.
+    /// </summary>
+    public ChildPersonalizationSettings? PersonalizationSettings { get; set; }
+
     public ICollection<PlayerTrait> Traits { get; set; } = new List<PlayerTrait>();
+    public ICollection<MechanicMastery> MechanicMasteries { get; set; } = new List<MechanicMastery>();
+    public ICollection<ContentPreference> ContentPreferences { get; set; } = new List<ContentPreference>();
     public ICollection<BehaviorEvent> BehaviorEvents { get; set; } = new List<BehaviorEvent>();
     public ICollection<PetMemory> Memories { get; set; } = new List<PetMemory>();
     public ICollection<ExperienceRun> ExperienceRuns { get; set; } = new List<ExperienceRun>();

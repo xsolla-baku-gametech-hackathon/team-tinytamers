@@ -44,5 +44,19 @@ public enum PetBrainEvidenceSource
     Discovery = 8,
 
     /// <summary>Şkafda görünüş quruldu.</summary>
-    Cosmetic = 9
+    Cosmetic = 9,
+
+    /// <summary>
+    /// Uşağın AÇIQ sözü: «bəyənirəm» / «daha az göstər».
+    ///
+    /// <para>Ən güclü mənbədir və qəsdən belədir: uşaq birbaşa deyəndə sistem
+    /// onun davranışını təfsir etməməlidir.</para>
+    /// </summary>
+    Explicit = 10,
+
+    /// <summary>İlk tanışlıqdakı seçim — PRIOR, yüksək əminlikli həqiqət deyil.</summary>
+    Onboarding = 11,
+
+    /// <summary>Mükafat seçimi və ya geyindirilməsi.</summary>
+    Reward = 12
 }

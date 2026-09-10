@@ -43,6 +43,14 @@ public static class TraitEvidence
     public const int StrongDelta = 2;
 
     /// <summary>
+    /// AÇIQ mənfi sözün ziddiyyət hesabındakı çəkisi.
+    ///
+    /// <para>Dolayı siqnaldan ağırdır: uşaq «istəmirəm» deyəndə sistem onun
+    /// davranışını təfsir etməməlidir.</para>
+    /// </summary>
+    public const int ExplicitWeight = 2;
+
+    /// <summary>
     /// Direktorun oxuduğu EFFEKTİV bal: saxlanan bal, köhnəlmə çıxılmaqla.
     ///
     /// <para>Köhnəlmə heç vaxt başlanğıc balından aşağı endirmir — uşağın
@@ -102,9 +110,15 @@ public static class TraitEvidence
         var freshness = Math.Max(0.4, 1.0 - (idleDays / 90.0));
 
         // Ziddiyyət: uşaq bu mövzunu həm seçib, həm də kənara qoyub.
-        var contested = trait.PositiveEvidence + trait.SkipEvidence == 0
+        //
+        // AÇIQ «istəmirəm» ikiqat çəkilir: o, bir andakı qərar deyil, uşağın
+        // sözüdür — və sözü davranışdan zəif saymaq bütün modelin məntiqini
+        // pozardı.
+        var against = trait.SkipEvidence + (trait.NegativeEvidence * ExplicitWeight);
+
+        var contested = trait.PositiveEvidence + against == 0
             ? 1.0
-            : trait.PositiveEvidence / (double)(trait.PositiveEvidence + trait.SkipEvidence);
+            : trait.PositiveEvidence / (double)(trait.PositiveEvidence + against);
 
         var raw = 100 * ((0.45 * volume) + (0.25 * diversity)) * freshness * (0.55 + (0.45 * contested));
 
@@ -138,7 +152,14 @@ public static class TraitEvidence
         }
         else if (delta < 0)
         {
-            trait.SkipEvidence++;
+            // AÇIQ «istəmirəm» ilə kartı kənara qoymaq ayrı sayılır: birincisi
+            // uşağın sözüdür, ikincisi yalnız bir andakı qərarı. İkisini bir
+            // sayğacda birləşdirmək valideyn panelində «uşaq bunu on dəfə rədd
+            // etdi» kimi yanlış mənzərə yaradardı.
+            if (source == PetBrainEvidenceSource.Explicit)
+                trait.NegativeEvidence++;
+            else
+                trait.SkipEvidence++;
         }
     }
 

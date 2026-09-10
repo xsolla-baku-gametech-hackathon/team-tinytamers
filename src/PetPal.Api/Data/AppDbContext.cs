@@ -37,6 +37,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
     // ---------- Pet Brain (Adaptive Pet Director) ----------
     public DbSet<PlayerTrait> PlayerTraits => Set<PlayerTrait>();
+    public DbSet<MechanicMastery> MechanicMasteries => Set<MechanicMastery>();
+    public DbSet<ContentPreference> ContentPreferences => Set<ContentPreference>();
+    public DbSet<ChildPersonalizationSettings> PersonalizationSettings => Set<ChildPersonalizationSettings>();
     public DbSet<TraitDailyGain> TraitDailyGains => Set<TraitDailyGain>();
     public DbSet<BehaviorEvent> BehaviorEvents => Set<BehaviorEvent>();
     public DbSet<PetMemory> PetMemories => Set<PetMemory>();
@@ -389,6 +392,48 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        builder.Entity<MechanicMastery>(e =>
+        {
+            e.Property(x => x.Mechanic).HasMaxLength(40).IsRequired();
+
+            // Bir uşaqda bir mexanika YALNIZ BİR sətirdir: paralel iki tapmaca
+            // nəticəsi ikinci ustalıq sətri yaradıb tarixçəni ikiyə bölə bilmir.
+            e.HasIndex(x => new { x.ChildProfileId, x.Mechanic }).IsUnique();
+
+            e.HasOne(x => x.ChildProfile)
+                .WithMany(c => c.MechanicMasteries)
+                .HasForeignKey(x => x.ChildProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ContentPreference>(e =>
+        {
+            e.Property(x => x.Key).HasMaxLength(60).IsRequired();
+
+            // Bir uşaq + sahə + açar üçün BİR qeyd. Uşaq eyni mövzunu iki dəfə
+            // «daha az göstər» edəndə yeni sətir yaranmır — mövcud sətrin
+            // təkrar sayı və müddəti uzanır.
+            e.HasIndex(x => new { x.ChildProfileId, x.Scope, x.Key }).IsUnique();
+
+            e.HasOne(x => x.ChildProfile)
+                .WithMany(c => c.ContentPreferences)
+                .HasForeignKey(x => x.ChildProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ChildPersonalizationSettings>(e =>
+        {
+            // Bir uşaq — bir ayar sətri. Açıq seçim ikiləşə bilməz: «hərəkət
+            // azaldılsın» iki sətirdə fərqli qalsa, hansının doğru olduğu
+            // sualının cavabı olmazdı.
+            e.HasIndex(x => x.ChildProfileId).IsUnique();
+
+            e.HasOne(x => x.ChildProfile)
+                .WithOne(c => c.PersonalizationSettings)
+                .HasForeignKey<ChildPersonalizationSettings>(x => x.ChildProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         builder.Entity<TraitDailyGain>(e =>
         {
             e.Property(x => x.TraitKey).HasMaxLength(40).IsRequired();
@@ -530,9 +575,21 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                 .HasConversion(StringListConverter.Converter)
                 .Metadata.SetValueComparer(StringListConverter.Comparer);
 
+            e.Property(x => x.FilteredCandidates)
+                .HasConversion(StringListConverter.Converter)
+                .Metadata.SetValueComparer(StringListConverter.Comparer);
+
+            e.Property(x => x.WhyReasons)
+                .HasConversion(StringListConverter.Converter)
+                .Metadata.SetValueComparer(StringListConverter.Comparer);
+
             // "Göstərildi → başlandı" çevrilməsi və "başqa fikir" nisbəti bu ox
             // üzərində hesablanır.
             e.HasIndex(x => new { x.ChildProfileId, x.CreatedAt });
+
+            // Bir baxışda göstərilən kartlar birlikdə oxunur: «əsas təklif
+            // rədd edildi, alternativ seçildi» sualı yalnız qrup üzrə cavablanır.
+            e.HasIndex(x => x.GroupId);
 
             e.HasOne(x => x.ChildProfile)
                 .WithMany()

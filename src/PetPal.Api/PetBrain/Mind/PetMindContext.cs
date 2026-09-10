@@ -92,6 +92,28 @@ public sealed record PetMindContext(
 
     IReadOnlyDictionary<string, int> PlayStyleConfidence,
 
+    /// <summary>
+    /// MEXANİKA üstünlükləri — mövzudan qəsdən ayrı.
+    ///
+    /// <para>Uşaq kosmosu sevib marşrut tapmacasını sevməyə bilər. İkisi bir
+    /// balda birləşəndə sistem «kosmos təklif et» deyib eyni sevilməyən
+    /// mexanikanı təkrarlayırdı.</para>
+    /// </summary>
+    IReadOnlyDictionary<string, int> Mechanics,
+
+    IReadOnlyDictionary<string, int> MechanicConfidence,
+
+    /// <summary>
+    /// Mexanika üzrə USTALIQ — üstünlükdən AYRI.
+    ///
+    /// <para>Sevmək və bacarmaq eyni şey deyil: uşaq marşrutu sevə, amma hələ
+    /// bacarmaya bilər. Birincisi «nə təklif edim», ikincisi «hansı çətinlikdə»
+    /// sualına cavab verir.</para>
+    /// </summary>
+    IReadOnlyDictionary<string, int> MechanicMastery,
+
+    IReadOnlyDictionary<string, PetBrainDifficulty> MechanicChallengeBand,
+
     /// <summary>Ən yenidən köhnəyə doğru.</summary>
     IReadOnlyList<MindRunOutcome> RecentOutcomes,
 
@@ -115,7 +137,42 @@ public sealed record PetMindContext(
     /// <summary>Bu sessiyada uşağın "sonra" və ya "başqa fikir" dediyi şablonlar.</summary>
     IReadOnlySet<string> DeclinedTemplates,
 
-    PetBrainDifficulty Difficulty)
+    PetBrainDifficulty Difficulty,
+
+    /// <summary>
+    /// AÇIQ fərdiləşdirmə qatı: ayarlar, dəstək planı, əlçatanlıq.
+    ///
+    /// <para>Xassələrdən qəsdən ayrıdır: xassə öyrənilən ehtimaldır və
+    /// köhnəlir, ayar isə qərardır və heç bir davranış siqnalı onu
+    /// üstələmir.</para>
+    /// </summary>
+    PersonalizationProfile Personalization,
+
+    /// <summary>Valideynin bloklandığı mövzular — namizəd hovuzundan çıxır.</summary>
+    IReadOnlySet<string> BlockedThemes,
+
+    /// <summary>Valideynin bloklandığı macəralar.</summary>
+    IReadOnlySet<string> BlockedTemplates,
+
+    /// <summary>Uşağın «daha az göstər» dediyi mövzular — geri çəkilir, yox olmur.</summary>
+    IReadOnlySet<string> ShowLessThemes,
+
+    /// <summary>Uşağın «daha az göstər» dediyi macəralar.</summary>
+    IReadOnlySet<string> ShowLessTemplates,
+
+    /// <summary>Uşağın açıq bəyəndiyi mövzular.</summary>
+    IReadOnlySet<string> LikedThemes,
+
+    /// <summary>Uşağın açıq bəyəndiyi macəralar.</summary>
+    IReadOnlySet<string> LikedTemplates,
+
+    /// <summary>
+    /// Profilin ÜMUMİ inamı (0–100) — «bu uşaq haqqında nə qədər şey bilirik».
+    ///
+    /// <para>Aşağı olanda sistem daha çox kəşf edir və izahı dürüst saxlayır
+    /// («hələ tanış oluruq»), yüksək olanda isə üstünlüyə güvənir.</para>
+    /// </summary>
+    int ProfileConfidence)
 {
     /// <summary>Qulluq ehtiyacı TƏCİLİDİR — pet macərədən əvvəl köməyə ehtiyac duyur.</summary>
     public bool NeedsCare =>

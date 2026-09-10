@@ -105,5 +105,23 @@ public enum PetBrainRecommendationFeedback
     ShowAnother = 2,
 
     /// <summary>"Sonra" — marağı AZALTMIR, yalnız indi uyğun deyil.</summary>
-    NotNow = 3
+    NotNow = 3,
+
+    /// <summary>
+    /// "Bunu bəyənirəm" — uşağın AÇIQ müsbət siqnalı.
+    ///
+    /// <para>Dolayı davranışdan güclüdür: sistem burada təxmin etmir, uşaq
+    /// birbaşa deyir. Kartı da kənara qoymur — uşaq bəyəndiyini oynaya
+    /// bilməlidir.</para>
+    /// </summary>
+    Liked = 4,
+
+    /// <summary>
+    /// "Bunu daha az göstər" — uşağın AÇIQ mənfi siqnalı.
+    ///
+    /// <para>«Başqa fikir»dən fərqlidir: o, sessiyalıq bir addır, bu isə
+    /// davamlı seçimdir və soyuma müddəti ilə birlikdə yazılır. BLOK deyil:
+    /// mövzu tamamilə yox olmur, yalnız geri çəkilir.</para>
+    /// </summary>
+    ShowLess = 5
 }

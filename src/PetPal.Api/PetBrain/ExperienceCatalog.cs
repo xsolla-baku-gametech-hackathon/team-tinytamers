@@ -81,6 +81,34 @@ public sealed record ExperienceTemplate(
     IReadOnlyList<string> PlayStyleAffinity,
     IReadOnlyList<ExperienceStage> Stages)
 {
+    /// <summary>
+    /// Bu macəranın işlətdiyi oyun MEXANİKALARI (<see cref="MechanicKeys"/>).
+    ///
+    /// <para>Mövzu affinitetindən qəsdən ayrıdır: uşaq kosmosu sevib marşrut
+    /// tapmacasını sevməyə bilər. Direktor ikisini AYRI çəkilərlə oxuyur, ona
+    /// görə «kosmos, amma bu dəfə qurma» kimi təklif mümkün olur.</para>
+    ///
+    /// <para>Boş buraxıla bilər — o halda mexanika uyğunluğu neytral sayılır
+    /// və heç bir namizəd haqsız yerə irəli çıxmır.</para>
+    /// </summary>
+    public IReadOnlyList<string> MechanicAffinity { get; init; } = [];
+
+    /// <summary>Ən çox işlədilən mexanika — izah cümləsi bunu adlandırır.</summary>
+    public string? PrimaryMechanic => MechanicAffinity.Count > 0 ? MechanicAffinity[0] : null;
+
+    /// <summary>
+    /// Tamamlamanın uşağa NƏ verdiyi — mükafatın forması.
+    ///
+    /// <para>Mükafat İQTİSADİYYATI bununla dəyişmir: xp, bağ və kosmetik
+    /// olduğu kimi qalır. Bu sahə mükafatın hansı ADLA təqdim olunduğunu və
+    /// uşağın seçdiyi növün sıralamada irəli çıxmasını idarə edir.</para>
+    ///
+    /// <para>Elan dürüst olmalıdır: kosmetik açarı olmayan macəra
+    /// <see cref="PetBrainRewardPreference.PetCosmetic"/> elan edə bilməz —
+    /// testlə qorunur.</para>
+    /// </summary>
+    public PetBrainRewardPreference RewardFlavor { get; init; } = PetBrainRewardPreference.StoryPage;
+
     public string Title(string language) => Localized.T(language, TitleAz, TitleEn);
     public string Intro(string language) => Localized.T(language, IntroAz, IntroEn);
     public string Celebration(string language) => Localized.T(language, CelebrationAz, CelebrationEn);
@@ -198,7 +226,11 @@ public static class ExperienceCatalog
                             "Robonu qoruyaraq", "Keeping Robo safe",
                             [new(TraitKeys.Caring, 2), new(TraitKeys.Explorer, 1)])
                     ])
-            ]),
+            ])
+        {
+            MechanicAffinity = [MechanicKeys.Route, MechanicKeys.StoryChoice, MechanicKeys.Exploration],
+            RewardFlavor = PetBrainRewardPreference.PetCosmetic,
+        },
 
         // ================= B: Rənglərini İtirmiş Əjdaha =================
         new(
@@ -296,7 +328,11 @@ public static class ExperienceCatalog
                             "Yumşaq və mehriban", "Soft and kind",
                             [new(TraitKeys.Stories, 2), new(TraitKeys.Caring, 1)])
                     ])
-            ]),
+            ])
+        {
+            MechanicAffinity = [MechanicKeys.Pattern, MechanicKeys.Building, MechanicKeys.Decorating],
+            RewardFlavor = PetBrainRewardPreference.PetCosmetic,
+        },
 
         // ================= Ayda Kristal (kosmos — Marsın "yaxın qonşusu") =================
         new(
@@ -368,7 +404,11 @@ public static class ExperienceCatalog
                             "Öz üsulunu icad et", "Invent your own way",
                             [new(TraitKeys.Creative, 2), new(TraitKeys.Explorer, 1)])
                     ])
-            ]),
+            ])
+        {
+            MechanicAffinity = [MechanicKeys.Route, MechanicKeys.Observation, MechanicKeys.StoryChoice, MechanicKeys.Memory],
+            RewardFlavor = PetBrainRewardPreference.StoryPage,
+        },
 
         // ================= Okeanda İşıq =================
         new(
@@ -440,7 +480,11 @@ public static class ExperienceCatalog
                             "Yanlarında qal", "Stay right beside them",
                             [new(TraitKeys.Caring, 2), new(TraitKeys.Animals, 1)])
                     ])
-            ]),
+            ])
+        {
+            MechanicAffinity = [MechanicKeys.Sequencing, MechanicKeys.Exploration, MechanicKeys.Nurturing],
+            RewardFlavor = PetBrainRewardPreference.Collection,
+        },
 
         // ================= Meşə Dostları Karnavalı =================
         new(
@@ -522,7 +566,11 @@ public static class ExperienceCatalog
                             "Hər yer görünür", "You can see everything",
                             [new(TraitKeys.Explorer, 2), new(TraitKeys.Playful, 1)])
                     ])
-            ]),
+            ])
+        {
+            MechanicAffinity = [MechanicKeys.Building, MechanicKeys.Decorating, MechanicKeys.Nurturing],
+            RewardFlavor = PetBrainRewardPreference.RoomDecor,
+        },
 
         // ================= Robot Laboratoriyası =================
         new(
@@ -595,6 +643,10 @@ public static class ExperienceCatalog
                             [new(TraitKeys.Stories, 2), new(TraitKeys.Caring, 1)])
                     ])
             ])
+        {
+            MechanicAffinity = [MechanicKeys.Sequencing, MechanicKeys.Pattern, MechanicKeys.Experimentation, MechanicKeys.Memory],
+            RewardFlavor = PetBrainRewardPreference.CreativeTool,
+        }
     ];
 
     public static ExperienceTemplate? Find(string? key) =>

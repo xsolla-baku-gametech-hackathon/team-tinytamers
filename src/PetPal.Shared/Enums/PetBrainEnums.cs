@@ -3,15 +3,25 @@ using System.Text.Json.Serialization;
 namespace PetPal.Shared.Enums;
 
 /// <summary>
-/// Oyunçu xassəsinin ailəsi. İki ailə qəsdəndir: MARAQ "nə haqqındadır"
-/// sualına, ÜSLUB isə "necə oynayır" sualına cavab verir — direktor ikisini
-/// ayrı çəkilərlə işlədir.
+/// Oyunçu xassəsinin ailəsi. Üç ailə qəsdəndir: MARAQ "nə haqqındadır",
+/// ÜSLUB "necə oynayır", MEXANİKA isə "hansı qarşılıqlı təsiri sevir"
+/// sualına cavab verir — direktor üçünü ayrı çəkilərlə işlədir.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum PetBrainTraitCategory
 {
     Interest = 0,
-    PlayStyle = 1
+    PlayStyle = 1,
+
+    /// <summary>
+    /// Oyun MEXANİKASI: marşrut qurmaq, sıralamaq, naxış tapmaq, bəzəmək…
+    ///
+    /// <para><b>Mövzudan QƏSDƏN ayrıdır.</b> Uşaq kosmosu sevə, kosmos
+    /// tapmacasını isə sevməyə bilər — bir bal bu iki fərqli faktı saxlaya
+    /// bilmirdi və nəticədə sistem «kosmos təklif et» deyib eyni sevilməyən
+    /// tapmacanı təkrarlayırdı.</para>
+    /// </summary>
+    Mechanic = 2
 }
 
 /// <summary>
@@ -35,7 +45,43 @@ public enum PetBrainEventType
     MiniGameCompleted = 11,
     PetCared = 12,
     AccessoryEquipped = 13,
-    MissionCompleted = 14
+    MissionCompleted = 14,
+
+    /// <summary>
+    /// Uşaq ALTERNATİV kartı seçdi — əsas təklifdən imtina edərək.
+    ///
+    /// <para>Ayrı hadisə olması vacibdir: «uşaq macərəni başlatdı» ilə «uşaq
+    /// mənim təklifimi bəyənmədi, amma yanındakını götürdü» eyni şey deyil və
+    /// birincisi kimi sayılsa, siyasətin səhvi öz uğuru kimi görünərdi.</para>
+    /// </summary>
+    AlternativeSelected = 15,
+
+    /// <summary>«Bunu bəyənirəm» — uşağın AÇIQ müsbət siqnalı.</summary>
+    ExplicitLiked = 16,
+
+    /// <summary>«Bunu daha az göstər» — uşağın AÇIQ mənfi siqnalı.</summary>
+    ExplicitDisliked = 17,
+
+    /// <summary>Eyni macəra yenidən oynanıldı — güclü müsbət siqnal.</summary>
+    ContentReplayed = 18,
+
+    /// <summary>Mükafat seçildi (bir neçə variant təklif olunanda).</summary>
+    RewardSelected = 19,
+
+    /// <summary>Ayar dəyişdi — uşaq və ya valideyn tərəfindən.</summary>
+    SettingChanged = 20,
+
+    /// <summary>Valideyn açıq bir qərar tətbiq etdi (blok, sıfırlama, söndürmə).</summary>
+    ParentOverrideApplied = 21,
+
+    /// <summary>Pet bir xatirəni geri çağırdı.</summary>
+    MemoryReferenced = 22,
+
+    /// <summary>İpucu FAYDALI oldu — ondan sonra tapmaca həll olundu.</summary>
+    HintHelpful = 23,
+
+    /// <summary>İlk tanışlıq tamamlandı və ya keçildi.</summary>
+    OnboardingAnswered = 24
 }
 
 /// <summary>Təcrübənin janrı — macəra doğru/səhv daşıyır, yaradıcı isə daşımır.</summary>

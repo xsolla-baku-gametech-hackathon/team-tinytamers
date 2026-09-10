@@ -49,6 +49,32 @@ public static class ProfileLearningRules
     public const int PuzzleSolvedPuzzles = 2;
     public const int PuzzleSolvedProblemSolver = 1;
 
+    /// <summary>Tamamlanmış macəranın işlətdiyi MEXANİKALARA verdiyi artım.</summary>
+    public const int CompletedMechanic = 2;
+
+    /// <summary>Həll olunmuş tapmacanın öz mexanikasına verdiyi artım.</summary>
+    public const int PuzzleSolvedMechanic = 2;
+
+    /// <summary>
+    /// TƏKRAR oynama — ən güclü dolayı siqnal.
+    ///
+    /// <para>Uşaq bitirdiyi macəraya öz istəyi ilə qayıdır: bu, nə göstərilmə,
+    /// nə də tövsiyənin qəbuludur — sırf onun seçimidir.</para>
+    /// </summary>
+    public const int ReplayInterest = 3;
+    public const int ReplayMechanic = 2;
+
+    /// <summary>
+    /// AÇIQ «bəyənirəm» — dolayı davranışdan güclü, amma tavanı var.
+    ///
+    /// <para>Bir toxunuşla profili sıçratmaq da düzgün deyil: uşaq düyməni
+    /// maraqdan basa bilər.</para>
+    /// </summary>
+    public const int ExplicitLikeInterest = 4;
+
+    /// <summary>AÇIQ «daha az göstər» — açıq mənfi, amma bəyənmədən kiçik.</summary>
+    public const int ExplicitShowLessInterest = -3;
+
     /// <summary>Mini oyun və dərs kimi mövcud axınlardan gələn zəif siqnallar.</summary>
     public const int WeakSignal = 1;
 
@@ -96,8 +122,106 @@ public static class ProfileLearningRules
                 adjustments.Add(PlayStyle(style, RepeatCompletionInterest, PetBrainEvidenceSource.Adventure));
         }
 
+        // MEXANİKA mövzudan ayrı öyrənilir: uşaq kosmosu sevib marşrutu
+        // sevməyə bilər və bu iki fakt bir balda birləşdirilə bilməz.
+        var mechanicDelta = isFirstCompletion ? CompletedMechanic : RepeatCompletionInterest;
+
+        foreach (var mechanic in template.MechanicAffinity)
+            adjustments.Add(Mechanic(mechanic, mechanicDelta, PetBrainEvidenceSource.Adventure));
+
         return adjustments;
     }
+
+    /// <summary>
+    /// Uşaq artıq bitirdiyi macəraya ÖZ İSTƏYİ ilə qayıtdı.
+    ///
+    /// <para>Bu, tövsiyənin qəbulu deyil: sistem onu təklif etmiş ola bilər,
+    /// amma təkrar oynamaq uşağın öz qərarıdır və ona görə ən güclü dolayı
+    /// müsbət siqnaldır.</para>
+    /// </summary>
+    public static IReadOnlyList<TraitAdjustment> ForReplay(ExperienceTemplate template)
+    {
+        List<TraitAdjustment> adjustments =
+            [Interest(template.PrimaryInterest, ReplayInterest, PetBrainEvidenceSource.Adventure)];
+
+        foreach (var mechanic in template.MechanicAffinity.Take(2))
+            adjustments.Add(Mechanic(mechanic, ReplayMechanic, PetBrainEvidenceSource.Adventure));
+
+        return adjustments;
+    }
+
+    /// <summary>
+    /// Uşağın AÇIQ sözü: «bəyənirəm» və ya «daha az göstər».
+    ///
+    /// <para><b>Dolayı siqnaldan güclüdür</b> və mənbəsi
+    /// <see cref="PetBrainEvidenceSource.Explicit"/>-dir: uşaq birbaşa deyəndə
+    /// sistem onun davranışını təfsir etməməlidir.</para>
+    ///
+    /// <para>Valideyn bloku buraya DÜŞMÜR: blok namizədi hovuzdan çıxarır,
+    /// amma uşağın zövqü haqqında heç nə demir.</para>
+    /// </summary>
+    public static IReadOnlyList<TraitAdjustment> ForExplicitFeedback(
+        PetBrainContentScope scope, string key, PetBrainContentPreferenceKind kind)
+    {
+        var delta = kind switch
+        {
+            PetBrainContentPreferenceKind.Liked => ExplicitLikeInterest,
+            PetBrainContentPreferenceKind.ShowLess => ExplicitShowLessInterest,
+            _ => 0
+        };
+
+        if (delta == 0)
+            return [];
+
+        return scope switch
+        {
+            PetBrainContentScope.Theme when TraitKeys.Interests.Contains(key, StringComparer.Ordinal) =>
+                [Interest(key, delta, PetBrainEvidenceSource.Explicit)],
+
+            PetBrainContentScope.Mechanic when MechanicKeys.IsKnown(key) =>
+                [Mechanic(key, delta, PetBrainEvidenceSource.Explicit)],
+
+            PetBrainContentScope.Template when ExperienceCatalog.Find(key) is { } template =>
+                BuildTemplateFeedback(template, delta),
+
+            _ => []
+        };
+    }
+
+    private static List<TraitAdjustment> BuildTemplateFeedback(ExperienceTemplate template, int delta)
+    {
+        List<TraitAdjustment> adjustments =
+            [Interest(template.PrimaryInterest, delta, PetBrainEvidenceSource.Explicit)];
+
+        foreach (var mechanic in template.MechanicAffinity.Take(2))
+            adjustments.Add(Mechanic(mechanic, delta, PetBrainEvidenceSource.Explicit));
+
+        return adjustments;
+    }
+
+    /// <summary>
+    /// İlk tanışlığın seçimləri — <b>PRIOR</b>, daimi həqiqət deyil.
+    ///
+    /// <para>Artım qəsdən kiçikdir: uşaq üç mövzu seçəndə sistem «bunları
+    /// sevir» qənaətinə gəlməməlidir, sadəcə «buradan başlayaq»
+    /// deməlidir. Davranış sübutu onu tədricən düzəldir.</para>
+    /// </summary>
+    public static IReadOnlyList<TraitAdjustment> ForOnboarding(
+        IEnumerable<string> topics, IEnumerable<string> mechanics)
+    {
+        List<TraitAdjustment> adjustments = [];
+
+        foreach (var topic in topics.Where(t => TraitKeys.Interests.Contains(t, StringComparer.Ordinal)))
+            adjustments.Add(Interest(topic, OnboardingPrior, PetBrainEvidenceSource.Onboarding));
+
+        foreach (var mechanic in mechanics.Where(MechanicKeys.IsKnown))
+            adjustments.Add(Mechanic(mechanic, OnboardingPrior, PetBrainEvidenceSource.Onboarding));
+
+        return adjustments;
+    }
+
+    /// <summary>İlk tanışlıqda bir seçimin verdiyi başlanğıc artımı.</summary>
+    public const int OnboardingPrior = 3;
 
     /// <summary>
     /// Mənalı yarımçıq qoyma. "Mənalı" = uşaq ən azı bir mərhələ keçib: giriş
@@ -135,6 +259,23 @@ public static class ProfileLearningRules
         Interest(TraitKeys.Puzzles, PuzzleSolvedPuzzles, PetBrainEvidenceSource.Puzzle),
         PlayStyle(TraitKeys.ProblemSolver, PuzzleSolvedProblemSolver, PetBrainEvidenceSource.Puzzle)
     ];
+
+    /// <summary>
+    /// Tapmaca həlli + onun MEXANİKASI.
+    ///
+    /// <para>«Tapmacaları sevir» ilə «marşrut qurmağı sevir» eyni fakt deyil:
+    /// marşrutu üç dəfə seçən uşaq ilə sıralamanı seçən uşaq eyni ümumi bal
+    /// alsa da, onlara eyni tapmaca verilməməlidir.</para>
+    /// </summary>
+    public static IReadOnlyList<TraitAdjustment> ForPuzzleSolved(PetBrainPuzzleMechanic mechanic)
+    {
+        List<TraitAdjustment> adjustments = [.. ForPuzzleSolved()];
+
+        if (MechanicKeys.For(mechanic) is { } key)
+            adjustments.Add(Mechanic(key, PuzzleSolvedMechanic, PetBrainEvidenceSource.Puzzle));
+
+        return adjustments;
+    }
 
     /// <summary>
     /// Mövcud axınlardan gələn zəif siqnallar (dərs cavabı, mini oyun, qulluq).
@@ -200,6 +341,10 @@ public static class ProfileLearningRules
     private static TraitAdjustment PlayStyle(
         string key, int delta, PetBrainEvidenceSource source = PetBrainEvidenceSource.Unknown) =>
         new(PetBrainTraitCategory.PlayStyle, key, Cap(delta), source);
+
+    private static TraitAdjustment Mechanic(
+        string key, int delta, PetBrainEvidenceSource source = PetBrainEvidenceSource.Unknown) =>
+        new(PetBrainTraitCategory.Mechanic, key, Cap(delta), source);
 
     /// <summary>Cədvəldə səhvən böyük rəqəm yazılsa belə profil sıçramır.</summary>
     private static int Cap(int delta) =>

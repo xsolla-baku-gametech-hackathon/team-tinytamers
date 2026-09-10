@@ -34,6 +34,7 @@ using PetPal.Api.PetBrain.Mind;
 using PetPal.Api.PetBrain.Media;
 using PetPal.Api.PetBrain.Puzzles;
 using PetPal.Api.PetBrain.Recap;
+using PetPal.Api.PetBrain.Recommendation;
 using PetPal.Api.PetBrain.Story;
 using PetPal.Api.Pets;
 using PetPal.Api.Progress;
@@ -382,6 +383,14 @@ else
 builder.Services.Configure<PetBrainOptions>(builder.Configuration.GetSection(PetBrainOptions.SectionName));
 builder.Services.Configure<PetBrainV2Options>(builder.Configuration.GetSection(PetBrainV2Options.SectionName));
 
+// Tövsiyə çəkiləri KONFİQURASİYADIR, kod detalı deyil. Cəmin 1.0 olması
+// başlanğıcda yoxlanılır: səhv çəki ilə işə düşən server bütün balları şişirdər
+// və "80 bal" ifadəsi mənasını itirərdi.
+builder.Services.AddOptions<RecommendationPolicyOptions>()
+    .Bind(builder.Configuration.GetSection(RecommendationPolicyOptions.SectionName))
+    .Validate(o => o.Validate(out _), "Tövsiyə siyasətinin çəkiləri etibarsızdır.")
+    .ValidateOnStart();
+
 var petBrainOptions = builder.Configuration
     .GetSection(PetBrainOptions.SectionName)
     .Get<PetBrainOptions>() ?? new PetBrainOptions();
@@ -456,6 +465,7 @@ builder.Services.AddSingleton<DeclinedRecommendations>();
 builder.Services.AddSingleton<PetBrainTelemetry>();
 builder.Services.AddScoped<PetMindContextBuilder>();
 builder.Services.AddScoped<PetMemoryAdmin>();
+builder.Services.AddScoped<PetBrainPersonalizationAdmin>();
 builder.Services.AddScoped<PetIntentService>();
 builder.Services.AddSingleton<IStoryPlanProvider, NoStoryPlanProvider>();
 builder.Services.AddScoped<StoryPlanCoordinator>();

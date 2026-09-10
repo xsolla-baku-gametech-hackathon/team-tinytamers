@@ -88,6 +88,9 @@ public sealed class PetMindContextBuilder
     /// <summary>Ekran vaxtının "az qalıb" həddi (dəqiqə).</summary>
     private const int ScreenTimeEndingMinutes = 5;
 
+    /// <summary>Ümumi inam hesablanarkən baxılan ƏN GÜCLÜ açar sayı.</summary>
+    private const int ConfidenceSampleSize = 5;
+
     private readonly AppDbContext _db;
     private readonly IDailyGoalService _dailyGoals;
     private readonly DeclinedRecommendations _declined;
@@ -145,6 +148,28 @@ public sealed class PetMindContextBuilder
 
         var interests = ScoresOf(child, PetBrainTraitCategory.Interest, now);
         var playStyles = ScoresOf(child, PetBrainTraitCategory.PlayStyle, now);
+        var mechanics = ScoresOf(child, PetBrainTraitCategory.Mechanic, now);
+
+        var settings = child.PersonalizationSettings
+                       ?? await _db.PersonalizationSettings
+                           .AsNoTracking()
+                           .FirstOrDefaultAsync(s => s.ChildProfileId == child.Id, ct);
+
+        var masteries = child.MechanicMasteries.Count > 0
+            ? child.MechanicMasteries.ToList()
+            : await _db.MechanicMasteries
+                .AsNoTracking()
+                .Where(m => m.ChildProfileId == child.Id)
+                .ToListAsync(ct);
+
+        var preferences = child.ContentPreferences.Count > 0
+            ? child.ContentPreferences.ToList()
+            : await _db.ContentPreferences
+                .AsNoTracking()
+                .Where(p => p.ChildProfileId == child.Id)
+                .ToListAsync(ct);
+
+        var personalization = PersonalizationProfileFactory.Build(settings, outcomes);
 
         return new PetMindContext(
             ChildId: child.Id,
@@ -166,6 +191,12 @@ public sealed class PetMindContextBuilder
             PlayStyles: playStyles,
             InterestConfidence: ConfidenceOf(child, PetBrainTraitCategory.Interest, now),
             PlayStyleConfidence: ConfidenceOf(child, PetBrainTraitCategory.PlayStyle, now),
+            Mechanics: mechanics,
+            MechanicConfidence: ConfidenceOf(child, PetBrainTraitCategory.Mechanic, now),
+            MechanicMastery: masteries.ToDictionary(
+                m => m.Mechanic, m => m.EstimatedLevel, StringComparer.Ordinal),
+            MechanicChallengeBand: masteries.ToDictionary(
+                m => m.Mechanic, MechanicMasteryRules.BandFor, StringComparer.Ordinal),
             RecentOutcomes: outcomes,
             CompletedTemplates: completed.ToHashSet(StringComparer.Ordinal),
             Memories: await MemoriesAsync(child, now, ct),
@@ -177,7 +208,45 @@ public sealed class PetMindContextBuilder
             SinceLastInteraction: await SinceLastInteractionAsync(child.Id, now, ct),
             UnfinishedTemplateKey: unfinished,
             DeclinedTemplates: _declined.For(child.Id, now),
-            Difficulty: DifficultyFor(child, outcomes));
+            Difficulty: DifficultyFor(child, outcomes),
+            Personalization: personalization,
+            BlockedThemes: ContentPreferenceRules.BlockedKeys(
+                preferences, PetBrainContentScope.Theme, now),
+            BlockedTemplates: ContentPreferenceRules.BlockedKeys(
+                preferences, PetBrainContentScope.Template, now),
+            ShowLessThemes: ContentPreferenceRules.ShowLessKeys(
+                preferences, PetBrainContentScope.Theme, now),
+            ShowLessTemplates: ContentPreferenceRules.ShowLessKeys(
+                preferences, PetBrainContentScope.Template, now),
+            LikedThemes: ContentPreferenceRules.LikedKeys(
+                preferences, PetBrainContentScope.Theme, now),
+            LikedTemplates: ContentPreferenceRules.LikedKeys(
+                preferences, PetBrainContentScope.Template, now),
+            ProfileConfidence: OverallConfidence(child, now));
+    }
+
+    /// <summary>
+    /// Profilin ÜMUMİ inamı (0–100).
+    ///
+    /// <para>Açarların ortalaması DEYİL: uşaq haqqında nə qədər şey bildiyimiz
+    /// ən güclü bir neçə siqnalla ölçülür. Otuz açarın ortalaması yeni profildə
+    /// həmişə sıfıra yaxın qalar və sistem heç vaxt «artıq tanıyıram» deyə
+    /// bilməzdi.</para>
+    /// </summary>
+    private static int OverallConfidence(ChildProfile child, DateTime now)
+    {
+        var scores = child.Traits
+            .Select(t => TraitEvidence.Confidence(t, now))
+            .OrderByDescending(value => value)
+            .Take(ConfidenceSampleSize)
+            .ToList();
+
+        if (scores.Count == 0)
+            return 0;
+
+        // Nümunə dolmayanda qalan yerlər SIFIR sayılır: iki güclü açar bütün
+        // profili "tam tanınmış" göstərməməlidir.
+        return Math.Clamp((int)Math.Round(scores.Sum() / (double)ConfidenceSampleSize), 0, 100);
     }
 
     /// <summary>

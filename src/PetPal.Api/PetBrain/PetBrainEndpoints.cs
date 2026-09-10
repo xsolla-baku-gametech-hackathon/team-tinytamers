@@ -41,6 +41,54 @@ public static class PetBrainEndpoints
             (await service.SubmitFeedbackAsync(http.User.ChildIdOrThrow(), request, ct)).ToHttpResult())
             .WithSummary("«Başqa fikir» və ya «sonra» — yeni vəziyyəti qaytarır.");
 
+        // ---- İlk tanışlıq ----
+        // Variantlar SERVERİN allowlist-indən gəlir: klient öz siyahısını
+        // yazmır, ona görə uydurma açar profilə düşə bilmir.
+        group.MapGet("/onboarding", async (
+                HttpContext http,
+                PetBrainPersonalizationAdmin admin,
+                CancellationToken ct) =>
+            await admin.GetOnboardingAsync(http.User.ChildIdOrThrow(), ct) is { } dto
+                ? Results.Ok(dto)
+                : Results.NotFound())
+            .WithSummary("İlk tanışlığın sualları və təsdiqlənmiş variantları.");
+
+        group.MapPost("/onboarding", async (
+                [FromBody] PetBrainOnboardingRequest request,
+                HttpContext http,
+                PetBrainPersonalizationAdmin admin,
+                CancellationToken ct) =>
+            await admin.SubmitOnboardingAsync(http.User.ChildIdOrThrow(), request, ct)
+                ? Results.NoContent()
+                : Results.NotFound())
+            .WithSummary("Tanışlığın cavabları — PRIOR kimi yazılır, keçilə də bilər.");
+
+        // ---- Uşağın öz ayarları ----
+        // Valideynin kilidlədiyi sahə səssizcə dəyişmir; oxu səviyyəsi və
+        // fərdiləşdirmənin ümumi açarı müqavilədə ÜMUMİYYƏTLƏ yoxdur.
+        group.MapPut("/settings", async (
+                [FromBody] UpdatePetBrainSettingsRequest request,
+                HttpContext http,
+                PetBrainPersonalizationAdmin admin,
+                CancellationToken ct) =>
+            await admin.UpdateSettingsAsync(http.User.ChildIdOrThrow(), request, ct) is { } dto
+                ? Results.Ok(dto)
+                : Results.NotFound())
+            .WithSummary("Uşağın öz ayarları: sessiya, temp, kömək, əlçatanlıq.");
+
+        // ---- Açıq məzmun rəyi ----
+        // «Bəyənirəm» və «daha az göstər». BLOK qəbul edilmir: o, valideyn
+        // qərarıdır və uşaq öz dünyasını təsadüfən bağlamamalıdır.
+        group.MapPost("/content-feedback", async (
+                [FromBody] PetBrainContentFeedbackRequest request,
+                HttpContext http,
+                PetBrainPersonalizationAdmin admin,
+                CancellationToken ct) =>
+            await admin.SubmitContentFeedbackAsync(http.User.ChildIdOrThrow(), request, ct)
+                ? Results.NoContent()
+                : Results.BadRequest())
+            .WithSummary("«Bunu bəyənirəm» / «bunu daha az göstər».");
+
         group.MapPost("/runs", async (
                 [FromBody] StartPetBrainRunRequest? request,
                 HttpContext http,
@@ -186,6 +234,82 @@ public static class PetBrainEndpoints
                 ? Results.Ok(new { removed })
                 : Results.NotFound())
             .WithSummary("Yaddaşı tam sıfırlayır — xassələrə və mükafata TOXUNMUR.");
+
+        // ---- Fərdiləşdirmə üzərində valideyn nəzarəti ----
+        //
+        // Sistem uşaq haqqında bir profil qurur və ona görə qərar verir.
+        // Valideyn bunu GÖRƏ, DƏYİŞƏ, İXRAC EDƏ və SİLƏ bilməlidir — əks halda
+        // profil nəzarətdən kənar qalır.
+        //
+        // Sahiblik HƏR marşrutda yoxlanılır: yad uşağın profili nə oxunur, nə
+        // dəyişdirilir.
+        var personalization = app.MapGroup("/api/parent/pet-brain/children/{childId:guid}/personalization")
+            .RequireAuthorization(AuthorizationPolicies.Parent)
+            .WithTags("PetBrain");
+
+        personalization.MapGet("/", async (
+                Guid childId,
+                HttpContext http,
+                PetBrainPersonalizationAdmin admin,
+                CancellationToken ct) =>
+            await admin.GetAsync(http.User.UserIdOrThrow(), childId, ct) is { } dto
+                ? Results.Ok(dto)
+                : Results.NotFound())
+            .WithSummary("Toplanan profil, ustalıq, açıq seçimlər və ayarlar.");
+
+        personalization.MapPut("/", async (
+                Guid childId,
+                [FromBody] UpdateParentPersonalizationRequest request,
+                HttpContext http,
+                PetBrainPersonalizationAdmin admin,
+                CancellationToken ct) =>
+            await admin.UpdateAsync(http.User.UserIdOrThrow(), childId, request, ct) is { } dto
+                ? Results.Ok(dto)
+                : Results.NotFound())
+            .WithSummary("Valideynin ayarları — heç bir təxmin bunları üstələmir.");
+
+        personalization.MapPost("/blocks", async (
+                Guid childId,
+                [FromBody] ParentBlockContentRequest request,
+                HttpContext http,
+                PetBrainPersonalizationAdmin admin,
+                CancellationToken ct) =>
+            await admin.BlockAsync(http.User.UserIdOrThrow(), childId, request, ct)
+                ? Results.NoContent()
+                : Results.NotFound())
+            .WithSummary("Mövzu və ya macərəni bloklayır / blokunu götürür.");
+
+        personalization.MapDelete("/", async (
+                Guid childId,
+                bool? includeMemories,
+                HttpContext http,
+                PetBrainPersonalizationAdmin admin,
+                CancellationToken ct) =>
+            await admin.ResetInferredAsync(
+                    http.User.UserIdOrThrow(), childId, includeMemories ?? false, ct) is { } result
+                ? Results.Ok(result)
+                : Results.NotFound())
+            .WithSummary("Öyrənilmiş profili sıfırlayır — AYARLAR və valideyn blokları qalır.");
+
+        personalization.MapGet("/export", async (
+                Guid childId,
+                HttpContext http,
+                PetBrainPersonalizationAdmin admin,
+                CancellationToken ct) =>
+            await admin.ExportAsync(http.User.UserIdOrThrow(), childId, ct) is { } dto
+                ? Results.Ok(dto)
+                : Results.NotFound())
+            .WithSummary("Profilin tam ixracı — PII-siz.");
+
+        personalization.MapGet("/decisions", async (
+                Guid childId,
+                HttpContext http,
+                PetBrainPersonalizationAdmin admin,
+                CancellationToken ct) =>
+            await admin.DecisionsAsync(http.User.UserIdOrThrow(), childId, ct) is { } list
+                ? Results.Ok(list)
+                : Results.NotFound())
+            .WithSummary("Son tövsiyə qərarları — «niyə bu macəra?» sualının izi.");
 
         return app;
     }

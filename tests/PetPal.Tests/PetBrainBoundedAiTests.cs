@@ -339,36 +339,6 @@ public class BoundedAiDisabledTests : IClassFixture<TestWebAppFactory>
         Assert.Same(MoonCrystalHunt.Definition, resolved);
     }
 
-    private static PetPal.Api.PetBrain.Mind.PetMindContext MindStub() => new(
-        ChildId: Guid.NewGuid(),
-        AgeBand: "9-10",
-        Language: "az",
-        AgeForSafetyLimits: 9,
-        PetIsHatched: true,
-        PetSpecies: "fox",
-        PetStage: PetStage.Child,
-        Mood: PetMood.Happy,
-        Happiness: PetBrainCareBand.Great,
-        Energy: PetBrainCareBand.Great,
-        Fullness: PetBrainCareBand.Great,
-        Cleanliness: PetBrainCareBand.Great,
-        Bond: 40,
-        BondTier: PetBrainBondTier.TrustedFriend,
-        Personality: PetBrainPersonality.Balanced,
-        Interests: new Dictionary<string, int>(),
-        PlayStyles: new Dictionary<string, int>(),
-        InterestConfidence: new Dictionary<string, int>(),
-        PlayStyleConfidence: new Dictionary<string, int>(),
-        RecentOutcomes: [],
-        CompletedTemplates: new HashSet<string>(),
-        Memories: [],
-        ActiveMissionKeys: [],
-        DailyGoal: PetBrainDailyGoalBand.InProgress,
-        Weather: WorldWeather.Clear,
-        ScreenTime: PetBrainScreenTimeBand.Plenty,
-        SessionBucket: PetBrainSessionBucket.Afternoon,
-        SinceLastInteraction: TimeSpan.FromHours(2),
-        UnfinishedTemplateKey: null,
-        DeclinedTemplates: new HashSet<string>(),
-        Difficulty: PetBrainDifficulty.Medium);
+    private static PetPal.Api.PetBrain.Mind.PetMindContext MindStub() =>
+        PetPal.Tests.MindStub.Build();
 }

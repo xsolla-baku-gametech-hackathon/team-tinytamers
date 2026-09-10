@@ -155,38 +155,14 @@ public class PetIntentPlannerTests
         PetBrainPersonality personality = PetBrainPersonality.Balanced,
         IReadOnlyList<string>? missions = null,
         IReadOnlyList<MindMemory>? memories = null,
-        bool hatched = true) => new(
-        ChildId: Guid.Parse("11111111-1111-1111-1111-111111111111"),
-        AgeBand: "9-10",
-        Language: "az",
-        AgeForSafetyLimits: 9,
-        PetIsHatched: hatched,
-        PetSpecies: "fox",
-        PetStage: PetStage.Child,
-        Mood: PetMood.Happy,
-        Happiness: PetBrainCareBand.Great,
-        Energy: PetBrainCareBand.Great,
-        Fullness: PetBrainCareBand.Great,
-        Cleanliness: PetBrainCareBand.Great,
-        Bond: 40,
-        BondTier: PetBrainBondTier.TrustedFriend,
-        Personality: personality,
-        Interests: new Dictionary<string, int>(),
-        PlayStyles: new Dictionary<string, int>(),
-        InterestConfidence: new Dictionary<string, int>(),
-        PlayStyleConfidence: new Dictionary<string, int>(),
-        RecentOutcomes: [],
-        CompletedTemplates: new HashSet<string>(),
-        Memories: memories ?? [],
-        ActiveMissionKeys: missions ?? [],
-        DailyGoal: PetBrainDailyGoalBand.InProgress,
-        Weather: WorldWeather.Clear,
-        ScreenTime: screenTime,
-        SessionBucket: bucket,
-        SinceLastInteraction: TimeSpan.FromHours(3),
-        UnfinishedTemplateKey: null,
-        DeclinedTemplates: new HashSet<string>(),
-        Difficulty: PetBrainDifficulty.Medium);
+        bool hatched = true) =>
+        MindStub.Build(
+            screenTime: screenTime,
+            bucket: bucket,
+            personality: personality,
+            missions: missions,
+            memories: memories,
+            hatched: hatched);
 }
 
 /// <summary>

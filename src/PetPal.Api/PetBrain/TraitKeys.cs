@@ -65,10 +65,22 @@ public static class TraitKeys
         Space, Animals, Ocean, Nature, Science, Fantasy, Stories, Puzzles, "robots", "art", "pet-care"
     ];
 
-    public static bool IsKnown(PetBrainTraitCategory category, string key) =>
-        category == PetBrainTraitCategory.Interest
-            ? Interests.Contains(key)
-            : PlayStyles.Contains(key);
+    public static bool IsKnown(PetBrainTraitCategory category, string key) => category switch
+    {
+        PetBrainTraitCategory.Interest => Interests.Contains(key, StringComparer.Ordinal),
+        PetBrainTraitCategory.PlayStyle => PlayStyles.Contains(key, StringComparer.Ordinal),
+        PetBrainTraitCategory.Mechanic => MechanicKeys.IsKnown(key),
+        _ => false
+    };
+
+    /// <summary>Bu kateqoriyanın bütün təsdiqlənmiş açarları.</summary>
+    public static IReadOnlyList<string> KeysOf(PetBrainTraitCategory category) => category switch
+    {
+        PetBrainTraitCategory.Interest => Interests,
+        PetBrainTraitCategory.PlayStyle => PlayStyles,
+        PetBrainTraitCategory.Mechanic => MechanicKeys.All,
+        _ => []
+    };
 
     public static PetBrainTraitCategory? CategoryOf(string key)
     {
@@ -95,7 +107,7 @@ public static class TraitKeys
         ProblemSolver => Localized.T(language, "Həlledici", "Problem solver"),
         Caring => Localized.T(language, "Qayğıkeş", "Caring"),
         Playful => Localized.T(language, "Şən", "Playful"),
-        _ => key
+        _ => MechanicKeys.Label(key, language)
     };
 
     public static string Icon(string key) => key switch
@@ -113,7 +125,7 @@ public static class TraitKeys
         ProblemSolver => "💡",
         Caring => "💚",
         Playful => "🎈",
-        _ => "✨"
+        _ => MechanicKeys.Icon(key)
     };
 
     public static PetBrainTraitDto ToDto(string key, int score, string language) => new()

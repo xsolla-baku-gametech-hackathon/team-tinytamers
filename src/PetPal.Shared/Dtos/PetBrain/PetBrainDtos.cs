@@ -68,6 +68,45 @@ public class PetBrainStateDto
     /// <summary>Növbəti təcrübə üçün direktorun qərarı. Bloklu halda boş qala bilər.</summary>
     public PetBrainRecommendationDto? Recommendation { get; set; }
 
+    /// <summary>
+    /// ALTERNATİV təkliflər — uşaq bunlardan istənilənini başlada bilər.
+    ///
+    /// <para>Siyahı qəsdən fərqli ROLLAR daşıyır: davam, yaxınlıqda, yeni. Üç
+    /// «ən uyğun» kart seçim deyil, təkrardır — və uşağı öz keçmişinə
+    /// kilidləyir.</para>
+    ///
+    /// <para>Hər alternativin ÖZ <c>DecisionId</c>-si var: server yalnız əsas
+    /// təklifi qəbul edib uşağı məcbur etmir.</para>
+    /// </summary>
+    public List<PetBrainRecommendationDto> Alternatives { get; set; } = new();
+
+    /// <summary>
+    /// Uşağın açıq mexanika üstünlükləri — mövzudan AYRI göstərilir.
+    /// </summary>
+    public List<PetBrainTraitDto> Mechanics { get; set; } = new();
+
+    /// <summary>
+    /// Fərdiləşdirmənin AÇIQ qatı: sessiya, temp, kömək, əlçatanlıq.
+    ///
+    /// <para>Ekran bunu həm tətbiq edir (hərəkət, şrift, kontrast), həm də
+    /// uşağa «istəsən dəyişə bilərsən» kimi göstərir.</para>
+    /// </summary>
+    public PetBrainSettingsDto Settings { get; set; } = new();
+
+    /// <summary>
+    /// İlk tanışlıq hələ göstərilməyibsə <c>true</c> — ekran onu bir dəfə
+    /// təklif edir və uşaq onu tamamilə keçə bilir.
+    /// </summary>
+    public bool OnboardingPending { get; set; }
+
+    /// <summary>
+    /// Profilin ÜMUMİ inamı (0–100) — «səni nə qədər tanıyıram».
+    ///
+    /// <para>Uşağa rəqəm kimi göstərilmir; ekran onu dürüst bir cümləyə
+    /// çevirir.</para>
+    /// </summary>
+    public int ProfileConfidence { get; set; }
+
     /// <summary>Yarımçıq qalmış təcrübə — uşaq davam edə bilsin deyə.</summary>
     public PetBrainRunDto? ActiveRun { get; set; }
 
@@ -217,6 +256,78 @@ public class PetBrainRecommendationDto
     /// sessiya başına məhduddur və limit dolanda düymə gizlənir.
     /// </summary>
     public bool CanShowAnother { get; set; } = true;
+
+    // ---------- V2: izah edilə bilən tövsiyə ----------
+
+    /// <summary>
+    /// Kartın ROLU — əsas, davam, yaxınlıqda, yeni.
+    ///
+    /// <para>Ekran bunu kiçik bir nişanla göstərir: uşaq üç eyni kart deyil,
+    /// üç FƏRQLİ təklif gördüyünü bilməlidir.</para>
+    /// </summary>
+    public PetBrainRecommendationSlot Slot { get; set; }
+
+    /// <summary>Rolun uşağın dilində adı.</summary>
+    public string SlotLabel { get; set; } = string.Empty;
+
+    /// <summary>
+    /// İzahın SƏBƏB KODLARI. <see cref="Reasons"/> bunlardan qurulur —
+    /// klient öz mətnini yaza bilsin və jurnal dil dəyişəndə köhnəlməsin.
+    /// </summary>
+    public List<PetBrainWhyReason> ReasonCodes { get; set; } = new();
+
+    /// <summary>
+    /// Qərara təsir edən ölçülərin parçalanması — valideyn/münsif üçün.
+    ///
+    /// <para>Uşaq ekranında göstərilmir: uşağa cümlə lazımdır, rəqəm yox.</para>
+    /// </summary>
+    public List<PetBrainFactorDto> PersonalizationFactors { get; set; } = new();
+
+    /// <summary>Çətinliyin uşağın dilində adı — «Rahat gediş», «Tam sənə görə».</summary>
+    public string ChallengeLabel { get; set; } = string.Empty;
+
+    /// <summary>Bu macərada ipucu mövcuddurmu.</summary>
+    public bool SupportAvailable { get; set; }
+
+    /// <summary>Köməyin uşağın seçdiyi FORMASI — «Addım-addım kömək».</summary>
+    public string SupportLabel { get; set; } = string.Empty;
+
+    /// <summary>Mükafatın forması.</summary>
+    public PetBrainRewardPreference RewardFlavor { get; set; }
+
+    /// <summary>Mükafatın uşağın dilində adı.</summary>
+    public string RewardLabel { get; set; } = string.Empty;
+
+    /// <summary>Bu kart KƏŞF payından gəldimi — nümayiş və ölçmə üçün.</summary>
+    public bool WasExploration { get; set; }
+
+    /// <summary>Qərarı verən siyasətin versiyası.</summary>
+    public int PolicyVersion { get; set; }
+
+    /// <summary>
+    /// Uşaq bu kart üçün açıq rəy verə bilirmi.
+    ///
+    /// <para>Fərdiləşdirmə söndürüləndə <c>false</c> olur: profil yazılmayan
+    /// halda «bəyənirəm» düyməsi uşağa yalan vəd verərdi.</para>
+    /// </summary>
+    public bool CanGiveFeedback { get; set; } = true;
+}
+
+/// <summary>
+/// Qərara təsir edən BİR ölçü. Uşağa deyil, valideyn və münsifə göstərilir.
+/// </summary>
+public class PetBrainFactorDto
+{
+    /// <summary>Sabit açar: <c>topic</c>, <c>mechanic</c>, <c>mastery</c>…</summary>
+    public string Key { get; set; } = string.Empty;
+
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>0–100 (açıq seçim düzəlişi mənfi ola bilər).</summary>
+    public int Value { get; set; }
+
+    /// <summary>Bu ölçünün siyasətdəki çəkisi (0–1).</summary>
+    public double Weight { get; set; }
 }
 
 /// <summary>Başlanmış təcrübənin cari vəziyyəti — yenilənmədən sonra bərpa üçün kifayətdir.</summary>
@@ -532,8 +643,24 @@ public class PetBrainDebugDto
     /// <summary>Mətn deterministik şablondan, yoxsa modeldən gəldi.</summary>
     public string NarrativeSource { get; set; } = "template";
 
+    /// <summary>
+    /// Sərt şərtdən keçməyən namizədlər və səbəbləri.
+    ///
+    /// <para>«Niyə bu macəra göstərilmədi?» sualı yalnız bununla cavablanır —
+    /// bal cədvəli onu göstərə bilmir, çünki süzülən namizəd sıralamaya heç
+    /// girmir.</para>
+    /// </summary>
+    public List<PetBrainFilteredCandidateDto> FilteredCandidates { get; set; } = new();
+
     /// <summary>Nümayişin şüarı.</summary>
     public string Headline { get; set; } = "SAME GAME · SAME PET · DIFFERENT CHILD · DIFFERENT EXPERIENCE";
+}
+
+/// <summary>Sərt şərtdən keçməyən bir namizəd.</summary>
+public class PetBrainFilteredCandidateDto
+{
+    public string TemplateKey { get; set; } = string.Empty;
+    public PetBrainFilterReason Reason { get; set; }
 }
 
 public class PetBrainEventDto

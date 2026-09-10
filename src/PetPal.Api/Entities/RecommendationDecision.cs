@@ -36,8 +36,56 @@ public class RecommendationDecision
     /// </summary>
     public string ContextHash { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Eyni ekranda GÖSTƏRİLƏN kartların ortaq id-si.
+    ///
+    /// <para>Ekran bir əsas və bir neçə alternativ göstərir. Hər kartın öz
+    /// qərar sətri var (uşaq hər hansı birini seçə bilər), amma hamısı eyni
+    /// baxışın parçasıdır — «uşaq əsas təklifi seçmədi, yanındakını seçdi»
+    /// sualı yalnız bu qrupla cavablana bilir.</para>
+    /// </summary>
+    public Guid GroupId { get; set; }
+
+    /// <summary>Bu kartın siyahıdakı ROLU — əsas, davam, yaxın kəşf, sürpriz.</summary>
+    public PetBrainRecommendationSlot Slot { get; set; } = PetBrainRecommendationSlot.Primary;
+
+    /// <summary>
+    /// Bu kart KƏŞF payından gəldimi (uyğunluq sırasından yox).
+    ///
+    /// <para>Ölçmə üçün vacibdir: kəşf kartının rədd edilməsi siyasətin
+    /// səhvi deyil, onun qiymətidir — ikisini qarışdırmaq sistemi getdikcə
+    /// daha ehtiyatlı və daha darıxdırıcı edərdi.</para>
+    /// </summary>
+    public bool WasExploration { get; set; }
+
+    /// <summary>
+    /// Qərar anında profilin ÜMUMİ inamı (0–100).
+    ///
+    /// <para>Kalibrləmə üçün: «aşağı inamla verilən təkliflər həqiqətənmi
+    /// daha çox rədd olunur?» sualı yalnız bu sahə ilə cavablanır.</para>
+    /// </summary>
+    public int ProfileConfidence { get; set; }
+
     /// <summary>Bu qərarda baxılan namizədlərin açarları, bal sırası ilə.</summary>
     public List<string> CandidateKeys { get; set; } = new();
+
+    /// <summary>
+    /// SƏRT şərtdən keçməyən namizədlər: <c>"açar=səbəb"</c>.
+    ///
+    /// <para>Sərbəst mətn deyil — səbəb <see cref="PetBrainFilterReason"/>
+    /// adıdır. «Niyə bu macəra göstərilmədi?» sualı bununla cavablanır və
+    /// jurnala uşağa aid heç nə düşmür.</para>
+    /// </summary>
+    public List<string> FilteredCandidates { get; set; } = new();
+
+    /// <summary>
+    /// «Niyə bunu göstərirəm?» səbəb KODLARI
+    /// (<see cref="PetBrainWhyReason"/> adları).
+    ///
+    /// <para>Cümlə deyil, kod saxlanılır: izah tərcümə oluna bilir və jurnal
+    /// dil dəyişəndə köhnəlmir.</para>
+    /// </summary>
+    public List<string> WhyReasons { get; set; } = new();
 
     /// <summary>Seçilən şablon.</summary>
     public string SelectedTemplateKey { get; set; } = string.Empty;
@@ -46,6 +94,40 @@ public class RecommendationDecision
     public int FitScore { get; set; }
     public int NoveltyScore { get; set; }
     public int SurpriseScore { get; set; }
+
+    // ---------- V2 bal parçalanması ----------
+    //
+    // Tək «uyğunluq» balı bir sualı cavablandıra bilmirdi: macəra mövzuya görə
+    // seçildi, yoxsa mexanikaya, yoxsa sadəcə çətinliyi tutdu? Komponentlər
+    // ayrı saxlanılanda «niyə bu?» sualının cavabı hesablanmış qalır, sonradan
+    // uydurulmur.
+
+    /// <summary>Mövzu uyğunluğu (0–100).</summary>
+    public int TopicFit { get; set; }
+
+    /// <summary>Mexanika uyğunluğu (0–100) — mövzudan AYRI.</summary>
+    public int MechanicFit { get; set; }
+
+    /// <summary>Çətinliyin uşağın ustalığına uyğunluğu (0–100).</summary>
+    public int MasteryChallengeFit { get; set; }
+
+    /// <summary>Lazım olan dəstəyin mövcudluğu (0–100).</summary>
+    public int SupportFit { get; set; }
+
+    /// <summary>Sessiya uzunluğu və tempə uyğunluq (0–100).</summary>
+    public int PaceFit { get; set; }
+
+    /// <summary>Yarımçıq hekayənin davamı olma dərəcəsi (0–100).</summary>
+    public int ContinuityFit { get; set; }
+
+    /// <summary>Mükafat növünün uşağın seçiminə uyğunluğu (0–100).</summary>
+    public int RewardFit { get; set; }
+
+    /// <summary>Təkrar cəzası (0–100, çıxılır).</summary>
+    public int RepetitionPenalty { get; set; }
+
+    /// <summary>Yekun bal — çəkilər <c>PolicyVersion</c> ilə versiyalanır.</summary>
+    public int TotalScore { get; set; }
 
     public PetBrainDifficulty Difficulty { get; set; }
 

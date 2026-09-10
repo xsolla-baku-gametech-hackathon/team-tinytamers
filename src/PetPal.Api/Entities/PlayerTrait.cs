@@ -67,6 +67,27 @@ public class PlayerTrait
     /// </summary>
     public int SourceMask { get; set; }
 
+    /// <summary>
+    /// AÇIQ mənfi sübut: uşaq və ya valideyn «bunu daha az göstər» dedi.
+    ///
+    /// <para><see cref="SkipEvidence"/>-dən QƏSDƏN ayrıdır: kartı kənara
+    /// qoymaq «indi yox» deməkdir, açıq söz isə «bunu istəmirəm». Birincisi
+    /// yalnız inama toxunur, ikincisi isə balı endirə bilir.</para>
+    /// </summary>
+    public int NegativeEvidence { get; set; }
+
+    /// <summary>
+    /// Uşağa neçə dəfə GÖSTƏRİLDİ (seçilməsindən asılı olmayaraq).
+    ///
+    /// <para>Göstərilmə üstünlük deyil — bu sahə balı heç vaxt qaldırmır.
+    /// O, «uşaq bunu seçmədi, yoxsa heç görmədi?» sualını ayırd etmək
+    /// üçündür.</para>
+    /// </summary>
+    public int ExposureCount { get; set; }
+
+    /// <summary>Öyrənmə qaydalarının versiyası — balans dəyişəndə artır.</summary>
+    public int ModelVersion { get; set; } = 1;
+
     /// <summary>Sonuncu dəfə nə vaxt müşahidə olundu — köhnəlmə bundan hesablanır.</summary>
     public DateTime? LastObservedAt { get; set; }
 
