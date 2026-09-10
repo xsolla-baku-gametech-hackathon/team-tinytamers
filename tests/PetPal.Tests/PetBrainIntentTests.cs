@@ -264,13 +264,29 @@ public class PetIntentVoiceTests
     }
 }
 
-/// <summary>Niyyət açarı AÇIQ olanda uçdan-uca işləyir.</summary>
+/// <summary>Niyyət açarı AÇIQ olanda (standart konfiqurasiya) uçdan-uca işləyir.</summary>
 public sealed class IntentEnabledFactory : TestWebAppFactory
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         base.ConfigureWebHost(builder);
         builder.UseSetting("PetBrainV2:IntentEnabled", "true");
+    }
+}
+
+/// <summary>
+/// Niyyət açarı BAĞLI olanda heç nə yazılmır.
+///
+/// <para>Açar standart olaraq AÇIQDIR, ona görə «bağlı» halı burada AÇIQ
+/// şəkildə qurulur — testin nəyi yoxladığı konfiqurasiyanın standartından
+/// asılı qalmamalıdır.</para>
+/// </summary>
+public sealed class IntentDisabledFactory : TestWebAppFactory
+{
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        base.ConfigureWebHost(builder);
+        builder.UseSetting("PetBrainV2:IntentEnabled", "false");
     }
 }
 
@@ -336,16 +352,16 @@ public class PetIntentIntegrationTests : IClassFixture<IntentEnabledFactory>
     [Fact]
     public async Task AcarBagliOlanda_NiyyetYaranmir()
     {
-        using var plain = new TestWebAppFactory();
+        using var off = new IntentDisabledFactory();
 
-        var client = await ApiTestClient.CreateAsync(plain, "intent-off@petpal.test", "Nur");
-        await client.HatchAsync(plain);
+        var client = await ApiTestClient.CreateAsync(off, "intent-off@petpal.test", "Nur");
+        await client.HatchAsync(off);
 
         var state = await StateAsync(client);
 
         Assert.Null(state.Intent);
 
-        await using var scope = plain.Services.CreateAsyncScope();
+        await using var scope = off.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         Assert.Equal(0, await db.PetIntents.CountAsync());
