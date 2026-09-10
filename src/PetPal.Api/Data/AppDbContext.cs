@@ -41,6 +41,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<ExperienceRun> ExperienceRuns => Set<ExperienceRun>();
     public DbSet<IssuedPuzzle> IssuedPuzzles => Set<IssuedPuzzle>();
     public DbSet<PuzzleIllustration> PuzzleIllustrations => Set<PuzzleIllustration>();
+    public DbSet<AdventureRecap> AdventureRecaps => Set<AdventureRecap>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -494,6 +495,34 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             // BİR SƏHNƏ → BİR PULLU SORĞU. Təminat yaddaşda deyil, məhz
             // buradadır: iki eyni vaxtlı sorğudan ikincisi bazada dayanır.
             e.HasIndex(x => x.SceneSpecHash).IsUnique();
+        });
+
+        builder.Entity<AdventureRecap>(e =>
+        {
+            e.Property(x => x.RecapSpecHash).HasMaxLength(64).IsRequired();
+            e.Property(x => x.ExperienceKey).HasMaxLength(60).IsRequired();
+            e.Property(x => x.ProviderJobId).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Provider).HasMaxLength(40).IsRequired();
+            e.Property(x => x.Model).HasMaxLength(80).IsRequired();
+            e.Property(x => x.PromptHash).HasMaxLength(64).IsRequired();
+            e.Property(x => x.AssetKey).HasMaxLength(120).IsRequired();
+            e.Property(x => x.ContentType).HasMaxLength(40).IsRequired();
+            e.Property(x => x.FailureReason).HasMaxLength(60).IsRequired();
+
+            // BİR SEÇİM DƏSTİ → BİR PULLU VİDEO. Eyni seçimlərlə oynayan ikinci
+            // uşaq da, eyni run-ı təkrar açan uşaq da keşdən gəlir.
+            e.HasIndex(x => x.RecapSpecHash).IsUnique();
+
+            // Sahiblik yoxlaması və gündəlik kvota bu oxu oxuyur.
+            e.HasIndex(x => new { x.ChildProfileId, x.RequestedAt });
+
+            // Bir run-ın recap-ı endpoint tərəfindən run id ilə tapılır.
+            e.HasIndex(x => x.ExperienceRunId);
+
+            e.HasOne(x => x.ChildProfile)
+                .WithMany()
+                .HasForeignKey(x => x.ChildProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<TeamMissionMember>(e =>

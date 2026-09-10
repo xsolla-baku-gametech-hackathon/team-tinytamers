@@ -1,0 +1,150 @@
+@inject Loc Loc
+@implements IDisposable
+
+@* Macəranın 10 saniyəlik xülasəsi.
+
+   İki qat var və HƏR İKİSİ eyni hekayəni danışır:
+
+   1. DETERMİNİSTİK storyboard — üç kadr, uşağın HƏQİQİ seçimləri ilə. Həmişə
+      işləyir, heç nə xərcləmir və video gəlməsə də tam görünür.
+   2. AI videosu — hazır olanda storyboard-ın YERİNƏ oynayır.
+
+   Altyazılar hər iki halda SERVERDƏN gəlir və videonun içində deyil: model
+   kiçik vizual uyğunsuzluq versə belə, ekranda yazılan şey uşağın seçdiyidir.
+
+   Video üçün brauzerin ÖZ idarəedicilərindən istifadə olunur — onlar
+   klaviatura və ekran oxuyucusu ilə işləyir, bizim yazacağımız düymələr isə
+   JS interop tələb edərdi. `autoplay` və `loop` QƏSDƏN yoxdur: uşağı ekrana
+   bağlamaq və ya onu xəbərdar etmədən başlatmaq düzgün deyil. *@
+
+<div class="pbx-recap">
+
+    @if (HasVideo)
+    {
+        <video class="pbx-recap__video"
+               src="@Recap.VideoUrl"
+               controls
+               playsinline
+               preload="metadata"
+               aria-label="@Loc.T("Macəranın 10 saniyəlik xülasəsi", "The ten-second recap of the adventure")">
+        </video>
+    }
+    else
+    {
+        <div class="pbx-recap__stage">
+            <div class="pbx-recap__board pbx-recap__board--@SceneKey"
+                 role="img"
+                 aria-label="@Loc.T("Macəranın 10 saniyəlik xülasəsi", "The ten-second recap of the adventure")">
+                @foreach (var (shot, index) in Recap.Shots.Select((s, i) => (s, i)))
+                {
+                    <span class="pbx-recap__shot @(index == _shot && _playing ? "pbx-recap__shot--on" : null)">
+                        @shot.Icon
+                    </span>
+                }
+            </div>
+
+            <div class="pbx-recap__bar">
+                <button type="button" class="pbx-recap__control" @onclick="Toggle"
+                        aria-label="@(_playing ? Loc.T("Dayandır", "Pause") : Loc.T("Oynat", "Play"))">
+                    <span aria-hidden="true">@(_playing ? "⏸" : "▶")</span>
+                </button>
+
+                <button type="button" class="pbx-recap__control" @onclick="Replay"
+                        aria-label="@Loc.T("Yenidən oynat", "Play again")">
+                    <span aria-hidden="true">↻</span>
+                </button>
+
+            </div>
+        </div>
+    }
+
+    @* Altyazılar HAMISI birdən görünür: uşaq oxumağa tələsmir və heç nəyi
+       qaçırmır. Cari kadr yalnız vurğulanır. *@
+    <ol class="pbx-recap__captions">
+        @foreach (var (shot, index) in Recap.Shots.Select((s, i) => (s, i)))
+        {
+            <li class="pbx-recap__caption @(index == _shot && _playing ? "pbx-recap__caption--on" : null)">
+                <span class="pbx-recap__caption-icon" aria-hidden="true">@shot.Icon</span>
+                <span class="pbx-recap__caption-text">@shot.Caption</span>
+            </li>
+        }
+    </ol>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PetBrainRecapDto Recap { get; set; } = new();
+
+    /// <summary>Səhnə açarı — deterministik fonun rəngini seçir.</summary>
+    [Parameter] public string SceneKey { get; set; } = "mars";
+
+    /// <summary>
+    /// Hərəkət həssaslığı. Açıq olanda storyboard ÖZBAŞINA sürüşmür — bütün
+    /// altyazılar onsuz da eyni anda oxunandır, yəni heç nə itmir.
+    /// </summary>
+    [Parameter] public bool ReducedMotion { get; set; }
+
+    private Timer? _timer;
+    private bool _playing;
+    private int _shot;
+
+    private bool HasVideo =>
+        Recap.Status == PetBrainRecapStatus.Ready && !string.IsNullOrEmpty(Recap.VideoUrl);
+
+    /// <summary>
+    /// Kadrın müddəti — storyboard videonun vaxtı ilə EYNİ ritmdə gedir, yəni
+    /// uşaq hansı qatı görməsindən asılı olmayaraq eyni hekayəni izləyir.
+    /// </summary>
+    private TimeSpan ShotLength => TimeSpan.FromSeconds(
+        Recap.Shots.Count == 0 ? Recap.DurationSeconds : Recap.DurationSeconds / Recap.Shots.Count);
+
+    private void Toggle()
+    {
+        _playing = !_playing;
+
+        if (_playing)
+            Start();
+        else
+            Stop();
+    }
+
+    private void Replay()
+    {
+        _shot = 0;
+        _playing = true;
+
+        Start();
+    }
+
+    private void Start()
+    {
+        Stop();
+
+        // Hərəkət həssaslığında kadrlar dəyişmir: vurğu birinci kadrda qalır.
+        if (ReducedMotion || Recap.Shots.Count == 0)
+            return;
+
+        _timer = new Timer(_ =>
+        {
+            // Sonuncu kadrdan sonra DAYANIR — sonsuz dövrə yoxdur.
+            if (_shot + 1 >= Recap.Shots.Count)
+            {
+                _playing = false;
+                Stop();
+            }
+            else
+            {
+                _shot++;
+            }
+
+            InvokeAsync(StateHasChanged);
+        }, null, ShotLength, ShotLength);
+    }
+
+    private void Stop()
+    {
+        _timer?.Dispose();
+        _timer = null;
+    }
+
+    public void Dispose() => Stop();
+}

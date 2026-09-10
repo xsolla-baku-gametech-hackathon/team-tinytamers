@@ -30,6 +30,7 @@ using PetPal.Api.Parent;
 using PetPal.Api.PetBrain;
 using PetPal.Api.PetBrain.Media;
 using PetPal.Api.PetBrain.Puzzles;
+using PetPal.Api.PetBrain.Recap;
 using PetPal.Api.Pets;
 using PetPal.Api.Progress;
 using PetPal.Api.Rewards;
@@ -431,6 +432,20 @@ builder.Services.AddSingleton<IPuzzleIllustrationStore, LocalPuzzleIllustrationS
 builder.Services.AddSingleton<PuzzleIllustrationQueue>();
 builder.Services.AddScoped<PuzzleIllustrationCoordinator>();
 builder.Services.AddHostedService<PuzzleIllustrationWorker>();
+
+// ---------- Macəranın 10 saniyəlik recap-ı ----------
+// Video PREZENTASİYADIR: seçimləri, xassələri, mükafatı və növbəti tövsiyəni
+// dəyişə bilmir. Altyazılar serverin saxladığı HƏQİQİ seçimlərdən qurulur.
+if (mediaOptions.Provider == PetBrainMediaProvider.Runway)
+    builder.Services.AddSingleton<IRecapVideoProvider, RunwayRecapVideoProvider>();
+else
+    builder.Services.AddSingleton<IRecapVideoProvider, DisabledRecapVideoProvider>();
+
+builder.Services.AddSingleton<IRecapVideoStore, LocalRecapVideoStore>();
+builder.Services.AddSingleton<RecapQueue>();
+builder.Services.AddScoped<IRecapSpecFactory, RecapSpecFactory>();
+builder.Services.AddScoped<RecapCoordinator>();
+builder.Services.AddHostedService<RecapWorker>();
 
 builder.Services.AddScoped<IBehaviorTracker, BehaviorTracker>();
 builder.Services.AddScoped<IPetBrainService, PetBrainService>();
