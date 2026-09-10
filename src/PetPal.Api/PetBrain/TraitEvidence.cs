@@ -97,7 +97,6 @@ public static class TraitEvidence
             return 0;
 
         // Həcm YALNIZ müsbət sübutdan hesablanır.
-        //
         // Ümumi müşahidə sayını işlətmək gizli bir səhv yaradırdı: kənara
         // qoyma da müşahidədir, ona görə uşaq kartı dalbadal rədd etdikcə
         // «inam» ARTIRDI. Skip artıq yalnız ziddiyyət əmsalına düşür.
@@ -110,10 +109,6 @@ public static class TraitEvidence
         var freshness = Math.Max(0.4, 1.0 - (idleDays / 90.0));
 
         // Ziddiyyət: uşaq bu mövzunu həm seçib, həm də kənara qoyub.
-        //
-        // AÇIQ «istəmirəm» ikiqat çəkilir: o, bir andakı qərar deyil, uşağın
-        // sözüdür — və sözü davranışdan zəif saymaq bütün modelin məntiqini
-        // pozardı.
         var against = trait.SkipEvidence + (trait.NegativeEvidence * ExplicitWeight);
 
         var contested = trait.PositiveEvidence + against == 0
@@ -152,10 +147,6 @@ public static class TraitEvidence
         }
         else if (delta < 0)
         {
-            // AÇIQ «istəmirəm» ilə kartı kənara qoymaq ayrı sayılır: birincisi
-            // uşağın sözüdür, ikincisi yalnız bir andakı qərarı. İkisini bir
-            // sayğacda birləşdirmək valideyn panelində «uşaq bunu on dəfə rədd
-            // etdi» kimi yanlış mənzərə yaradardı.
             if (source == PetBrainEvidenceSource.Explicit)
                 trait.NegativeEvidence++;
             else

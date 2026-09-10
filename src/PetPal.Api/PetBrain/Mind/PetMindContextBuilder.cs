@@ -244,8 +244,6 @@ public sealed class PetMindContextBuilder
         if (scores.Count == 0)
             return 0;
 
-        // Nümunə dolmayanda qalan yerlər SIFIR sayılır: iki güclü açar bütün
-        // profili "tam tanınmış" göstərməməlidir.
         return Math.Clamp((int)Math.Round(scores.Sum() / (double)ConfidenceSampleSize), 0, 100);
     }
 

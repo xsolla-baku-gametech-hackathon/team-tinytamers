@@ -98,7 +98,6 @@ public static class PersonaSimulator
             history.AllShown.AddRange(set.Cards.Select(c => c.Candidate.Key));
             history.Difficulties.Add(mind.Difficulty);
 
-            // Persona kartı kənara qoya bilər — o zaman alternativi seçir.
             var chosen = persona.SkipRate > 0 && session % persona.SkipRate == 0 && set.Cards.Count > 1
                 ? set.Cards[1]
                 : set.Primary;
@@ -170,9 +169,6 @@ public static class PersonaSimulator
         if (relevant.Count == 0)
             return PetBrainDifficulty.Easy;
 
-        // Ortalama YOX, TAVAN: bir mexanika bir pillə yuxarı hazırdırsa,
-        // sessiya ona imkan verməlidir. Ortalama alanda tək «hazıram» siqnalı
-        // yuvarlaqlaşdırma ilə itir və uşaq eyni pillədə ilişib qalır.
         return relevant.Max();
     }
 
@@ -189,8 +185,6 @@ public static class PersonaSimulator
             scores[key] = TraitEvidence.EffectiveScore(trait, now);
         }
 
-        // Personanın açıq zövqü profilə güclü başlanğıc verir — real uşaqda
-        // bunu tanışlıq və ilk seçimlər edir.
         foreach (var key in liked)
             scores[key] = Math.Max(scores.GetValueOrDefault(key, TraitKeys.StartingScore), 80);
 
@@ -433,10 +427,6 @@ public class PetBrainPersonaSimulationTests
 
         Assert.NotEmpty(history.Mastery);
 
-        // Yoxlanan şey personanın ÖZ mexanikalarıdır: sistem məhz onları
-        // təkrar-təkrar seçir, «asanlıqda ilişmək» riski də oradadır.
-        // Yol boyu təsadüfən toxunulan başqa mexanikalar bu iddianın mövzusu
-        // deyil — onların çətinliyi bu uşaq üçün seçilmir.
         var practised = Find("NeedsHints").Mechanics
             .Where(history.Mastery.ContainsKey)
             .Select(key => history.Mastery[key])
@@ -538,9 +528,6 @@ public class PetBrainPersonaSimulationTests
         var shortSteps = shortHistory.Started.Select(Steps).Average();
         var longSteps = longHistory.Started.Select(Steps).Average();
 
-        // Kataloqda hazırda gerçək «uzun» macəra yoxdur (4–5 mərhələ), ona görə
-        // iddia mütləq dəyər deyil: eyni zövqlü iki uşaqdan uzun sessiya seçəni
-        // ən azı qısa seçən qədər addım almalıdır.
         Assert.True(longSteps >= shortSteps,
             $"Uzun sessiya {longSteps}, qısa sessiya {shortSteps} addım aldı.");
 

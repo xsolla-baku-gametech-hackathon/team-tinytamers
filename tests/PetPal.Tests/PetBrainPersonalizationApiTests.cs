@@ -23,8 +23,6 @@ public class PetBrainPersonalizationApiTests : IClassFixture<TestWebAppFactory>
 
     public PetBrainPersonalizationApiTests(TestWebAppFactory factory) => _factory = factory;
 
-    // ==================== Alternativlər ====================
-
     /// <summary>
     /// Uşaq bir yox, BİR NEÇƏ təklif görür — və hər birinin öz qərar id-si var.
     /// </summary>
@@ -142,8 +140,6 @@ public class PetBrainPersonalizationApiTests : IClassFixture<TestWebAppFactory>
         Assert.True(recommendation.TargetMinutes > 0);
     }
 
-    // ==================== İlk tanışlıq ====================
-
     /// <summary>Yeni uşaqda tanışlıq GÖZLƏYİR və variantlar serverdən gəlir.</summary>
     [Fact]
     public async Task YeniUsaq_TanisliqGozleyir()
@@ -241,8 +237,6 @@ public class PetBrainPersonalizationApiTests : IClassFixture<TestWebAppFactory>
         Assert.Empty(await TraitsAsync(client.ChildId));
     }
 
-    // ==================== Uşağın ayarları ====================
-
     /// <summary>Uşaq öz ayarlarını dəyişə bilir və nəticə dərhal görünür.</summary>
     [Fact]
     public async Task Usaq_OzAyarlariniDeyise_Bilir()
@@ -297,8 +291,6 @@ public class PetBrainPersonalizationApiTests : IClassFixture<TestWebAppFactory>
     {
         var client = await NewChildAsync("hint-style@petpal.test");
 
-        // Marşrut tapmacası olan macərəni seçdirir: yaradıcı yolda doğru/səhv
-        // yoxdur və ipucu da yoxdur — bu test onun haqqında deyil.
         await SeedInterestAsync(client.ChildId, TraitKeys.Space, 95, MechanicKeys.Route, 95);
 
         await UpdateSettingsAsync(client, new UpdatePetBrainSettingsRequest
@@ -336,8 +328,6 @@ public class PetBrainPersonalizationApiTests : IClassFixture<TestWebAppFactory>
         Assert.Equal(SupportVoiceProbe.ReducedLimit, reducedChoice.Options.Count);
         Assert.True(reducedChoice.Options.Count >= 2, "Bir variant seçim deyil, düymədir.");
     }
-
-    // ==================== Açıq rəy ====================
 
     /// <summary>«Bəyənirəm» balı QALDIRIR və kartı kənara qoymur.</summary>
     [Fact]
@@ -396,7 +386,6 @@ public class PetBrainPersonalizationApiTests : IClassFixture<TestWebAppFactory>
 
         await FeedbackAsync(explicitChild, explicitRec.DecisionId, PetBrainRecommendationFeedback.Liked);
 
-        // Dolayı yol: yalnız kartın başladılması (seçim siqnalı).
         var implicitRec = (await StateAsync(implicitChild)).Recommendation!;
         await client_StartAsync(implicitChild, implicitRec.DecisionId);
 
@@ -426,8 +415,6 @@ public class PetBrainPersonalizationApiTests : IClassFixture<TestWebAppFactory>
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
-
-    // ==================== Valideyn nəzarəti ====================
 
     /// <summary>Valideyn toplanan profili GÖRÜR — bal və sübutu ilə birlikdə.</summary>
     [Fact]
@@ -532,6 +519,35 @@ public class PetBrainPersonalizationApiTests : IClassFixture<TestWebAppFactory>
     }
 
     /// <summary>
+    /// Model mətni AYRICA söndürülür — ümumi fərdiləşdirməni söndürmədən.
+    ///
+    /// <para>İki ayrı açar olması qəsdəndir: valideyn modelin yazdığı mətnə
+    /// etibar etməyə bilər, amma uşağın profilinin işləməsini istəyə bilər.</para>
+    /// </summary>
+    [Fact]
+    public async Task ModelMetni_AyricaSondurulur()
+    {
+        var client = await NewChildAsync("parent-ai-off@petpal.test");
+
+        client.SwitchToParent();
+        var settings = await UpdateParentAsync(client, new UpdateParentPersonalizationRequest
+        {
+            AiNarrativeEnabled = false
+        });
+
+        Assert.False(settings.AiNarrativeEnabled);
+        Assert.True(settings.PersonalizationEnabled);
+
+        client.SwitchToChild();
+        var state = await StateAsync(client);
+
+        Assert.False(state.Settings.AiNarrativeEnabled);
+        Assert.True(state.Settings.PersonalizationEnabled);
+        Assert.NotNull(state.Recommendation);
+        Assert.False(string.IsNullOrWhiteSpace(state.Recommendation!.Title));
+    }
+
+    /// <summary>
     /// <b>Sıfırlama öyrənilmişi silir, AYARLARI saxlayır.</b> «Öyrəndiklərini
     /// unut» ilə «mənim seçimlərimi sil» iki fərqli əməliyyatdır.
     /// </summary>
@@ -607,7 +623,6 @@ public class PetBrainPersonalizationApiTests : IClassFixture<TestWebAppFactory>
         Assert.False(string.IsNullOrWhiteSpace(export.AgeBand));
         Assert.DoesNotContain(':', export.AgeBand);
 
-        // Dəqiq yaş DEYİL, zolaq.
         Assert.Contains('-', export.AgeBand);
 
         Assert.All(export.RecentDecisions, decision =>
@@ -639,8 +654,6 @@ public class PetBrainPersonalizationApiTests : IClassFixture<TestWebAppFactory>
 
         Assert.Contains(decisions, d => d.WhyReasons.Count > 0);
     }
-
-    // ==================== İzolyasiya ====================
 
     /// <summary>Yad uşağın profili nə oxunur, nə dəyişdirilir.</summary>
     [Fact]
@@ -717,13 +730,10 @@ public class PetBrainPersonalizationApiTests : IClassFixture<TestWebAppFactory>
             explorerState.Recommendation!.TemplateKey,
             makerState.Recommendation!.TemplateKey);
 
-        // Fərq yalnız başlıqda deyil — izah da fərqlidir.
         Assert.NotEqual(
             string.Join('|', explorerState.Recommendation.Reasons),
             string.Join('|', makerState.Recommendation.Reasons));
     }
-
-    // ==================== Köməkçilər ====================
 
     private async Task<ApiTestClient> NewChildAsync(string email, string childName = "Ava")
     {

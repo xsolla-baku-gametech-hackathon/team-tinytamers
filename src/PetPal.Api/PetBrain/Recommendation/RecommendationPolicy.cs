@@ -69,15 +69,17 @@ public static class RecommendationPolicy
     /// hash-ı bu işi görür, ona görə nəticə saatdan və proses ömründən asılı
     /// olmur.
     /// </param>
+    /// <remarks>
+    /// Bütün namizədlər süzülübsə süzgəc YUMŞALDILIR: uşağa «sənə heç nə
+    /// təklif etmirəm» ekranı göstərmək ən pis nəticədir. Təhlükəsizlik
+    /// şərtləri — yaş həddi və valideyn bloku — yumşalmada da qalır.
+    /// </remarks>
     public static RecommendationSet Decide(
         PetMindContext mind, RecommendationPolicyOptions options, string seed)
     {
         List<FilteredCandidate> filtered = [];
         var eligible = Filter(mind, options, filtered, relaxed: false);
 
-        // Hər şey süzülübsə süzgəc YUMŞALDILIR. Uşağa «sənə heç nə təklif
-        // etmirəm» ekranı göstərmək ən pis nəticədir; təhlükəsizlik şərtləri
-        // (yaş, valideyn bloku) isə yumşalmada da qalır.
         if (eligible.Count == 0)
         {
             filtered.Clear();
@@ -100,8 +102,6 @@ public static class RecommendationPolicy
             cards, ranked, filtered, mind.Difficulty, options.PolicyVersion, mind.ProfileConfidence);
     }
 
-    // ==================== Mərhələ A: sərt şərtlər ====================
-
     /// <summary>
     /// Sərt şərtlər. <paramref name="relaxed"/> yalnız YUMŞAQ şərtləri
     /// buraxır — yaş həddi və valideyn bloku heç vaxt yumşalmır.
@@ -114,7 +114,6 @@ public static class RecommendationPolicy
     {
         List<ExperienceTemplate> eligible = [];
 
-        // Yumurta macəraya çıxmır: pet hələ danışmır, seçim də etmir.
         if (!mind.PetIsHatched)
         {
             foreach (var template in ExperienceCatalog.Templates)
@@ -136,14 +135,21 @@ public static class RecommendationPolicy
         return eligible;
     }
 
+    /// <summary>
+    /// Bir namizədin hansı sərt şərtdən keçmədiyi.
+    ///
+    /// <para><b>Bu yaxınlarda oynanmış macəra SÜZÜLMÜR</b> — yalnız yenilik
+    /// balında ağır cəza alır. Sərt süzgəc cazibədar görünürdü, amma öz
+    /// qaydamızı pozurdu: təkrar oynamaq ən güclü müsbət siqnaldır və uşağa
+    /// sevdiyi macəraya qayıtmağı qadağan etsək, o siqnalı heç vaxt görə
+    /// bilmərik.</para>
+    /// </summary>
     private static PetBrainFilterReason ReasonToSkip(
         ExperienceTemplate template,
         PetMindContext mind,
         RecommendationPolicyOptions options,
         bool relaxed)
     {
-        // ---- Yumşalmayan şərtlər ----
-
         if (mind.AgeForSafetyLimits < template.MinAge)
             return PetBrainFilterReason.AgeGate;
 
@@ -153,20 +159,11 @@ public static class RecommendationPolicy
         if (relaxed)
             return PetBrainFilterReason.None;
 
-        // ---- Yumşalan şərtlər ----
-
         if (mind.ShowLessTemplates.Contains(template.Key) || mind.ShowLessThemes.Contains(template.Theme))
             return PetBrainFilterReason.ShowLessCooldown;
 
         if (mind.DeclinedTemplates.Contains(template.Key))
             return PetBrainFilterReason.DeclinedThisSession;
-
-        // Bu yaxınlarda oynanmış macəra SÜZÜLMÜR, yalnız yenilik balında ağır
-        // cəza alır (bax NoveltyValue: birinci mövqe üçün 60 bal).
-        //
-        // Sərt süzgəc cazibədar görünürdü, amma öz qaydamızı pozurdu: təkrar
-        // oynamaq ən güclü müsbət siqnaldır və uşağa sevdiyi macəraya
-        // qayıtmağı qadağan etsək, o siqnalı heç vaxt görə bilmərik.
 
         if (mind.ScreenTime == PetBrainScreenTimeBand.Ending
             && template.TargetMinutes > options.ShortSessionMaxMinutes)
@@ -175,9 +172,16 @@ public static class RecommendationPolicy
         return PetBrainFilterReason.None;
     }
 
-    // ==================== Mərhələ B: sıralama ====================
-
-    /// <summary>Bir namizədin izah edilə bilən bal kartı.</summary>
+    /// <summary>
+    /// Bir namizədin izah edilə bilən bal kartı.
+    ///
+    /// <para><b>Təkrar cəzası çəkili cəmə deyil, yekuna birbaşa tətbiq
+    /// olunur.</b> Yalnız yenilik komponenti ilə getsək, güclü maraq onu
+    /// asanlıqla udur: kosmosu sevən uşaq eyni macəranı gün-gün əsas kart kimi
+    /// görürdü — yəni filter bubble. Birbaşa çıxma təzəcə oynanmış macəranı
+    /// başlıqdan çıxarır, amma onu hovuzdan ATMIR: uşaq alternativlər arasında
+    /// ona qayıda bilir.</para>
+    /// </summary>
     public static CandidateScore Score(
         ExperienceTemplate template, PetMindContext mind, RecommendationPolicyOptions options)
     {
@@ -204,13 +208,6 @@ public static class RecommendationPolicy
             + (options.RewardFit * reward)
             + (options.NoveltyValue * novelty);
 
-        // Təkrar cəzası çəkili cəmə DEYİL, yekuna birbaşa tətbiq olunur.
-        //
-        // Yalnız yenilik komponenti ilə getsək, güclü maraq onu asanlıqla
-        // udurdu: kosmosu sevən uşaq eyni macərəni gün-gün əsas kart kimi
-        // görürdü — yəni filter bubble. Birbaşa çıxma təzəcə oynanmış macərəni
-        // başlıqdan çıxarır, amma onu hovuzdan ATMIR: uşaq alternativlər
-        // arasında ona qayıda bilir.
         var total = Math.Clamp(
             weighted + explicitAdjustment - (repetition * RepetitionWeight), 0, 100);
 
@@ -308,12 +305,9 @@ public static class RecommendationPolicy
         if (!needsSupport)
             return NeutralSupportFit;
 
-        // Yaradıcı macərada doğru/səhv yoxdur — dəstəyə ehtiyacı olan uşaq
-        // üçün ən təzyiqsiz yoldur.
         if (template.Type == PetBrainExperienceType.Creative)
             return 100;
 
-        // Tapmacası olan macərada ipucu MÖVCUDDUR; olmayanda dəstək yeri azdır.
         return template.HasPuzzle ? 85 : 75;
     }
 
@@ -403,8 +397,6 @@ public static class RecommendationPolicy
         return adjustment;
     }
 
-    // ==================== Mərhələ C: kartların yığılması ====================
-
     /// <summary>
     /// Kartların yığılması: bir əsas, bir davam, bir kəşf.
     ///
@@ -413,7 +405,14 @@ public static class RecommendationPolicy
     /// gördüm?» sualının cavabı.</para>
     ///
     /// <para><b>Müxtəliflik qorunur:</b> mümkün olduqda eyni mövzudan iki kart
-    /// göstərilmir — üç kosmos kartı seçim deyil, təkrardır.</para>
+    /// göstərilmir — üç kosmos kartı seçim deyil, təkrardır. Doldurma
+    /// mərhələsi də əvvəlcə mövzuca fərqli namizədlərə baxır.</para>
+    ///
+    /// <para><b>Əsas kart həmişə ən yüksək baldır.</b> Kəşf payının onu ələ
+    /// keçirməsi iki dəfə səhv idi: uşaq gözlədiyi macəranı tapa bilmirdi və
+    /// eyni profil eyni ekranda fərqli başlıq görürdü. Kəşf ALTERNATİV
+    /// yuvalarda yaşayır — orada o, adı ilə birlikdə görünür və uşaq onu
+    /// seçib-seçməməkdə azaddır.</para>
     /// </summary>
     private static List<RecommendationCard> Compose(
         IReadOnlyList<CandidateScore> ranked,
@@ -425,22 +424,11 @@ public static class RecommendationPolicy
         HashSet<string> used = new(StringComparer.Ordinal);
         HashSet<string> usedThemes = new(StringComparer.Ordinal);
 
-        // ƏSAS kart HƏMİŞƏ ən yüksək baldır.
-        //
-        // Kəşf payının əsas kartı ələ keçirməsi cazibədar görünürdü, amma iki
-        // dəfə səhv idi: uşaq gözlədiyi macərəni tapa bilmirdi, və eyni profil
-        // eyni ekranda fərqli başlıq göstərirdi. Kəşf ALTERNATİV yuvalarda
-        // yaşayır — orada o, adı ilə birlikdə görünür («Yeni») və uşaq onu
-        // seçib-seçməməkdə azaddır.
         Add(ranked[0], PetBrainRecommendationSlot.Primary, wasExploration: false);
 
         if (cards.Count < options.CardCount && PickContinuity(ranked, mind, used) is { } continuity)
             Add(continuity, PetBrainRecommendationSlot.Continuity, wasExploration: false);
 
-        // Kəşf payı SON yuvanın xarakterini müəyyən edir: ya yaxın qonşu
-        // (tanış mexanika, yeni mövzu), ya da tam sürpriz. Profil zəif
-        // tanınanda sürpriz daha tez-tez düşür — sistem az şey biləndə daha
-        // çox soruşmalıdır, daha inadkar olmamalıdır.
         var exploring = ShouldExplore(mind, options, seed);
 
         if (cards.Count < options.CardCount
@@ -452,9 +440,6 @@ public static class RecommendationPolicy
         if (cards.Count < options.CardCount && PickNearby(ranked, mind, used, usedThemes) is { } nearby)
             Add(nearby, PetBrainRecommendationSlot.NearbyDiscovery, wasExploration: true);
 
-        // Boşluq qalıbsa bal sırası ilə doldurulur — uşaq həmişə seçim
-        // görməlidir. Əvvəlcə MÖVZUCA fərqli namizədlər: doldurma mərhələsi
-        // siyahını səssizcə bir mövzuya kilidləməməlidir.
         Fill(themeDistinct: true);
         Fill(themeDistinct: false);
 
@@ -497,7 +482,6 @@ public static class RecommendationPolicy
     {
         var share = mind.Personalization.ExplorationShare;
 
-        // Profil zəif tanınırsa kəşf payı artır — amma heç vaxt yarıdan çox olmur.
         if (mind.ProfileConfidence < 30)
             share = Math.Min(0.5, share + 0.15);
 
@@ -541,8 +525,6 @@ public static class RecommendationPolicy
             .OrderByDescending(c => c.NoveltyValue)
             .ThenBy(c => c.Key, StringComparer.Ordinal)
             .FirstOrDefault();
-
-    // ==================== İzah ====================
 
     /// <summary>
     /// «Niyə bunu göstərirəm?» — SƏBƏB KODLARI.
@@ -589,7 +571,6 @@ public static class RecommendationPolicy
         if (template.RewardFlavor == mind.Personalization.RewardPreference)
             reasons.Add(PetBrainWhyReason.RewardMatch);
 
-        // Dürüstlük: sistem az şey biləndə bunu gizlətmir.
         if (mind.ProfileConfidence < 30)
             reasons.Add(PetBrainWhyReason.StillLearning);
 

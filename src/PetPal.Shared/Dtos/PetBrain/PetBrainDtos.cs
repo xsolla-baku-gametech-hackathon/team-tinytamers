@@ -257,7 +257,6 @@ public class PetBrainRecommendationDto
     /// </summary>
     public bool CanShowAnother { get; set; } = true;
 
-    // ---------- V2: izah edilə bilən tövsiyə ----------
 
     /// <summary>
     /// Kartın ROLU — əsas, davam, yaxınlıqda, yeni.

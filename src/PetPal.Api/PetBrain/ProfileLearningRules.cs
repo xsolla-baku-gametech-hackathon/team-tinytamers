@@ -122,8 +122,6 @@ public static class ProfileLearningRules
                 adjustments.Add(PlayStyle(style, RepeatCompletionInterest, PetBrainEvidenceSource.Adventure));
         }
 
-        // MEXANİKA mövzudan ayrı öyrənilir: uşaq kosmosu sevib marşrutu
-        // sevməyə bilər və bu iki fakt bir balda birləşdirilə bilməz.
         var mechanicDelta = isFirstCompletion ? CompletedMechanic : RepeatCompletionInterest;
 
         foreach (var mechanic in template.MechanicAffinity)

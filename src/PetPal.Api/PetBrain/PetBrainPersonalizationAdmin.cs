@@ -43,8 +43,6 @@ public sealed class PetBrainPersonalizationAdmin
         _clock = clock;
     }
 
-    // ==================== İlk tanışlıq ====================
-
     /// <summary>
     /// Tanışlığın sualları — variantlar SERVERİN allowlist-indən.
     ///
@@ -126,7 +124,6 @@ public sealed class PetBrainPersonalizationAdmin
         var topics = OnboardingRules.CleanTopics(request.Topics);
         var mechanics = OnboardingRules.CleanMechanics(request.Activities);
 
-        // Ayarlar tanışlıqdan gəlir: valideyn seçimindən ZƏİF, təxmindən güclü.
         if (request.SessionLength is { } length)
         {
             settings.SessionLength = length;
@@ -137,13 +134,10 @@ public sealed class PetBrainPersonalizationAdmin
         {
             settings.SurpriseEnabled = surprise;
 
-            // «Məni təəccübləndir» yalnız bir düymə deyil: yenilik dözümü də
-            // bir pillə qalxır, yoxsa vəd verilib yerinə yetirilməzdi.
             if (surprise)
                 settings.NoveltyTolerance = PetBrainNoveltyTolerance.High;
         }
 
-        // Əlçatanlıq HƏMİŞƏ açıq seçimdir — heç vaxt təxmin edilmir.
         if (request.ReducedMotion is { } reducedMotion) settings.ReducedMotion = reducedMotion;
         if (request.LargeText is { } largeText) settings.LargeText = largeText;
         if (request.HighContrast is { } highContrast) settings.HighContrast = highContrast;
@@ -168,8 +162,6 @@ public sealed class PetBrainPersonalizationAdmin
         await _db.SaveChangesAsync(ct);
         return true;
     }
-
-    // ==================== Uşağın öz ayarları ====================
 
     /// <summary>
     /// Uşağın öz ayarları.
@@ -258,8 +250,6 @@ public sealed class PetBrainPersonalizationAdmin
         await _db.SaveChangesAsync(ct);
         return true;
     }
-
-    // ==================== Valideyn nəzarəti ====================
 
     /// <summary>
     /// Valideyn paneli: nə toplanıb, nə təsir edir.
@@ -440,9 +430,6 @@ public sealed class PetBrainPersonalizationAdmin
             .Where(m => m.ChildProfileId == childId)
             .ExecuteDeleteAsync(ct);
 
-        // Uşağın ÖZ açıq seçimləri (bəyəndim / daha az göstər) də təxminlə
-        // birlikdə gedir: «hər şeyi unut» yarımçıq olmamalıdır. Valideyn
-        // BLOKLARI isə qalır — onlar profil deyil, qaydadır.
         var preferences = await _db.ContentPreferences
             .Where(p => p.ChildProfileId == childId && p.Kind != PetBrainContentPreferenceKind.Blocked)
             .ExecuteDeleteAsync(ct);
@@ -545,8 +532,6 @@ public sealed class PetBrainPersonalizationAdmin
         return [.. decisions.Select(d => ToEntry(d, child.LanguageCode))];
     }
 
-    // ==================== Köməkçilər ====================
-
     private static ParentDecisionEntryDto ToEntry(RecommendationDecision decision, string language) => new()
     {
         DecisionId = decision.Id,
@@ -629,8 +614,6 @@ public sealed class PetBrainPersonalizationAdmin
 
         if (request.SurpriseEnabled is { } surprise) settings.SurpriseEnabled = surprise;
 
-        // Əlçatanlıq açarları mənbə müqayisəsi ilə kilidlənmir: onları hər iki
-        // tərəf açıq şəkildə dəyişir və heç biri təxmin deyil.
         if (request.ReducedMotion is { } reducedMotion) settings.ReducedMotion = reducedMotion;
         if (request.LargeText is { } largeText) settings.LargeText = largeText;
         if (request.HighContrast is { } highContrast) settings.HighContrast = highContrast;

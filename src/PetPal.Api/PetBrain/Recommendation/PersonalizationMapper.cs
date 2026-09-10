@@ -46,9 +46,6 @@ public static class PersonalizationMapper
             HintStyle = profile.Support.Style,
             HintStyleSource = settings?.HintStyleSource ?? PetBrainSettingSource.Default,
 
-            // Vaxtlama TƏXMİN edilə bilir, ona görə mənbə həll edilmiş plandan
-            // gəlir: ekran «bunu mən təklif etdim» ilə «bunu sən seçdin»
-            // arasındakı fərqi göstərə bilməlidir.
             HintTiming = profile.Support.Timing,
             HintTimingSource = HintTimingSourceOf(settings, profile.Support),
 
@@ -112,8 +109,6 @@ public static class PersonalizationMapper
             Factor("novelty", candidate.NoveltyValue, options.NoveltyValue, language)
         ];
 
-        // Açıq seçim yalnız VAR OLANDA göstərilir: sıfır sətir «sən heç nə
-        // demədin» mesajını gərəksiz yerə təkrarlayardı.
         if (candidate.ExplicitAdjustment != 0)
             factors.Add(Factor("explicit", candidate.ExplicitAdjustment, 1.0, language));
 

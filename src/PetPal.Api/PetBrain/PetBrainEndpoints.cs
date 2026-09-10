@@ -41,9 +41,6 @@ public static class PetBrainEndpoints
             (await service.SubmitFeedbackAsync(http.User.ChildIdOrThrow(), request, ct)).ToHttpResult())
             .WithSummary("«Başqa fikir» və ya «sonra» — yeni vəziyyəti qaytarır.");
 
-        // ---- İlk tanışlıq ----
-        // Variantlar SERVERİN allowlist-indən gəlir: klient öz siyahısını
-        // yazmır, ona görə uydurma açar profilə düşə bilmir.
         group.MapGet("/onboarding", async (
                 HttpContext http,
                 PetBrainPersonalizationAdmin admin,
@@ -63,9 +60,6 @@ public static class PetBrainEndpoints
                 : Results.NotFound())
             .WithSummary("Tanışlığın cavabları — PRIOR kimi yazılır, keçilə də bilər.");
 
-        // ---- Uşağın öz ayarları ----
-        // Valideynin kilidlədiyi sahə səssizcə dəyişmir; oxu səviyyəsi və
-        // fərdiləşdirmənin ümumi açarı müqavilədə ÜMUMİYYƏTLƏ yoxdur.
         group.MapPut("/settings", async (
                 [FromBody] UpdatePetBrainSettingsRequest request,
                 HttpContext http,
@@ -76,9 +70,6 @@ public static class PetBrainEndpoints
                 : Results.NotFound())
             .WithSummary("Uşağın öz ayarları: sessiya, temp, kömək, əlçatanlıq.");
 
-        // ---- Açıq məzmun rəyi ----
-        // «Bəyənirəm» və «daha az göstər». BLOK qəbul edilmir: o, valideyn
-        // qərarıdır və uşaq öz dünyasını təsadüfən bağlamamalıdır.
         group.MapPost("/content-feedback", async (
                 [FromBody] PetBrainContentFeedbackRequest request,
                 HttpContext http,
@@ -235,14 +226,6 @@ public static class PetBrainEndpoints
                 : Results.NotFound())
             .WithSummary("Yaddaşı tam sıfırlayır — xassələrə və mükafata TOXUNMUR.");
 
-        // ---- Fərdiləşdirmə üzərində valideyn nəzarəti ----
-        //
-        // Sistem uşaq haqqında bir profil qurur və ona görə qərar verir.
-        // Valideyn bunu GÖRƏ, DƏYİŞƏ, İXRAC EDƏ və SİLƏ bilməlidir — əks halda
-        // profil nəzarətdən kənar qalır.
-        //
-        // Sahiblik HƏR marşrutda yoxlanılır: yad uşağın profili nə oxunur, nə
-        // dəyişdirilir.
         var personalization = app.MapGroup("/api/parent/pet-brain/children/{childId:guid}/personalization")
             .RequireAuthorization(AuthorizationPolicies.Parent)
             .WithTags("PetBrain");

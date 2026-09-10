@@ -193,12 +193,6 @@ public class PetBrainService : IPetBrainService
         if (activeRun is not null)
             state.ActiveRun = await ToDtoAsync(activeRun, child, ct);
 
-        // Təxmin edilən dəstək vaxtlaması SAXLANILIR.
-        //
-        // Səbəb: onu hər oxunuşda yenidən hesablasaydıq, tapmaca ekranı ilə
-        // tövsiyə ekranı fərqli plana baxa bilərdi (birində tarixçə var,
-        // digərində yox). Saxlanan dəyər həm də auditə açıqdır — valideyn onu
-        // «sistem təxmin etdi» kimi görür və bir toxunuşla ləğv edir.
         await PersistInferredSupportAsync(child, mind, now, ct);
 
         state.Mechanics = TopTraits(
@@ -227,8 +221,6 @@ public class PetBrainService : IPetBrainService
                 $"rec-view:{set.Primary.Candidate.Key}:{now:yyyyMMdd}",
                 ct);
 
-            // Göstərilmə sayğacı BALA toxunmur: yalnız «uşaq bunu gördü»
-            // faktını saxlayır ki, «seçmədi» ilə «heç görmədi» ayrıla bilsin.
             await RecordExposureAsync(child, opened.Select(o => o.Card.Candidate.Key), now, ct);
 
             _telemetry.Recommendation(
@@ -427,20 +419,12 @@ public class PetBrainService : IPetBrainService
         {
             case PetBrainRecommendationFeedback.ShowAnother:
             case PetBrainRecommendationFeedback.NotNow:
-                // Hər iki cavab şablonu bu SESSİYA üçün kənara qoyur. Nə biri,
-                // nə digəri maraq balını AZALTMIR: bir dəfə "sonra" demək bir
-                // mövzunu sevməmək deyil.
                 _declined.Record(childId, record.SelectedTemplateKey, now);
 
-                // Amma bu, EXPOSURE qeydidir: uşağa göstərildi, o isə seçmədi.
-                // Bal toxunulmaz qalır, yalnız İNAM azalır — «bunu sevir»
-                // iddiasına şübhə qatılır, «sevmir» deyilmir.
                 await RecordExposureSkipAsync(child, record.SelectedTemplateKey, now, ct);
                 break;
 
             case PetBrainRecommendationFeedback.Liked:
-                // AÇIQ bəyənmə kartı kənara QOYMUR: uşaq bəyəndiyini oynaya
-                // bilməlidir, yoxsa düymə onu cəzalandırardı.
                 await ApplyContentFeedbackAsync(
                     child, PetBrainContentScope.Template, record.SelectedTemplateKey,
                     PetBrainContentPreferenceKind.Liked, PetBrainSettingSource.Child, now, ct);
@@ -499,7 +483,6 @@ public class PetBrainService : IPetBrainService
         }
         else if (preference.Kind == kind && kind == PetBrainContentPreferenceKind.ShowLess)
         {
-            // Təkrar «daha az göstər» müddəti uzadır — amma sonsuz deyil.
             preference.RepeatCount++;
         }
 
@@ -519,8 +502,6 @@ public class PetBrainService : IPetBrainService
             ? PetBrainEventType.ExplicitLiked
             : PetBrainEventType.ExplicitDisliked;
 
-        // İdempotentlik açarı gün + açar üzrədir: uşaq düyməni dalbadal
-        // basanda profil beş dəfə dəyişməməlidir.
         await _tracker.TrackAsync(
             child.Id,
             eventType,
@@ -674,14 +655,8 @@ public class PetBrainService : IPetBrainService
         var template = set.Primary?.Candidate.Template;
 
         // Qərar id-si verilibsə, o, uşağın ÖZ və HƏLƏ AÇIQ qərarı olmalıdır.
-        //
         // Bu, təkcə səliqə deyil: klient sərbəst şablon və ya yad qərar
         // göndərə bilməməlidir. Qərar tapılanda serverin cari sıralaması
-        // əvəzinə MƏHZ göstərilmiş kart başladılır.
-        //
-        // <b>Alternativ də qəbul edilir.</b> Yalnız «əsas» kartı başlatmaq
-        // uşağı bizim siyasətimizə məcbur etmək olardı: ekranda üç kart
-        // göstərib yalnız birini qəbul etmək seçim deyil, bəzəkdir.
         RecommendationDecision? opened = null;
 
         if (request.DecisionId is { } decisionId)
@@ -755,9 +730,6 @@ public class PetBrainService : IPetBrainService
             opened.Feedback = PetBrainRecommendationFeedback.Selected;
             opened.FeedbackAt = now;
 
-            // Uşaq alternativi seçibsə, ƏSAS kart rədd edilib. Onu «Shown»
-            // qoyub buraxmaq siyasətin səhvini görünməz edərdi: ölçmədə
-            // «təklifim qəbul olundu» kimi oxunardı.
             if (choseAlternative)
                 await MarkPrimaryDeclinedAsync(opened, now, ct);
         }
@@ -765,8 +737,6 @@ public class PetBrainService : IPetBrainService
         // Yeni macəra başlayanda sessiyanın "sonra" siyahısı təmizlənir.
         _declined.Clear(childId);
 
-        // Uşaq artıq bitirdiyi macəraya QAYIDIRSA, bu, ən güclü dolayı müsbət
-        // siqnaldır — tövsiyənin qəbulundan fərqli olaraq sırf onun seçimidir.
         var isReplay = mind.CompletedTemplates.Contains(template.Key);
 
         await _tracker.TrackAsync(
@@ -804,7 +774,6 @@ public class PetBrainService : IPetBrainService
             // ya iki cihaz eyni anda "başla" göndərə bilər. Ona görə xəta yox,
             // BİRİNCİ sorğunun yaratdığı macəra qaytarılır: uşaq həmişə bir və
             // eyni macərada olur.
-            //
             // Uduzan sorğunun BÜTÜN yeni sətirləri atılır — macəra, hadisə
             // jurnalı və hadisənin yaratdığı xassə sətirləri. Yalnız run-u
             // ayırmaq kifayət etmirdi: qalan sətirlər izləyicidə <c>Added</c>
@@ -894,7 +863,6 @@ public class PetBrainService : IPetBrainService
             return error;
 
         // Tamamlanmış run YEKUNU ilə qayıdır.
-        //
         // Bu, təkcə səliqə deyil: recap videosu arxa fonda hazır olur və uşaq
         // ekranı yeniləyəndə onu GÖRMƏLİDİR. Yekun yalnız tamamlama cavabında
         // olsaydı, video heç vaxt ekrana çıxmazdı — yenilənmə isə xülasəni
@@ -1474,7 +1442,6 @@ public class PetBrainService : IPetBrainService
                 Localized.T(language, "Bu macəra yarımçıq qalıb.", "This adventure was left unfinished."));
 
         // Yarımçıq run tamamlana bilməz.
-        //
         // Budaqlanan macərada "bütün mərhələlər keçildi" şərti mənasızdır —
         // yollar müxtəlif uzunluqdadır. Orada şərt SONLUQ düyününə çatmaqdır.
         var finished = GraphOf(run) is { } graph
@@ -1751,10 +1718,6 @@ public class PetBrainService : IPetBrainService
 
             // Səbəb XARAKTERİN səsi ilə gəlir: ana ekranda da pet özü kimi
             // danışmalıdır, ümumi bir cümlə ilə yox.
-            //
-            // İzah Pet Brain ekranındakı ilə EYNİ səbəb kodundan qurulur: iki
-            // ekran eyni qərarı iki cür izah etsəydi, uşaq hansına inanacağını
-            // bilməzdi.
             Reason = mind.NeedsCare
                 ? Localized.T(language, "Əvvəlcə mənə bir baxaq?", "Shall we take care of me first?")
                 : ChipReason(primary.Candidate, language)
@@ -1835,13 +1798,21 @@ public class PetBrainService : IPetBrainService
     {
         var settings = child.PersonalizationSettings;
 
-        if (settings is null || settings.HintTimingSource != PetBrainSettingSource.Default)
+        if (settings is not null && settings.HintTimingSource != PetBrainSettingSource.Default)
             return;
 
         var inferred = mind.Personalization.Support.Timing;
 
-        if (inferred == settings.HintTiming)
+        if (inferred == (settings?.HintTiming ?? PetBrainHintTiming.OnRequest))
             return;
+
+        if (settings is null)
+        {
+            settings = PersonalizationProfileFactory.Defaults(child.Id, now);
+
+            _db.PersonalizationSettings.Add(settings);
+            child.PersonalizationSettings = settings;
+        }
 
         settings.HintTiming = inferred;
         settings.HintTimingSource = PetBrainSettingSource.Inferred;
@@ -1888,9 +1859,6 @@ public class PetBrainService : IPetBrainService
             .Include(c => c.Memories)
             // Başlanğıc çətinliyi mövcud adaptiv mühərrikin hədəfindən gəlir.
             .Include(c => c.SkillMasteries)
-            // Fərdiləşdirmənin AÇIQ qatı: ayarlar, mexanika ustalığı və açıq
-            // məzmun seçimləri. Ayrı sorğularla gətirmək ekranın hər açılışında
-            // dörd əlavə gediş demək olardı.
             .Include(c => c.PersonalizationSettings)
             .Include(c => c.MechanicMasteries)
             .Include(c => c.ContentPreferences)
@@ -2094,7 +2062,6 @@ public class PetBrainService : IPetBrainService
             [template.Theme, template.Type.ToString().ToLowerInvariant()]);
 
         // 2) Ən mənalı seçim.
-        //
         // Budaqlanan macərada bu, REAL nəticə sətirlərindən oxunur: orada
         // hansı seçimin hansı addımda edildiyi dəqiq bilinir. Düz `Choices`
         // siyahısında isə "continue" və "solved" açarları seçimlərlə qarışır
@@ -2209,7 +2176,6 @@ public class PetBrainService : IPetBrainService
         }
 
         // Saxlama limiti YAZI YOLUNDA tətbiq olunur.
-        //
         // Qayda əvvəldən yazılmışdı, amma heç yerdən çağırılmırdı: yaddaş
         // sonsuz böyüyür, seçim isə həmişə eyni bir neçə "vacib" xatirəni
         // qaytarırdı — yəni pet zamanla yalnız ilk günlərini xatırlayan olurdu.
@@ -2432,9 +2398,6 @@ public class PetBrainService : IPetBrainService
         // dəyişmir — yalnız fon.
         await ApplySceneAsync(puzzle, issued, template, child, ct);
 
-        // İpucu YALNIZ istənəndə, dəstək rejimində və ya uşağın SEÇDİYİ
-        // vaxtlamaya görə göndərilir; əks halda sahə boş qalır və klientə heç
-        // nə sızmır.
         var support = SupportOf(child);
         var reveal = showHint
                      || issued.HintsUsed > 0
@@ -2739,7 +2702,6 @@ public class PetBrainService : IPetBrainService
             // sətir OXUNMAZ qalır. Uşaq bunun günahkarı deyil: yarımçıq
             // macərası 500 xətası ilə bitməməlidir, ona görə oxunmayan sətir
             // atılır və mərhələ üçün yeni tapmaca verilir.
-            //
             // Bu, «asan sual ovlamağa» qapı açmır: şərt uşağın nəzarətində
             // deyil — o, ancaq bizim buraxdığımız kataloq dəyişikliyi ilə
             // yaranır və hər mərhələ üçün bir dəfə işləyir.
@@ -3004,7 +2966,6 @@ public class PetBrainService : IPetBrainService
             return false;
 
         // Versiya uyğunsuzluğu = qaydalar dəyişib.
-        //
         // Saxlanan tapmacanı YENİ qaydalarla qiymətləndirmək ən pis variantdır:
         // uşaq köhnə lövhəyə baxır, server isə başqa şərtlə yoxlayır — doğru
         // cavab səhv sayıla bilər. Ona görə sətir oxunmaz sayılır və mərhələ
@@ -3057,8 +3018,6 @@ public class PetBrainService : IPetBrainService
         var candidate = card.Candidate;
         var template = candidate.Template;
 
-        // Model mətni valideyn tərəfindən AYRICA söndürülə bilir; söndürüləndə
-        // deterministik şablon mətni qalır və ekran tam işləyir.
         var narrative = mind.Personalization.AiNarrativeEnabled
             ? await _narrative.DescribeAsync(new NarrativeContext(
                 ChildId: child.Id,

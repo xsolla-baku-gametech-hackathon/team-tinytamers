@@ -95,13 +95,6 @@ public class RecommendationDecision
     public int NoveltyScore { get; set; }
     public int SurpriseScore { get; set; }
 
-    // ---------- V2 bal parçalanması ----------
-    //
-    // Tək «uyğunluq» balı bir sualı cavablandıra bilmirdi: macəra mövzuya görə
-    // seçildi, yoxsa mexanikaya, yoxsa sadəcə çətinliyi tutdu? Komponentlər
-    // ayrı saxlanılanda «niyə bu?» sualının cavabı hesablanmış qalır, sonradan
-    // uydurulmur.
-
     /// <summary>Mövzu uyğunluğu (0–100).</summary>
     public int TopicFit { get; set; }
 

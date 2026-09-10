@@ -181,8 +181,6 @@ public class PetBrainContentFeedbackRequest
     public PetBrainContentPreferenceKind Kind { get; set; }
 }
 
-// ==================== Valideyn görünüşü ====================
-
 /// <summary>
 /// Valideynin fərdiləşdirmə paneli — nə toplanır, nə təsir edir, necə silinir.
 /// </summary>

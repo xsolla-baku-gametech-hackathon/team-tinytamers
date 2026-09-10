@@ -249,7 +249,6 @@ public static class PersonalizationProfileFactory
         if (considered.Count < MinSupportObservations)
             return false;
 
-        // Kömək İSTƏMƏDƏN çox səhv edən uşaq — pet bir az əvvəl əl uzatsın.
         return considered.All(o => o.Mistakes >= StrugglingMistakeThreshold && o.HintsUsed == 0);
     }
 }

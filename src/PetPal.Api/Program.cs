@@ -383,9 +383,6 @@ else
 builder.Services.Configure<PetBrainOptions>(builder.Configuration.GetSection(PetBrainOptions.SectionName));
 builder.Services.Configure<PetBrainV2Options>(builder.Configuration.GetSection(PetBrainV2Options.SectionName));
 
-// Tövsiyə çəkiləri KONFİQURASİYADIR, kod detalı deyil. Cəmin 1.0 olması
-// başlanğıcda yoxlanılır: səhv çəki ilə işə düşən server bütün balları şişirdər
-// və "80 bal" ifadəsi mənasını itirərdi.
 builder.Services.AddOptions<RecommendationPolicyOptions>()
     .Bind(builder.Configuration.GetSection(RecommendationPolicyOptions.SectionName))
     .Validate(o => o.Validate(out _), "Tövsiyə siyasətinin çəkiləri etibarsızdır.")

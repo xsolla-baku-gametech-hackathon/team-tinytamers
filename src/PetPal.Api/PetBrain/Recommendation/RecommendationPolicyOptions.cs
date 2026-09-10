@@ -20,11 +20,6 @@ public class RecommendationPolicyOptions
     /// <summary>Bu çəkilər dəyişəndə ARTIRILIR — jurnal köhnə qərarı doğru izah etsin.</summary>
     public int PolicyVersion { get; set; } = 2;
 
-    // ---------- Bal komponentlərinin çəkiləri ----------
-    //
-    // Cəm 1.0 olmalıdır. Validate() bunu yoxlayır: səhvən 1.3 yazılsa,
-    // bütün ballar şişər və "80 bal" ifadəsi mənasını itirərdi.
-
     /// <summary>Mövzu uyğunluğu — «kosmos macəralarını sevir».</summary>
     public double TopicFit { get; set; } = 0.20;
 
@@ -56,8 +51,6 @@ public class RecommendationPolicyOptions
 
     /// <summary>Yenilik — son vaxt görülənlər geri çəkilir.</summary>
     public double NoveltyValue { get; set; } = 0.08;
-
-    // ---------- Kəşf payı ----------
 
     /// <summary>
     /// Tövsiyə siyahısındakı KART sayı (əsas + alternativlər).

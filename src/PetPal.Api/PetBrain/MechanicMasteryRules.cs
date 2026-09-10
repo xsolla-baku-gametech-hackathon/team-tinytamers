@@ -109,6 +109,12 @@ public static class MechanicMasteryRules
     /// <summary>
     /// Bir cəhdi sətirə tətbiq edir. Sətir YERİNDƏ dəyişdirilir; çağıran
     /// yalnız saxlayır.
+    ///
+    /// <para><b>Köməklə də olsa BİTİRMƏK səviyyəni aşağı salmır.</b> Saf Elo
+    /// bunu edərdi: asan tapmacada ipucu istəmək «gözləntidən aşağı» sayılır.
+    /// Nəticə isə uşaq üçün tələ olardı — kömək istədikcə səviyyə düşər,
+    /// səviyyə düşdükcə tapmaca asanlaşar və o, heç vaxt irəli getməzdi.
+    /// Uğursuzluq hələ də səviyyəni endirir; bitirmək yox.</para>
     /// </summary>
     public static void Apply(MechanicMastery mastery, MechanicAttempt attempt, DateTime now)
     {
@@ -121,12 +127,6 @@ public static class MechanicMasteryRules
             -MaxStepPerAttempt,
             MaxStepPerAttempt);
 
-        // Köməklə də olsa BİTİRMƏK səviyyəni aşağı salmır.
-        //
-        // Saf Elo bunu edərdi: asan tapmacada ipucu istəmək «gözləntidən aşağı»
-        // sayılır. Amma nəticə uşaq üçün tələ olardı — kömək istədikcə səviyyə
-        // düşər, səviyyə düşdükcə tapmaca asanlaşar və o, heç vaxt irəli
-        // getməzdi. Uğursuzluq hələ də səviyyəni endirir; BİTİRMƏK yox.
         if (attempt.Solved && delta < 0)
             delta = 0;
 

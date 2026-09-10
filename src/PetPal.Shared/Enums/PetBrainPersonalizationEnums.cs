@@ -272,12 +272,6 @@ public enum PetBrainFilterReason
     /// <summary>Bu sessiyada kənara qoyulub.</summary>
     DeclinedThisSession = 4,
 
-    // 5 QƏSDƏN boşdur. Orada «bu yaxınlarda oynanıb» səbəbi vardı və
-    // silinib: sərt süzgəc uşağa sevdiyi macəraya qayıtmağı qadağan edirdi,
-    // halbuki təkrar oynama ən güclü müsbət siqnaldır. Təkrar indi yalnız
-    // yenilik balında cəza alır. Nömrə təkrar işlədilmir ki, köhnə jurnal
-    // sətri yeni səbəb kimi oxunmasın.
-
     /// <summary>Pet hələ yumurtadadır.</summary>
     PetNotHatched = 6,
 

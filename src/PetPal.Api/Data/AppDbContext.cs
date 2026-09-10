@@ -396,8 +396,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         {
             e.Property(x => x.Mechanic).HasMaxLength(40).IsRequired();
 
-            // Bir uşaqda bir mexanika YALNIZ BİR sətirdir: paralel iki tapmaca
-            // nəticəsi ikinci ustalıq sətri yaradıb tarixçəni ikiyə bölə bilmir.
             e.HasIndex(x => new { x.ChildProfileId, x.Mechanic }).IsUnique();
 
             e.HasOne(x => x.ChildProfile)
@@ -410,9 +408,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         {
             e.Property(x => x.Key).HasMaxLength(60).IsRequired();
 
-            // Bir uşaq + sahə + açar üçün BİR qeyd. Uşaq eyni mövzunu iki dəfə
-            // «daha az göstər» edəndə yeni sətir yaranmır — mövcud sətrin
-            // təkrar sayı və müddəti uzanır.
             e.HasIndex(x => new { x.ChildProfileId, x.Scope, x.Key }).IsUnique();
 
             e.HasOne(x => x.ChildProfile)
@@ -423,9 +418,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
         builder.Entity<ChildPersonalizationSettings>(e =>
         {
-            // Bir uşaq — bir ayar sətri. Açıq seçim ikiləşə bilməz: «hərəkət
-            // azaldılsın» iki sətirdə fərqli qalsa, hansının doğru olduğu
-            // sualının cavabı olmazdı.
             e.HasIndex(x => x.ChildProfileId).IsUnique();
 
             e.HasOne(x => x.ChildProfile)
@@ -587,8 +579,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             // üzərində hesablanır.
             e.HasIndex(x => new { x.ChildProfileId, x.CreatedAt });
 
-            // Bir baxışda göstərilən kartlar birlikdə oxunur: «əsas təklif
-            // rədd edildi, alternativ seçildi» sualı yalnız qrup üzrə cavablanır.
             e.HasIndex(x => x.GroupId);
 
             e.HasOne(x => x.ChildProfile)

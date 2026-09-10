@@ -45,8 +45,6 @@ public class ChildPersonalizationSettings
     /// <summary>«Məni təəccübləndir» və təhlükəsiz kəşf kartı göstərilsinmi.</summary>
     public bool SurpriseEnabled { get; set; } = true;
 
-    // ---------- Temp və sessiya forması ----------
-
     public PetBrainSessionLength SessionLength { get; set; } = PetBrainSessionLength.Medium;
     public PetBrainSettingSource SessionLengthSource { get; set; } = PetBrainSettingSource.Default;
 
@@ -55,8 +53,6 @@ public class ChildPersonalizationSettings
 
     public PetBrainNoveltyTolerance NoveltyTolerance { get; set; } = PetBrainNoveltyTolerance.Balanced;
     public PetBrainSettingSource NoveltyToleranceSource { get; set; } = PetBrainSettingSource.Default;
-
-    // ---------- Dəstək (scaffolding) profili ----------
 
     public PetBrainHintStyle HintStyle { get; set; } = PetBrainHintStyle.Visual;
     public PetBrainSettingSource HintStyleSource { get; set; } = PetBrainSettingSource.Default;
@@ -72,8 +68,6 @@ public class ChildPersonalizationSettings
 
     /// <summary>Tapmacadan əvvəl bir nümunə addım göstərilsin.</summary>
     public bool DemonstrationFirst { get; set; }
-
-    // ---------- Əlçatanlıq ----------
 
     public bool ReducedMotion { get; set; }
     public bool LargeText { get; set; }
@@ -95,12 +89,8 @@ public class ChildPersonalizationSettings
     public PetBrainReadingLevel ReadingLevel { get; set; } = PetBrainReadingLevel.Standard;
     public PetBrainSettingSource ReadingLevelSource { get; set; } = PetBrainSettingSource.Default;
 
-    // ---------- Mükafat ----------
-
     public PetBrainRewardPreference RewardPreference { get; set; } = PetBrainRewardPreference.PetCosmetic;
     public PetBrainSettingSource RewardPreferenceSource { get; set; } = PetBrainSettingSource.Default;
-
-    // ---------- İlk tanışlıq ----------
 
     /// <summary>Tanışlıq tamamlanıb; <c>null</c> = hələ göstərilməyib.</summary>
     public DateTime? OnboardingCompletedAt { get; set; }
