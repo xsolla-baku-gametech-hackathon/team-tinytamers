@@ -1,0 +1,96 @@
+@inject Loc Loc
+
+@* Macəranın ortaq çərçivəsi.
+
+   Mini oyunların `GameShell`-i burada işlənmir və bu, qəsdəndir: orada CAN və
+   TAYMER var, macərada isə hər ikisi yanlış mesaj verərdi — yaradıcı seçimdə
+   "can itirmək" mənasızdır, tələsdirmək isə düşünməyi cəzalandırardı.
+
+   Amma VİZUAL QRAMMATİKA eynidir, çünki uşaq interfeysi yenidən öyrənməməlidir:
+   çıxış · başlıq · mərhələ nöqtələri · qalıcı göstəriş · səhnə · yekun.
+
+   `position: absolute` (fixed YOX) — kətan qaydası: pəncərəyə yapışan element
+   miqyasdan qaçır və kompüterdə telefon çərçivəsindən çıxır. *@
+
+<div class="pbx @(IsPuzzle ? "pbx--puzzle" : null) @(IsBoard ? "pbx--board" : null)" role="dialog" aria-modal="true" aria-label="@Title">
+
+    <div class="pbx__head">
+        <button type="button" class="overlay-close pbx__exit"
+                aria-label="@Loc.T("Macərədən çıx", "Leave the adventure")"
+                @onclick="OnExit">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.6"
+                      stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+        </button>
+
+        <div class="pbx__badge">
+            <span class="pbx__title">@Title</span>
+
+            @if (StageCount > 0)
+            {
+                <span class="pbx__dots" role="img"
+                      aria-label="@Loc.T($"{Math.Min(CurrentStage + 1, StageCount)} / {StageCount} mərhələ",
+                                         $"stage {Math.Min(CurrentStage + 1, StageCount)} of {StageCount}")">
+                    @for (var i = 0; i < StageCount; i++)
+                    {
+                        <span class="pbx__dot @(i < CurrentStage ? "pbx__dot--done" : null) @(i == CurrentStage ? "pbx__dot--now" : null)"></span>
+                    }
+                </span>
+            }
+        </div>
+
+        @* Çətinlik nişanı: rəngdən ƏLAVƏ mətn də daşıyır — rəng tək məlumat
+           daşıyıcısı olmamalıdır (bax DESIGN_SYSTEM.md). *@
+        <span class="pbx__tier pbx__tier--@Difficulty.ToString().ToLowerInvariant()">@DifficultyLabel</span>
+    </div>
+
+    @ChildContent
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    [Parameter] public int CurrentStage { get; set; }
+
+    [Parameter] public int StageCount { get; set; }
+
+    [Parameter] public PetBrainDifficulty Difficulty { get; set; } = PetBrainDifficulty.Medium;
+
+    /// <summary>
+    /// Tapmaca mərhələsidir.
+    ///
+    /// <para>Panel burada hündür olur, ona görə səhnənin üfüqü qalxmalıdır —
+    /// yoxsa səhnənin qəhrəmanı (Robo) panelin tam arxasında itir. Bu, kod
+    /// səviyyəsində görünməyən, yalnız RENDER ilə tapılan bir səhvdir.</para>
+    /// </summary>
+    [Parameter] public bool IsPuzzle { get; set; }
+
+    /// <summary>
+    /// Mərhələnin ÖZ səhnəsi var (marşrut xəritəsi, əjdahanın qanadı).
+    ///
+    /// <para>Belə hallarda dekorativ fon KƏNARA çəkilir. Səbəb render ilə
+    /// tapıldı: lövhə panelinin yanında fona yer qalmır və nəticədə nə fon
+    /// görünürdü, nə də pet-in replikası — replika başlıq zolağının altına
+    /// sürüşürdü. İki səhnə üçün döyüşmək əvəzinə biri geri çəkilir.</para>
+    ///
+    /// <para>Üstəlik bu, dublikatı da aradan qaldırır: xəritədə onsuz da Robo
+    /// düyünü var, fonda ikinci Robo çəkmək uşağı çaşdırırdı.</para>
+    /// </summary>
+    [Parameter] public bool IsBoard { get; set; }
+
+    [Parameter] public EventCallback OnExit { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Çətinlik uşağa RİTM kimi deyilir, hökm kimi yox: "Rahat" sözü "asan"dan
+    /// yumşaqdır və heç bir uşağa "sən bacarmırsan" demir.
+    /// </summary>
+    private string DifficultyLabel => Difficulty switch
+    {
+        PetBrainDifficulty.Easy => Loc.T("Rahat", "Gentle"),
+        PetBrainDifficulty.Hard => Loc.T("Cəsur", "Bold"),
+        _ => Loc.T("Orta", "Steady")
+    };
+}

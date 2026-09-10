@@ -31,6 +31,13 @@ public class PetDto
     public int Fullness { get; set; }
     public int Cleanliness { get; set; }
 
+    /// <summary>
+    /// Bağ (0–100) — uşaqla pet arasındakı uzunmüddətli münasibət.
+    /// <see cref="Happiness"/> ilə qarışdırılmamalıdır: o, vaxta görə azalan
+    /// qulluq statıdır, bu isə yalnız artır.
+    /// </summary>
+    public int Bond { get; set; }
+
     public PetMood Mood { get; set; }
 
     /// <summary>Pet-in ekranda dediyi replika (mood + son fəaliyyətdən seçilir).</summary>

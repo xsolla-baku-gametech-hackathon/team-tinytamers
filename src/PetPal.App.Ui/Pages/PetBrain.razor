@@ -1,0 +1,496 @@
+@page "/pet-brain"
+@inject GameApiClient Api
+@inject PetBrainState Brain
+@inject AppState State
+@inject NavigationManager Navigation
+@inject Loc Loc
+
+@* Pet Brain — pet-in növbəti macərəni SƏNƏ görə seçdiyi ekran.
+
+   İki vəziyyəti var:
+   1. Giriş — pet düşünür, sonra bir macəra təklif edir; altında yaddaş və
+      (nümayiş rejimində) izah paneli.
+   2. Macəra — tam ekran səhnə, mərhələ-mərhələ.
+
+   Alt naviqasiyaya ALTINCI element ƏLAVƏ EDİLMİR: bura ana ekrandakı çipdən
+   və otaqdan gəlinir. Beş bölmə qəsdən beşdir. *@
+
+<h1 class="visually-hidden-title">@Loc.T("Pet Brain", "Pet Brain")</h1>
+
+<LoadingState IsLoading="_loading" Error="@_error" OnRetry="LoadAsync"
+              LoadingText="@ThinkingText">
+
+    @if (_run is not null)
+    {
+        @* ---------- Macəra ---------- *@
+        <ExperienceShell Title="@_run.Title" CurrentStage="_run.CurrentStage"
+                         StageCount="_run.StageCount" Difficulty="_run.Difficulty"
+                         IsPuzzle="@(_run.Stage?.Kind == PetBrainStageKind.Puzzle)"
+                         IsBoard="@HasOwnScene"
+                         OnExit="ExitRunAsync">
+
+            <ExperienceScene SceneKey="@_run.SceneKey" Choices="_run.Choices" Icon="@RunIcon" />
+
+            @if (_run.Summary is not null)
+            {
+                <RunSummary Summary="_run.Summary"
+                            PetName="@PetName"
+                            PetSpecies="@PetSpecies"
+                            PetStage="PetStageValue"
+                            PetAccessories="PetAccessoriesValue"
+                            SceneKey="@_run.SceneKey"
+                            OnDone="FinishAsync" />
+            }
+            else if (_run.Stage is not null)
+            {
+                <div class="pbx__stage">
+                    @* Pet-in replikası səhnənin üstündə üzür — uşaq üçün ən
+                       tanış giriş nöqtəsi onun DEDİYİdir. *@
+                    <div class="pbx__bubble" aria-live="polite">@_run.Stage.PetLine</div>
+
+                    <div class="pbx__panel">
+                        @* Göstəriş mərhələ boyu QALIR: uşaq onu yadda saxlamağa
+                           yox, tətbiq etməyə məşq edir (GameShell ilə eyni qayda).
+
+                           Tapmacada göstərişi LÖVHƏ özü daşıyır (hədəf zolağında
+                           və ya qayda sətrində), ona görə burada təkrarlanmır. *@
+                        @if (_run.Stage.Kind != PetBrainStageKind.Puzzle)
+                        {
+                            <p class="pbx__prompt">@_run.Stage.Prompt</p>
+                        }
+
+                        @if (_run.Stage.Kind == PetBrainStageKind.Intro)
+                        {
+                            <button class="btn btn--primary btn--block" disabled="@_busy"
+                                    @onclick="ContinueAsync">
+                                @Loc.T("Gedək!", "Let us go!")
+                            </button>
+                        }
+                        else if (_run.Stage.Puzzle is { } puzzle)
+                        {
+                            @* Tapmaca uşağa XAS qurulub: mexanikanı oyun üslubu,
+                               mövzunu maraqlar, çətinliyi isə mənimsəmə və son
+                               nəticə seçib. Doğru cavab burada YOXDUR — o,
+                               yalnız serverdə saxlanılır. *@
+                            <PuzzleBoard Puzzle="puzzle" Busy="_busy" SceneImage="@SceneImageFor(puzzle)"
+                                         OnSubmit="SubmitPuzzleAsync" OnHint="HintAsync" />
+                        }
+                        else
+                        {
+                            <StageChoices Options="_run.Stage.Options" Prompt="@_run.Stage.Prompt"
+                                          Busy="_busy" Pending="@_pending" OnChoose="ChooseAsync" />
+                        }
+                    </div>
+                </div>
+            }
+        </ExperienceShell>
+    }
+    else if (_state is { Enabled: false })
+    {
+        <div class="state">
+            <div class="state__icon" aria-hidden="true">🧠</div>
+            <div>@Loc.T("Bu bölmə hazırda bağlıdır.", "This section is currently closed.")</div>
+        </div>
+    }
+    else if (_state is { PetIsHatched: false })
+    {
+        @* Yumurta macəraya çıxmır — mövcud qulluq/söhbət qaydası ilə eyni. *@
+        <div class="state">
+            <div class="state__icon" aria-hidden="true">🥚</div>
+            <div>@Loc.T("Əvvəlcə yumurtanı açmaq lazımdır — sonra birlikdə macərəyə çıxarıq!",
+                        "We need to hatch the egg first — then we can go on an adventure!")</div>
+            <a class="btn btn--primary" href="care">@Loc.T("Otağa get", "Go to the room")</a>
+        </div>
+    }
+    else if (_state is not null)
+    {
+        @* ---------- Giriş ---------- *@
+        <div class="list-scroll">
+
+            <section class="pbx-intro">
+                <div class="pbx-intro__pet">
+                    <PetAvatar Stage="PetStageValue" Mood="PetMoodValue" Species="@PetSpecies"
+                               Accessories="PetAccessoriesValue" Name="@_state.PetName" />
+                </div>
+
+                <div class="pbx-intro__bubble" aria-live="polite">@_state.Greeting</div>
+
+                <div class="pbx-intro__badge">
+                    <span aria-hidden="true">@PersonalityIcon</span>
+                    <span>@_state.PersonalityLabel</span>
+                </div>
+
+                <div class="pbx-bond pbx-bond--intro" role="img"
+                     aria-label="@Loc.T($"Bağ {_state.Bond} / 100", $"Bond {_state.Bond} of 100")">
+                    <span class="pbx-bond__fill" style="width:@_state.Bond%"></span>
+                </div>
+            </section>
+
+            @if (_state.ScreenTimeBlocked)
+            {
+                <div class="card pbx-blocked">
+                    <div class="card__title">@Loc.T("Bugünlük bu qədər", "That is it for today")</div>
+                    <p class="card__subtitle">@_state.ScreenTimeMessage</p>
+                </div>
+            }
+            else if (_state.Recommendation is { } recommendation)
+            {
+                <section class="card pbx-card">
+                    <div class="pbx-card__head">
+                        <span class="pbx-card__icon" aria-hidden="true">@recommendation.Icon</span>
+                        <div>
+                            <h2 class="pbx-card__title">@recommendation.Title</h2>
+                            <p class="pbx-card__meta">
+                                @recommendation.TargetMinutes @Loc.T("dəqiqə", "min")
+                                · @DifficultyLabel(recommendation.Difficulty)
+                            </p>
+                        </div>
+                    </div>
+
+                    <p class="pbx-card__intro">@recommendation.Intro</p>
+
+                    @* Düymə səbəblərdən ƏVVƏLdir və bu, ölçmə ilə qərara alınıb:
+                       sürüşən sahənin görünən hündürlüyü 550px-dir (kətan 690 −
+                       üst boşluq − naviqasiya üçün ayrılan 104px). Səbəblər
+                       yuxarıda olanda «Macərəyə başla» 585px-ə düşürdü, yəni
+                       uşaq əsas düyməni GÖRMÜRDÜ və sürüşdürməli olurdu.
+                       İndi düymə həmişə ekrandadır, izah isə altında qalır. *@
+                    <button class="btn btn--primary btn--block pbx-card__start"
+                            disabled="@_busy" @onclick="StartAsync">
+                        @(_busy ? Loc.T("Hazırlaşırıq…", "Getting ready…") : Loc.T("Macərəyə başla", "Start the adventure"))
+                    </button>
+
+                    @if (recommendation.Reasons.Count > 0)
+                    {
+                        <p class="pbx-reasons__title">@Loc.T("Niyə məhz bu?", "Why this one?")</p>
+
+                        @* Səbəblər uşağa da göstərilir, amma BAL YOX — "kosmos
+                           sənin güclü maraqlarındandır" cümləsi uşaq üçün
+                           anlaşılandır, "84%" isə deyil.
+
+                           Uşağa ƏN ÇOX ÜÇÜ göstərilir; dördüncüsü (çətinlik
+                           qeydi) daha çox valideyn/münsif üçündür və tam siyahı
+                           nümayiş panelindədir. *@
+                        <ul class="pbx-reasons">
+                            @foreach (var reason in recommendation.Reasons.Take(3))
+                            {
+                                <li class="pbx-reasons__item">
+                                    <span aria-hidden="true">✨</span> @reason
+                                </li>
+                            }
+                        </ul>
+                    }
+                </section>
+            }
+
+            @if (_state.Memories.Count > 0)
+            {
+                <section class="card pbx-memories-card">
+                    <h2 class="card__title">
+                        @Loc.T($"{_state.PetName} bunları xatırlayır", $"{_state.PetName} remembers")
+                    </h2>
+
+                    @foreach (var memory in _state.Memories)
+                    {
+                        <div class="pbx-memory">
+                            <span class="pbx-memory__icon" aria-hidden="true">@memory.Icon</span>
+                            <span class="pbx-memory__text">@memory.Text</span>
+                        </div>
+                    }
+                </section>
+            }
+
+            @* Nümayiş paneli YALNIZ konfiqurasiya ilə açılır. Bağlı rejimdə
+               uşaq nə bal görür, nə namizəd cədvəli. *@
+            @if (_state is { DemoMode: true, Debug: not null })
+            {
+                <BrainDebugPanel Debug="_state.Debug"
+                                 Interests="_state.Interests"
+                                 PlayStyles="_state.PlayStyles"
+                                 Reasons="RecommendationReasons" />
+            }
+        </div>
+    }
+</LoadingState>
+
+@code {
+    private PetBrainStateDto? _state;
+    private PetBrainRunDto? _run;
+
+    private bool _loading = true;
+    private bool _busy;
+    private string? _error;
+    private string? _pending;
+
+    /// <summary>
+    /// Hazır hekayə rəsminin <c>data:</c> URI-si və hansı tapmacaya aid olduğu.
+    ///
+    /// <para>Rəsm AYRICA yüklənir və gec gələ bilər — tapmaca ondan ASILI
+    /// DEYİL: ekranda onsuz da eyni həndəsəli deterministik səhnə var, rəsm
+    /// hazır olanda yalnız fon dəyişir.</para>
+    /// </summary>
+    private Guid _sceneOwner;
+    private string? _sceneImage;
+
+    /// <summary>
+    /// Pet "düşünür" mətni. Süni gecikmə YOXDUR — sorğu nə qədər çəkirsə, o
+    /// qədər görünür. Uşağı gözlətmək üçün taymer qoymaq hörmətsizlik olardı.
+    /// </summary>
+    private string ThinkingText =>
+        Loc.T($"{PetName} yeni macəranı düşünür…", $"{PetName} is imagining your next adventure…");
+
+    private string PetName => _state?.PetName ?? State.Pet?.Name ?? "Pet";
+
+    // Pet-in görünüşü paylaşılan vəziyyətdən gəlir (ana ekran onsuz da onu
+    // yükləyib), ona görə bu ekran pet üçün AYRICA sorğu göndərmir.
+    private string PetSpecies => State.Pet?.Species ?? "fox";
+
+    private PetStage PetStageValue => State.Pet?.Stage ?? PetStage.Child;
+
+    private PetMood PetMoodValue => State.Pet?.Mood ?? PetMood.Happy;
+
+    private IReadOnlyCollection<string>? PetAccessoriesValue => State.Pet?.EquippedAccessories;
+
+    private IReadOnlyList<string> RecommendationReasons =>
+        _state?.Recommendation?.Reasons ?? new List<string>();
+
+    private string RunIcon => _state?.Recommendation?.Icon ?? "✨";
+
+    private string PersonalityIcon => _state?.Personality switch
+    {
+        PetBrainPersonality.CuriousScientist => "🔬",
+        PetBrainPersonality.CreativeCompanion => "🎨",
+        PetBrainPersonality.ExplorerCompanion => "🧭",
+        PetBrainPersonality.CaringCompanion => "💚",
+        _ => "✨"
+    };
+
+    private string DifficultyLabel(PetBrainDifficulty difficulty) => difficulty switch
+    {
+        PetBrainDifficulty.Easy => Loc.T("Rahat", "Gentle"),
+        PetBrainDifficulty.Hard => Loc.T("Cəsur", "Bold"),
+        _ => Loc.T("Orta", "Steady")
+    };
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        var result = await Api.GetPetBrainAsync();
+        _loading = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            // Şəbəkə xətasında boş ekran qalmır: mesaj + "yenidən cəhd et".
+            _error = result.Error;
+            return;
+        }
+
+        _state = result.Value;
+        Brain.Apply(_state);
+
+        // Yarımçıq macəra varsa uşaq birbaşa onun içinə düşür — yenilənmə,
+        // app-in bağlanması və ya telefon dəyişməsi macərəni itirmir.
+        _run = _state.ActiveRun;
+    }
+
+    private async Task StartAsync()
+    {
+        if (_busy || _state?.Recommendation is null)
+            return;
+
+        _busy = true;
+
+        var result = await Api.StartPetBrainRunAsync(_state.Recommendation.TemplateKey);
+
+        _busy = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _run = result.Value;
+        Brain.Invalidate();
+    }
+
+    /// <summary>Giriş mərhələsi: seçim yoxdur, yalnız "davam".</summary>
+    private Task ContinueAsync() => ChooseAsync("continue");
+
+    /// <summary>
+    /// Tapmaca cavabı — serverə YALNIZ seçilmiş id-lər gedir.
+    ///
+    /// <para>Doğruluğu server öz saxladığı həllə qarşı müəyyən edir; burada
+    /// göndəriləsi "düzdür" sahəsi ümumiyyətlə yoxdur.</para>
+    /// </summary>
+    /// <summary>
+    /// Mərhələnin ÖZ səhnəsi var — marşrut xəritəsi və ya əjdahanın qanadı.
+    /// Belə hallarda dekorativ fon kənara çəkilir (bax ExperienceShell.IsBoard).
+    /// </summary>
+    private bool HasOwnScene => _run?.Stage?.Puzzle?.Mechanic
+        is PetBrainPuzzleMechanic.OrderedRoute or PetBrainPuzzleMechanic.LightFragments;
+
+    /// <summary>
+    /// Bu tapmaca üçün hazır rəsm. Yoxdursa <c>null</c> qaytarır və lövhə
+    /// deterministik səhnə ilə çəkilir — EYNİ həndəsə ilə.
+    /// </summary>
+    private string? SceneImageFor(PetBrainPuzzleDto puzzle)
+    {
+        if (puzzle.Scene.IllustrationStatus != PetBrainIllustrationStatus.Ready ||
+            string.IsNullOrEmpty(puzzle.Scene.AssetUrl))
+            return null;
+
+        if (_sceneOwner != puzzle.PuzzleId)
+        {
+            // Yükləmə fon işidir: render dayanmır, uşaq gözləmir.
+            _sceneOwner = puzzle.PuzzleId;
+            _sceneImage = null;
+
+            _ = LoadSceneAsync(puzzle.PuzzleId);
+        }
+
+        return _sceneImage;
+    }
+
+    private async Task LoadSceneAsync(Guid puzzleId)
+    {
+        var result = await Api.GetPetBrainIllustrationAsync(puzzleId);
+
+        // Tapmaca dəyişibsə köhnə rəsm ATILIR — səhv səhnə göstərilməməlidir.
+        if (_sceneOwner != puzzleId)
+            return;
+
+        // Uğursuzluq uşağa göstərilmir: deterministik səhnə onsuz da yerindədir.
+        if (result.Succeeded && !string.IsNullOrEmpty(result.Value))
+        {
+            _sceneImage = result.Value;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SubmitPuzzleAsync(List<string> selectedIds)
+    {
+        if (_busy || _run?.Stage is null)
+            return;
+
+        _busy = true;
+
+        var result = await Api.SubmitPetBrainPuzzleAsync(_run.RunId, _run.Stage.Index, selectedIds);
+
+        _busy = false;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _run = result.Value;
+
+        if (_run.Stage is null && _run.CurrentStage >= _run.StageCount)
+            await CompleteAsync();
+    }
+
+    private async Task ChooseAsync(string optionKey)
+    {
+        if (_busy || _run?.Stage is null)
+            return;
+
+        _busy = true;
+        _pending = optionKey;
+
+        var result = await Api.SubmitPetBrainChoiceAsync(_run.RunId, _run.Stage.Index, optionKey);
+
+        _busy = false;
+        _pending = null;
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _run = result.Value;
+
+        // Bütün mərhələlər bitdi: yekunu server hesablayır və mükafatı
+        // DƏQİQ BİR DƏFƏ verir — təkrar çağırış təhlükəsizdir.
+        if (_run.Stage is null && _run.CurrentStage >= _run.StageCount)
+            await CompleteAsync();
+    }
+
+    private async Task HintAsync()
+    {
+        if (_busy || _run?.Stage is null)
+            return;
+
+        _busy = true;
+
+        var result = await Api.RequestPetBrainHintAsync(_run.RunId, _run.Stage.Index);
+
+        _busy = false;
+
+        if (result is { Succeeded: true, Value: not null })
+            _run = result.Value;
+    }
+
+    private async Task CompleteAsync()
+    {
+        if (_run is null)
+            return;
+
+        var result = await Api.CompletePetBrainRunAsync(_run.RunId);
+
+        if (result is { Succeeded: true, Value: not null })
+        {
+            _run = result.Value;
+
+            // Pet-in yeni yaşı, XP-si və təzəcə açılan əşyası ana ekranda da
+            // görünməlidir, ona görə paylaşılan vəziyyət yenilənir.
+            var pet = await Api.GetPetAsync();
+            if (pet is { Succeeded: true, Value: not null })
+                State.ApplyPet(pet.Value);
+        }
+        else
+        {
+            _error = result.Error;
+        }
+    }
+
+    /// <summary>
+    /// Çıxış uşağın qərarıdır və iki hal QƏSDƏN fərqlidir:
+    ///
+    /// <list type="bullet">
+    ///   <item><b>✕ düyməsi</b> — "bu macərəni istəmirəm". Run yarımçıq
+    ///   işarələnir, mükafat verilmir və mənalı yarımçıq qoyma siqnal olaraq
+    ///   yazılır (yalnız ən azı bir mərhələ keçilibsə — səhv toxunuş fikir
+    ///   bildirmək deyil, bax ProfileLearningRules.ForAbandon).</item>
+    ///   <item><b>Sadəcə getmək</b> — ekranı yeniləmək, alt naviqasiya ilə başqa
+    ///   bölməyə keçmək, app-i bağlamaq. Run AKTİV qalır və uşaq ana ekrandakı
+    ///   çipdən ("Davam") ora qayıda bilir.</item>
+    /// </list>
+    ///
+    /// Yəni macəra heç vaxt təsadüfən itmir; onu yalnız uşaq özü bağlayır.
+    /// </summary>
+    private async Task ExitRunAsync()
+    {
+        if (_run is { Status: PetBrainRunStatus.Active })
+            await Api.AbandonPetBrainRunAsync(_run.RunId);
+
+        _run = null;
+        Brain.Invalidate();
+
+        await LoadAsync();
+    }
+
+    private async Task FinishAsync()
+    {
+        _run = null;
+        Brain.Invalidate();
+
+        await LoadAsync();
+    }
+}

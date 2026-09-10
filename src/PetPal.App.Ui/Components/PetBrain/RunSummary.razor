@@ -1,0 +1,108 @@
+@inject Loc Loc
+
+@* Macəranın yekunu.
+
+   Sıra qəsdəndir: əvvəlcə PET danışır (uşaq üçün ən vacib geri dönüş), sonra
+   qazanc, sonra xatirə. Rəqəmlər başda gəlsəydi, ekran hesabat olardı.
+
+   Mükafat serverdə DƏQİQ BİR DƏFƏ verilib — bu ekran onu sadəcə göstərir və
+   heç nə hesablamır. *@
+
+<div class="pbx-summary">
+
+    <div class="pbx-summary__pet">
+        <PetAvatar Stage="PetStage" Mood="PetMood.Excited" Species="@PetSpecies"
+                   Accessories="PetAccessories" Name="@PetName" />
+    </div>
+
+    <div class="pbx-summary__bubble" aria-live="polite">@Summary.PetLine</div>
+
+    <div class="pbx-summary__card">
+        <h2 class="pbx-summary__title">@Summary.Title</h2>
+
+        <div class="pbx-summary__stats">
+            <span class="pbx-stat">
+                <span class="pbx-stat__value">+@Summary.XpEarned</span>
+                <span class="pbx-stat__label">@Loc.T("Təcrübə", "XP")</span>
+            </span>
+
+            <span class="pbx-stat pbx-stat--bond">
+                <span class="pbx-stat__value">+@Summary.BondEarned</span>
+                <span class="pbx-stat__label">@Loc.T("Bağ", "Bond")</span>
+            </span>
+
+            @if (Summary.PetLeveledUp)
+            {
+                <span class="pbx-stat pbx-stat--level">
+                    <span class="pbx-stat__value">@Summary.PetLevel</span>
+                    <span class="pbx-stat__label">@Loc.T("Yeni yaş!", "New age!")</span>
+                </span>
+            }
+        </div>
+
+        @* Bağ zolağı: xoşbəxtlikdən fərqli olaraq bu heç vaxt geri getmir,
+           ona görə uşaq onu "toplanan" kimi görür. *@
+        <div class="pbx-bond" role="img"
+             aria-label="@Loc.T($"Bağ {Summary.BondTotal} / 100", $"Bond {Summary.BondTotal} of 100")">
+            <span class="pbx-bond__fill" style="width:@Summary.BondTotal%"></span>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Summary.UnlockedAccessoryCode))
+        {
+            <div class="pbx-unlock">
+                <span class="pbx-unlock__icon" aria-hidden="true">@Summary.UnlockedAccessoryIcon</span>
+                <span class="pbx-unlock__body">
+                    <span class="pbx-unlock__title">@Loc.T("Yeni əşya açıldı!", "New item unlocked!")</span>
+                    <span class="pbx-unlock__name">@Summary.UnlockedAccessoryName</span>
+                </span>
+            </div>
+        }
+
+        @if (Summary.NewMemories.Count > 0)
+        {
+            <div class="pbx-memories">
+                <div class="pbx-memories__title">
+                    @Loc.T($"{PetName} bunu yadda saxladı", $"{PetName} will remember this")
+                </div>
+
+                @foreach (var memory in Summary.NewMemories)
+                {
+                    <div class="pbx-memory">
+                        <span class="pbx-memory__icon" aria-hidden="true">@memory.Icon</span>
+                        <span class="pbx-memory__text">@memory.Text</span>
+                    </div>
+                }
+            </div>
+        }
+
+        @* Xülasə mükafatdan SONRA gəlir və heç nəyi gözlətmir: video hazır
+           olmasa da deterministik storyboard oynayır, "Əla!" düyməsi isə
+           həmişə yerindədir. *@
+        <RecapPlayer Recap="Summary.Recap" SceneKey="@SceneKey" ReducedMotion="ReducedMotion" />
+
+        <button class="btn btn--primary btn--block pbx-summary__done" @onclick="OnDone">
+            @Loc.T("Əla!", "Great!")
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PetBrainSummaryDto Summary { get; set; } = new();
+
+    [Parameter] public string PetName { get; set; } = "Pet";
+
+    [Parameter] public string PetSpecies { get; set; } = "fox";
+
+    [Parameter] public PetStage PetStage { get; set; } = PetStage.Child;
+
+    /// <summary>Səhnə açarı — recap fonunun rəngi bundan gəlir.</summary>
+    [Parameter] public string SceneKey { get; set; } = "mars";
+
+    /// <summary>Hərəkət həssaslığı — storyboard özbaşına sürüşməsin.</summary>
+    [Parameter] public bool ReducedMotion { get; set; }
+
+    /// <summary>Taxılmış əşyalar — təzəcə açılan kosmetik dərhal pet-in üstündə görünməlidir.</summary>
+    [Parameter] public IReadOnlyCollection<string>? PetAccessories { get; set; }
+
+    [Parameter] public EventCallback OnDone { get; set; }
+}

@@ -1,4 +1,5 @@
 using PetPal.Shared.Dtos.Missions;
+using PetPal.Shared.Dtos.PetBrain;
 using PetPal.Shared.Dtos.Pets;
 using PetPal.Shared.Dtos.Progress;
 using PetPal.Shared.Dtos.Rewards;
@@ -36,4 +37,13 @@ public class HomeStateDto
 
     /// <summary>Bu gün üçün ən aktual 3 missiya (world ekranına keçmədən görünür).</summary>
     public List<MissionDto> FeaturedMissions { get; set; } = new();
+
+    /// <summary>
+    /// Pet Brain-in növbəti macəra təklifi — ana ekrandakı üzən çip üçün.
+    ///
+    /// <para>Qəsdən BU aqreqatın içindədir: ayrıca sorğu olsaydı, ana ekranın
+    /// açılışına ikinci şəbəkə gedişi əlavə olunardı. Özəllik bağlıdırsa və ya
+    /// pet hələ yumurtadırsa boş qalır.</para>
+    /// </summary>
+    public PetBrainHomeChipDto? PetBrain { get; set; }
 }

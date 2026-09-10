@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using PetPal.Api.Data;
+using PetPal.Api.PetBrain;
 
 namespace PetPal.Api.Hosting;
 
@@ -24,6 +25,11 @@ public static class DatabaseBootstrapper
             await db.Database.EnsureCreatedAsync(ct);
 
         await DbInitializer.SeedAsync(scope.ServiceProvider, ct);
+
+        // Nümayiş profilləri AYRICA və könüllüdür: standart olaraq heç nə
+        // yazılmır və produksiyada açıq icazə olmadan ümumiyyətlə işə düşmür
+        // (bax DemoDataSeeder).
+        await DemoDataSeeder.SeedAsync(services, ct);
     }
 
     /// <summary>

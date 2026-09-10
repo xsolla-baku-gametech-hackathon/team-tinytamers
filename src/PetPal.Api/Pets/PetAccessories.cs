@@ -15,15 +15,41 @@ namespace PetPal.Api.Pets;
 /// Kataloq yalnız <c>PetAvatar</c> komponentinin çəkə bildiyi əşyalardan ibarətdir —
 /// açılan, amma görünməyən əşya boş vəd olardı.
 /// </summary>
+/// <summary>
+/// Əşyanın necə açıldığı.
+///
+/// <para>Ayrım vacibdir: <see cref="Progression"/> əşyaları YAŞ və XOŞBƏXTLİK
+/// həddi ilə ÖZLƏRİ açılır (<see cref="PetAccessories.UnlockEarned"/> hər
+/// oxunuşda yoxlayır). <see cref="Experience"/> əşyaları isə yalnız konkret bir
+/// macəra tamamlananda verilir — onları da eyni qiymətləndiriciyə salsaydıq,
+/// aşağı səviyyə şərti ilə HƏR pet-ə səssizcə düşərdi və macəranın mükafatı
+/// mənasını itirərdi.</para>
+/// </summary>
+public enum AccessoryUnlock
+{
+    /// <summary>Yaş + xoşbəxtlik həddi ilə özü açılır.</summary>
+    Progression = 0,
+
+    /// <summary>Yalnız təcrübə mükafatı kimi verilir.</summary>
+    Experience = 1
+}
+
 public sealed record PetAccessory(
     string Code,
     string Name,
     string NameAz,
     string Icon,
     int MinLevel,
-    int MinHappiness)
+    int MinHappiness,
+    AccessoryUnlock Unlock = AccessoryUnlock.Progression)
 {
-    public bool IsEarnedBy(Pet pet) => pet.Level >= MinLevel && pet.Happiness >= MinHappiness;
+    /// <summary>
+    /// Yalnız inkişaf əşyaları üçün doğrudur. Təcrübə əşyası şərtini nə qədər
+    /// ödəsə də özü açılmır — onu yalnız
+    /// <see cref="PetAccessories.GrantFromExperience"/> verə bilər.
+    /// </summary>
+    public bool IsEarnedBy(Pet pet) =>
+        Unlock == AccessoryUnlock.Progression && pet.Level >= MinLevel && pet.Happiness >= MinHappiness;
 }
 
 public static class PetAccessories
@@ -35,6 +61,14 @@ public static class PetAccessories
         new("glasses-round", "Round glasses", "Dəyirmi eynək", "👓", MinLevel: 6, MinHappiness: 0),
         new("scarf-mint", "Green scarf", "Yaşıl şərf", "🧣", MinLevel: 8, MinHappiness: 95),
         new("crown-gold", "Golden crown", "Qızıl tac", "👑", MinLevel: 12, MinHappiness: 0),
+
+        // ---- Macəra mükafatları (Pet Brain) ----
+        // Yaş/xoşbəxtlik şərti QƏSDƏN sıfırdır: bu əşyalar ümumiyyətlə
+        // qiymətləndirilmir. Yeganə yol macərəni tamamlamaqdır.
+        new("helmet-mars", "Mars helmet", "Mars dəbilqəsi", "🪐",
+            MinLevel: 0, MinHappiness: 0, Unlock: AccessoryUnlock.Experience),
+        new("wings-rainbow", "Rainbow wings", "Göy qurşağı qanadları", "🌈",
+            MinLevel: 0, MinHappiness: 0, Unlock: AccessoryUnlock.Experience),
     ];
 
     /// <summary>
@@ -63,6 +97,37 @@ public static class PetAccessories
 
         return unlocked;
     }
+
+    /// <summary>
+    /// Macəra mükafatı kimi əşya verir. İkinci dəfə çağırılanda heç nə etmir və
+    /// <c>false</c> qaytarır — təkrar oynanış eyni kosmetiki yenidən "açmır".
+    /// </summary>
+    /// <returns>Əşya MƏHZ İNDİ açıldısa <c>true</c>.</returns>
+    public static bool GrantFromExperience(Pet pet, string code)
+    {
+        // Yumurtaya əşya taxılmır — mövcud qayda ilə eyni.
+        if (pet.HatchedAt is null || string.IsNullOrWhiteSpace(code))
+            return false;
+
+        var accessory = Catalog.FirstOrDefault(a =>
+            string.Equals(a.Code, code, StringComparison.OrdinalIgnoreCase)
+            && a.Unlock == AccessoryUnlock.Experience);
+
+        if (accessory is null || pet.UnlockedAccessories.Contains(accessory.Code))
+            return false;
+
+        pet.UnlockedAccessories.Add(accessory.Code);
+
+        // Yeni əşya dərhal taxılır: mükafat pet-in üstündə görünməlidir.
+        if (!pet.EquippedAccessories.Contains(accessory.Code))
+            pet.EquippedAccessories.Add(accessory.Code);
+
+        return true;
+    }
+
+    /// <summary>Kodu kataloqdan tapır — mükafat mesajında ad və ikon lazımdır.</summary>
+    public static PetAccessory? Find(string code) =>
+        Catalog.FirstOrDefault(a => string.Equals(a.Code, code, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// Uşağın seçdiyi görünüşü yazır. Yalnız açılmış əşyalar taxıla bilər;
@@ -113,6 +178,11 @@ public static class PetAccessories
     private static string RequirementText(PetAccessory accessory, string language)
     {
         var az = IsAzerbaijani(language);
+
+        // Macəra əşyasının şərti yaş deyil — uşağa doğru yol göstərilməlidir,
+        // yoxsa şkafda "6 yaş" yazılır və əşya yaş gələndə də açılmır.
+        if (accessory.Unlock == AccessoryUnlock.Experience)
+            return az ? "Macəra mükafatı" : "Adventure reward";
 
         // Şərt uşağa YAŞLA deyilir: səviyyə ilə yaş eyni rəqəmdir, amma
         // uşaq "6 yaş" ifadəsini oxumadan da tanıyır.

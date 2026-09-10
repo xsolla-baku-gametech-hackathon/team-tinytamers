@@ -3,6 +3,7 @@ using PetPal.Api.Common;
 using PetPal.Api.Data;
 using PetPal.Api.Entities;
 using PetPal.Api.Missions;
+using PetPal.Api.PetBrain;
 using PetPal.Api.Rewards;
 using PetPal.Shared.Dtos.Pets;
 using PetPal.Shared.Enums;
@@ -14,13 +15,20 @@ public class PetService : IPetService
     private readonly AppDbContext _db;
     private readonly IRewardService _rewards;
     private readonly IMissionProgressTracker _missions;
+    private readonly IBehaviorTracker _behavior;
     private readonly TimeProvider _clock;
 
-    public PetService(AppDbContext db, IRewardService rewards, IMissionProgressTracker missions, TimeProvider clock)
+    public PetService(
+        AppDbContext db,
+        IRewardService rewards,
+        IMissionProgressTracker missions,
+        IBehaviorTracker behavior,
+        TimeProvider clock)
     {
         _db = db;
         _rewards = rewards;
         _missions = missions;
+        _behavior = behavior;
         _clock = clock;
     }
 
@@ -136,6 +144,24 @@ public class PetService : IPetService
         }
 
         await _missions.TrackAsync(childId, MissionType.CareForPet, null, 1, ct);
+
+        // Qulluq bağı artırır — amma GÜNDƏ ÜÇ DƏFƏ. Limitsiz olsaydı, uşaq
+        // düyməni basmaqla bağı doldurardı və "birlikdə yaşanan an" ölçüsü
+        // sadəcə klik sayğacına çevrilərdi.
+        var caresToday = await _db.BehaviorEvents.CountAsync(
+            e => e.ChildProfileId == childId
+                 && e.Type == PetBrainEventType.PetCared
+                 && e.OccurredAt >= now.Date, ct);
+
+        BondRules.Grant(pet, BondRules.ForCare(caresToday));
+
+        await _behavior.TrackAsync(
+            childId,
+            PetBrainEventType.PetCared,
+            new PetBrainEventData(request.Action.ToString(), string.Empty, ProfileLearningRules.ForCare()),
+            null,
+            ct);
+
         await _db.SaveChangesAsync(ct);
 
         return ServiceResult<CarePetResultDto>.Ok(new CarePetResultDto
@@ -211,6 +237,15 @@ public class PetService : IPetService
         if (!PetAccessories.TryEquip(pet, request.Codes))
             return ServiceResult<PetDto>.Fail(PetVoice.AccessoryLocked(language));
 
+        // Görünüş qurmaq yaradıcı üslubun zəif işarəsidir.
+        await _behavior.TrackAsync(
+            childId,
+            PetBrainEventType.AccessoryEquipped,
+            new PetBrainEventData("closet", $"count:{pet.EquippedAccessories.Count}",
+                ProfileLearningRules.ForAccessoryEquipped()),
+            null,
+            ct);
+
         await _db.SaveChangesAsync(ct);
 
         return ServiceResult<PetDto>.Ok(ToDto(pet, child.DisplayName, language));
@@ -276,6 +311,7 @@ public class PetService : IPetService
         Energy = pet.Energy,
         Fullness = pet.Fullness,
         Cleanliness = pet.Cleanliness,
+        Bond = PetBrain.BondRules.Clamp(pet.Bond),
         Mood = PetProgression.MoodFor(pet),
         Message = message ?? PetVoice.Idle(languageCode, PetProgression.MoodFor(pet), childName, pet.Name),
         UnlockedAccessories = pet.UnlockedAccessories.ToList(),

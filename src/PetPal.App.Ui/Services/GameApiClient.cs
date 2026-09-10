@@ -4,6 +4,7 @@ using PetPal.Shared.Dtos.Home;
 using PetPal.Shared.Dtos.Learning;
 using PetPal.Shared.Dtos.Missions;
 using PetPal.Shared.Dtos.Notifications;
+using PetPal.Shared.Dtos.PetBrain;
 using PetPal.Shared.Dtos.Pets;
 using PetPal.Shared.Dtos.Progress;
 using PetPal.Shared.Dtos.Rewards;
@@ -62,6 +63,42 @@ public class GameApiClient : ApiClientBase
 
     public Task<ApiResult<PetChatReplyDto>> SendChatAsync(string message, CancellationToken ct = default) =>
         PostAsync<PetChatRequest, PetChatReplyDto>("api/pet/chat", new PetChatRequest { Message = message }, ct);
+
+    // ---------- Pet Brain ----------
+
+    /// <summary>Profil, yaddaş, bağ, xarakter və növbəti macəra tövsiyəsi — bir sorğuda.</summary>
+    public Task<ApiResult<PetBrainStateDto>> GetPetBrainAsync(CancellationToken ct = default) =>
+        GetAsync<PetBrainStateDto>("api/pet-brain", ct);
+
+    /// <param name="templateKey">
+    /// Ekranda görünən şablon. Server onu ÖZ tövsiyəsi ilə tutuşdurur — klient
+    /// kataloqdan istədiyini seçə bilmir.
+    /// </param>
+    public Task<ApiResult<PetBrainRunDto>> StartPetBrainRunAsync(
+        string? templateKey = null, CancellationToken ct = default) =>
+        PostAsync<StartPetBrainRunRequest, PetBrainRunDto>(
+            "api/pet-brain/runs", new StartPetBrainRunRequest { TemplateKey = templateKey }, ct);
+
+    /// <summary>Yenilənmədən sonra macərəni bərpa edir.</summary>
+    public Task<ApiResult<PetBrainRunDto>> GetPetBrainRunAsync(Guid runId, CancellationToken ct = default) =>
+        GetAsync<PetBrainRunDto>($"api/pet-brain/runs/{runId}", ct);
+
+    /// <param name="stageIndex">
+    /// Klientin gördüyü mərhələ. Server öz sayğacı ilə tutuşdurur: uyğun
+    /// gəlməsə <c>409</c> qayıdır, yəni iki dəfə basmaq mərhələ atlatmır.
+    /// </param>
+    public Task<ApiResult<PetBrainRunDto>> SubmitPetBrainChoiceAsync(
+        Guid runId, int stageIndex, string optionKey, CancellationToken ct = default) =>
+        PostAsync<PetBrainChoiceRequest, PetBrainRunDto>(
+            $"api/pet-brain/runs/{runId}/choices",
+            new PetBrainChoiceRequest { StageIndex = stageIndex, OptionKey = optionKey }, ct);
+
+    /// <summary>Mükafat serverdə DƏQİQ BİR DƏFƏ verilir — təkrar çağırış təhlükəsizdir.</summary>
+    public Task<ApiResult<PetBrainRunDto>> CompletePetBrainRunAsync(Guid runId, CancellationToken ct = default) =>
+        PostAsync<PetBrainRunDto>($"api/pet-brain/runs/{runId}/complete", ct);
+
+    public Task<ApiResult<PetBrainRunDto>> AbandonPetBrainRunAsync(Guid runId, CancellationToken ct = default) =>
+        PostAsync<PetBrainRunDto>($"api/pet-brain/runs/{runId}/abandon", ct);
 
     // ---------- Learning ----------
     public Task<ApiResult<LearningSessionDto>> StartSessionAsync(StartSessionRequest request, CancellationToken ct = default) =>

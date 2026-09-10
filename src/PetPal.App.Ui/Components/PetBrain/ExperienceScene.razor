@@ -1,0 +1,131 @@
+
+@* Macəranın SƏHNƏSİ — hər mövzunun öz rəsmi.
+
+   İki səhnə xüsusi çəkilib, çünki nümayişin bütün mənası onların FƏRQİDİR:
+   Mars sərt, tünd və texnikidir; Əjdaha yumşaq, işıqlı və rənglidir. Qalan
+   mövzular ümumi səhnəni geyinir — onlar da tam oynanır, sadəcə fon sadədir.
+
+   Səhnə uşağın SEÇİMLƏRİNƏ baxır: Marsda seçilən ərazi relyefi dəyişir,
+   Əjdahada isə palitra, naxış və yuva birbaşa rəsmə düşür. Yəni "seçdiyim şey
+   ekranda göründü" hissi yaranır — yoxsa seçim sadəcə siyahı olardı. *@
+
+<div class="pbx-scene pbx-scene--@SceneKey" aria-hidden="true">
+    @switch (SceneKey)
+    {
+        case "mars":
+            <div class="pbx-mars">
+                <span class="pbx-mars__sky"></span>
+                <span class="pbx-mars__star pbx-mars__star--a"></span>
+                <span class="pbx-mars__star pbx-mars__star--b"></span>
+                <span class="pbx-mars__star pbx-mars__star--c"></span>
+                <span class="pbx-mars__planet"></span>
+
+                @* Ərazi uşağın seçdiyi yerdir: krater çuxurdur, kanyon yarıqdır,
+                   dağ zirvədir. Seçim edilməyibsə düz üfüq qalır. *@
+                <span class="pbx-mars__ground pbx-mars__ground--@(Has("crater") ? "crater" : Has("canyon") ? "canyon" : Has("mountain") ? "mountain" : "plain")"></span>
+
+                <span class="pbx-rover">
+                    <span class="pbx-rover__wheel pbx-rover__wheel--left"></span>
+                    <span class="pbx-rover__wheel pbx-rover__wheel--right"></span>
+                    <span class="pbx-rover__body"></span>
+                    <span class="pbx-rover__mast"></span>
+                    <span class="pbx-rover__head"></span>
+                    <span class="pbx-rover__eye @(IsRescued ? "pbx-rover__eye--on" : null)"></span>
+
+                    @if (Has("solar-panel"))
+                    {
+                        <span class="pbx-rover__panel"></span>
+                    }
+                    @if (Has("battery"))
+                    {
+                        <span class="pbx-rover__battery"></span>
+                    }
+                </span>
+
+                @if (Has("carry-to-ship"))
+                {
+                    <span class="pbx-mars__ship"></span>
+                }
+            </div>
+            break;
+
+        case "dragon":
+            @* Palitra CSS dəyişəni ilə gəlir — eyni rəsm dörd rəng ailəsinə
+               xidmət edir, ayrıca SVG saxlanmır. *@
+            <div class="pbx-dragon pbx-dragon--@Palette">
+                <span class="pbx-dragon__sky"></span>
+
+                @if (Has("cloud-castle"))
+                {
+                    <span class="pbx-dragon__cloud pbx-dragon__cloud--a"></span>
+                    <span class="pbx-dragon__cloud pbx-dragon__cloud--b"></span>
+                }
+                @if (Has("crystal-cave"))
+                {
+                    <span class="pbx-dragon__crystal pbx-dragon__crystal--a"></span>
+                    <span class="pbx-dragon__crystal pbx-dragon__crystal--b"></span>
+                }
+                @if (Has("flower-valley"))
+                {
+                    <span class="pbx-dragon__flower pbx-dragon__flower--a"></span>
+                    <span class="pbx-dragon__flower pbx-dragon__flower--b"></span>
+                }
+
+                <span class="pbx-dragon__body @(HasPalette ? "pbx-dragon__body--colored" : null)">
+                    <span class="pbx-dragon__tail"></span>
+                    <span class="pbx-dragon__wing pbx-dragon__wing--back"></span>
+                    <span class="pbx-dragon__torso"></span>
+                    <span class="pbx-dragon__wing pbx-dragon__wing--front">
+                        @* Naxış qanadın ÜSTÜNDƏDİR: uşaq "bura çəkdim" deyə bilməlidir. *@
+                        @if (Pattern is not null)
+                        {
+                            <span class="pbx-dragon__pattern pbx-dragon__pattern--@Pattern"></span>
+                        }
+                    </span>
+                    <span class="pbx-dragon__neck"></span>
+                    <span class="pbx-dragon__head"></span>
+                    <span class="pbx-dragon__horn pbx-dragon__horn--left"></span>
+                    <span class="pbx-dragon__horn pbx-dragon__horn--right"></span>
+                    <span class="pbx-dragon__eye"></span>
+                    <span class="pbx-dragon__cheek"></span>
+                </span>
+            </div>
+            break;
+
+        default:
+            @* Ümumi səhnə: mövzunun rəngi + sadə üfüq. Kataloqa yeni macəra
+               əlavə edən adam ayrıca rəsm çəkməyə məcbur deyil. *@
+            <div class="pbx-generic">
+                <span class="pbx-generic__sky"></span>
+                <span class="pbx-generic__glow"></span>
+                <span class="pbx-generic__ground"></span>
+                <span class="pbx-generic__icon">@Icon</span>
+            </div>
+            break;
+    }
+</div>
+
+@code {
+    /// <summary>Serverdən gələn səhnə açarı: <c>mars</c>, <c>dragon</c>, <c>moon</c>…</summary>
+    [Parameter, EditorRequired] public string SceneKey { get; set; } = "generic";
+
+    /// <summary>İndiyə qədər seçilmiş variantların açarları.</summary>
+    [Parameter] public IReadOnlyList<string> Choices { get; set; } = [];
+
+    /// <summary>Ümumi səhnədə göstərilən emoji — kataloqdakı şablon ikonudur.</summary>
+    [Parameter] public string Icon { get; set; } = "✨";
+
+    private bool Has(string key) => Choices.Contains(key);
+
+    private bool IsRescued => Has("battery") || Has("solar-panel") || Has("carry-to-ship");
+
+    private static readonly string[] Palettes = ["sunset", "ocean", "forest", "berry"];
+    private static readonly string[] Patterns = ["stars", "spots", "stripes", "hearts"];
+
+    private bool HasPalette => Palette != "blank";
+
+    /// <summary>Rəng hələ seçilməyibsə əjdaha AĞ qalır — "rənglərini itirib" məhz budur.</summary>
+    private string Palette => Choices.FirstOrDefault(Palettes.Contains) ?? "blank";
+
+    private string? Pattern => Choices.FirstOrDefault(Patterns.Contains);
+}

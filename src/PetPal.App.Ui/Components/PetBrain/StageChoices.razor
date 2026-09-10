@@ -1,0 +1,71 @@
+
+@* Mərhələnin variantları.
+
+   İki formatı var və fərq MƏZMUNDAN gəlir, oyunun növündən yox:
+   - adi seçim: ikon + ad + qısa təsvir, tam enli sətir (uşaq oxumadan da ikondan tanıyır);
+   - tapmaca: qısa rəqəmlər, şəbəkədə yan-yana — uzun sətir onları oxunmaz edərdi.
+
+   Hər düymə ən azı 56px hündürlükdədir (dizayn sistemindəki toxunuş həddi) və
+   rəng tək daşıyıcı deyil: seçilmiş variantda ✓ nişanı da var. *@
+
+<div class="pbx-choices @(IsCompact ? "pbx-choices--compact" : null)" role="group" aria-label="@Prompt">
+    @foreach (var option in Options)
+    {
+        <button type="button"
+                class="pbx-choice @(Pending == option.Key ? "pbx-choice--pending" : null)"
+                disabled="@Busy"
+                aria-label="@AriaLabelFor(option)"
+                @onclick="() => OnChoose.InvokeAsync(option.Key)">
+
+            @if (!string.IsNullOrWhiteSpace(option.Icon))
+            {
+                <span class="pbx-choice__icon" aria-hidden="true">@option.Icon</span>
+            }
+
+            <span class="pbx-choice__body">
+                <span class="pbx-choice__label">@option.Label</span>
+
+                @if (!string.IsNullOrWhiteSpace(option.Detail))
+                {
+                    <span class="pbx-choice__detail">@option.Detail</span>
+                }
+            </span>
+
+            @if (Pending == option.Key)
+            {
+                <span class="pbx-choice__mark" aria-hidden="true">✓</span>
+            }
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<PetBrainOptionDto> Options { get; set; } = [];
+
+    /// <summary>Yalnız <c>aria-label</c> üçün — qrupun nə haqqında olduğunu bildirir.</summary>
+    [Parameter] public string Prompt { get; set; } = string.Empty;
+
+    /// <summary>Sorğu gedir — ikiqat toxunuş bağlanır.</summary>
+    [Parameter] public bool Busy { get; set; }
+
+    /// <summary>Basılmış, amma hələ cavab gəlməmiş variant.</summary>
+    [Parameter] public string? Pending { get; set; }
+
+    [Parameter] public EventCallback<string> OnChoose { get; set; }
+
+    /// <summary>
+    /// Tapmaca variantları qısadır (yalnız rəqəm) və təsviri yoxdur — belə
+    /// hallarda sıx şəbəkə düzülüşü işlədilir.
+    /// </summary>
+    private bool IsCompact =>
+        Options.Count > 0 && Options.All(o => string.IsNullOrWhiteSpace(o.Detail) && o.Label.Length <= 4);
+
+    /// <summary>
+    /// Ekran oxuyucusu üçün tam cümlə: ikon oxunmur, təsvir isə ayrıca
+    /// elementdədir və avtomatik birləşməyə bilər.
+    /// </summary>
+    private string AriaLabelFor(PetBrainOptionDto option) =>
+        string.IsNullOrWhiteSpace(option.Detail)
+            ? option.Label
+            : $"{option.Label} — {option.Detail}";
+}

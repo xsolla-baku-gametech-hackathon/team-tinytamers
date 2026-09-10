@@ -1,0 +1,131 @@
+@inject Loc Loc
+
+@* Nümayiş/izah paneli — MÜNSİF və VALİDEYN üçün, uşaq üçün deyil.
+
+   Yalnız `PetBrain:DemoMode` açıq olanda render olunur; bağlı rejimdə uşaq
+   interfeysində bu ekranın heç bir izi qalmır (bax PetBrain.razor).
+
+   Panel qərarın NECƏ verildiyini göstərir: bal cədvəli, yenilik cəzası,
+   sürpriz payı və hazır səbəblər. Burada modelin "düşüncəsi" YOXDUR — belə
+   bir şey saxlanılmır da. Göstərilən hər rəqəm strukturlu girişlərdən
+   hesablanmış bir dəyərdir. *@
+
+<section class="pbx-debug" aria-label="@Loc.T("Qərarın izahı", "How the decision was made")">
+
+    <div class="pbx-debug__headline">SAME GAME · SAME PET · DIFFERENT CHILD · DIFFERENT EXPERIENCE</div>
+
+    <div class="pbx-debug__block">
+        <h3 class="pbx-debug__title">@Loc.T("Maraqlar", "Interests")</h3>
+        @foreach (var trait in Interests.Take(5))
+        {
+            <div class="pbx-bar">
+                <span class="pbx-bar__label">@trait.Icon @trait.Label</span>
+                <span class="pbx-bar__track">
+                    <span class="pbx-bar__fill" style="width:@trait.Score%"></span>
+                </span>
+                <span class="pbx-bar__value">@trait.Score</span>
+            </div>
+        }
+    </div>
+
+    <div class="pbx-debug__block">
+        <h3 class="pbx-debug__title">@Loc.T("Oyun üslubu", "Play style")</h3>
+        @foreach (var trait in PlayStyles.Take(3))
+        {
+            <div class="pbx-bar">
+                <span class="pbx-bar__label">@trait.Icon @trait.Label</span>
+                <span class="pbx-bar__track">
+                    <span class="pbx-bar__fill pbx-bar__fill--style" style="width:@trait.Score%"></span>
+                </span>
+                <span class="pbx-bar__value">@trait.Score</span>
+            </div>
+        }
+    </div>
+
+    <div class="pbx-debug__block">
+        <h3 class="pbx-debug__title">@Loc.T("Çətinlik", "Difficulty")</h3>
+        <div class="pbx-debug__line">
+            <strong>@Debug.Difficulty</strong> — @Debug.DifficultySignal
+        </div>
+    </div>
+
+    @if (Debug.Candidates.Count > 0)
+    {
+        <div class="pbx-debug__block">
+            <h3 class="pbx-debug__title">@Loc.T("Namizədlər", "Candidates")</h3>
+
+            <div class="pbx-table" role="table">
+                <div class="pbx-table__row pbx-table__row--head" role="row">
+                    <span role="columnheader">@Loc.T("Macəra", "Adventure")</span>
+                    <span role="columnheader" title="@Loc.T("Uyğunluq", "Fit")">@Loc.T("Uyğ.", "Fit")</span>
+                    <span role="columnheader" title="@Loc.T("Yenilik", "Novelty")">@Loc.T("Yen.", "Nov.")</span>
+                    <span role="columnheader" title="@Loc.T("Sürpriz", "Surprise")">@Loc.T("Sür.", "Sur.")</span>
+                    <span role="columnheader">@Loc.T("Yekun", "Total")</span>
+                </div>
+
+                @foreach (var candidate in Debug.Candidates.Take(6))
+                {
+                    <div class="pbx-table__row @(candidate.Selected ? "pbx-table__row--picked" : null)" role="row">
+                        @* Seçilmiş sətir rənglə YANAŞI ✓ nişanı daşıyır. *@
+                        <span role="cell">
+                            @(candidate.Selected ? "✓ " : string.Empty)@candidate.TemplateKey
+                        </span>
+                        <span role="cell">@candidate.FitScore</span>
+                        <span role="cell">@candidate.NoveltyScore</span>
+                        <span role="cell">@candidate.SurpriseScore</span>
+                        <span role="cell"><strong>@candidate.TotalScore</strong></span>
+                    </div>
+                }
+            </div>
+
+            <p class="pbx-debug__note">
+                @Loc.T("Çəkilər: 70% uyğunluq · 20% yenilik · ±4 bal sürpriz.",
+                       "Weights: 70% fit · 20% novelty · ±4 point surprise.")
+            </p>
+        </div>
+    }
+
+    @if (Reasons.Count > 0)
+    {
+        <div class="pbx-debug__block">
+            <h3 class="pbx-debug__title">@Loc.T("Səbəblər", "Reasons")</h3>
+            <ul class="pbx-debug__list">
+                @foreach (var reason in Reasons)
+                {
+                    <li>@reason</li>
+                }
+            </ul>
+        </div>
+    }
+
+    @if (Debug.RecentEvents.Count > 0)
+    {
+        <div class="pbx-debug__block">
+            <h3 class="pbx-debug__title">@Loc.T("Son hadisələr", "Recent events")</h3>
+            @foreach (var petEvent in Debug.RecentEvents)
+            {
+                <div class="pbx-debug__event">
+                    <span class="pbx-debug__event-type">@petEvent.Type</span>
+                    <span class="pbx-debug__event-source">@petEvent.Source</span>
+                </div>
+            }
+        </div>
+    }
+
+    @* Mənbə açıq yazılır: "AI ilə yaradıldı" iddiası yalnız DOĞRU olanda görünür. *@
+    <div class="pbx-debug__source">
+        @(Debug.NarrativeSource == "ai"
+            ? Loc.T("Mətn: model ilə zənginləşdirilib", "Text: enriched by a model")
+            : Loc.T("Mətn: deterministik şablon (model işlədilmir)", "Text: deterministic template (no model used)"))
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public PetBrainDebugDto Debug { get; set; } = new();
+
+    [Parameter] public IReadOnlyList<PetBrainTraitDto> Interests { get; set; } = [];
+
+    [Parameter] public IReadOnlyList<PetBrainTraitDto> PlayStyles { get; set; } = [];
+
+    [Parameter] public IReadOnlyList<string> Reasons { get; set; } = [];
+}

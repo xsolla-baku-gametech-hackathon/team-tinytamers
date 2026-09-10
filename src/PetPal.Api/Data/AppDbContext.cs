@@ -34,6 +34,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<DuelEntry> DuelEntries => Set<DuelEntry>();
     public DbSet<DuelAnswer> DuelAnswers => Set<DuelAnswer>();
 
+    // ---------- Pet Brain (Adaptive Pet Director) ----------
+    public DbSet<PlayerTrait> PlayerTraits => Set<PlayerTrait>();
+    public DbSet<BehaviorEvent> BehaviorEvents => Set<BehaviorEvent>();
+    public DbSet<PetMemory> PetMemories => Set<PetMemory>();
+    public DbSet<ExperienceRun> ExperienceRuns => Set<ExperienceRun>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -82,6 +88,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         {
             e.Property(x => x.Name).HasMaxLength(24).IsRequired();
             e.Property(x => x.Species).HasMaxLength(24).IsRequired();
+
+            // Miqrasiyadan ƏVVƏL yaradılmış pet-lər də eyni başlanğıc bağı almalıdır:
+            // sütun defoltu olmasa, köhnə pet-lər 0 ilə qalar və uşaq "münasibətimiz
+            // sıfırlandı" görərdi. Eyni qayda ArenaRating üçün də tətbiq olunub.
+            e.Property(x => x.Bond).HasDefaultValue(10);
             e.Property(x => x.UnlockedAccessories)
                 .HasConversion(StringListConverter.Converter)
                 .Metadata.SetValueComparer(StringListConverter.Comparer);
@@ -351,6 +362,84 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                 .WithMany()
                 .HasForeignKey(x => x.QuestionId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ---------- Pet Brain ----------
+
+        builder.Entity<PlayerTrait>(e =>
+        {
+            e.Property(x => x.Key).HasMaxLength(40).IsRequired();
+
+            // Bir uşaqda bir kateqoriya + açar cütü YALNIZ BİR DƏFƏ olur. Bu, təkcə
+            // səliqə deyil: iki eyni vaxtlı hadisə eyni xassəni yaratmağa çalışsa,
+            // ikincisi bazada dayanır və bal ikiqat artmır.
+            e.HasIndex(x => new { x.ChildProfileId, x.Category, x.Key }).IsUnique();
+
+            e.HasOne(x => x.ChildProfile)
+                .WithMany(c => c.Traits)
+                .HasForeignKey(x => x.ChildProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<BehaviorEvent>(e =>
+        {
+            e.Property(x => x.Source).HasMaxLength(60).IsRequired();
+            e.Property(x => x.Detail).HasMaxLength(200).IsRequired();
+            e.Property(x => x.IdempotencyKey).HasMaxLength(120);
+
+            // Direktorun oxuduğu ox: bu uşağın son hadisələri.
+            e.HasIndex(x => new { x.ChildProfileId, x.OccurredAt });
+
+            // Təkrarın qarşısını BAZA alır, yaddaşdakı yoxlama yox. Açar uşaq
+            // başına unikaldır; NULL açarlar indeksə düşmür, yəni təkrarı
+            // mümkün olmayan hadisələr limitsiz yazıla bilir.
+            e.HasIndex(x => new { x.ChildProfileId, x.IdempotencyKey })
+                .IsUnique()
+                .HasFilter(null);
+
+            e.HasOne(x => x.ChildProfile)
+                .WithMany(c => c.BehaviorEvents)
+                .HasForeignKey(x => x.ChildProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<PetMemory>(e =>
+        {
+            e.Property(x => x.FactKey).HasMaxLength(60).IsRequired();
+            e.Property(x => x.ValueKey).HasMaxLength(60).IsRequired();
+            e.Property(x => x.Tags)
+                .HasConversion(StringListConverter.Converter)
+                .Metadata.SetValueComparer(StringListConverter.Comparer);
+
+            e.HasIndex(x => new { x.ChildProfileId, x.CreatedAt });
+
+            // Eyni fakt iki dəfə xatırlanmır: "Ay macərasını bitirdin" bir sətirdir,
+            // təkrar oynanışda yalnız vacibliyi yenilənir.
+            e.HasIndex(x => new { x.ChildProfileId, x.Kind, x.FactKey, x.ValueKey }).IsUnique();
+
+            e.HasOne(x => x.ChildProfile)
+                .WithMany(c => c.Memories)
+                .HasForeignKey(x => x.ChildProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ExperienceRun>(e =>
+        {
+            e.Property(x => x.TemplateKey).HasMaxLength(60).IsRequired();
+            e.Property(x => x.Theme).HasMaxLength(40).IsRequired();
+            e.Property(x => x.Choices)
+                .HasConversion(StringListConverter.Converter)
+                .Metadata.SetValueComparer(StringListConverter.Comparer);
+
+            e.HasIndex(x => new { x.ChildProfileId, x.StartedAt });
+
+            // "Bu şablon artıq tamamlanıbmı" sualı hər tövsiyədə verilir.
+            e.HasIndex(x => new { x.ChildProfileId, x.TemplateKey, x.Status });
+
+            e.HasOne(x => x.ChildProfile)
+                .WithMany(c => c.ExperienceRuns)
+                .HasForeignKey(x => x.ChildProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<TeamMissionMember>(e =>

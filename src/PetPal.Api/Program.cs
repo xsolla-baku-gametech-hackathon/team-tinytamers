@@ -27,6 +27,7 @@ using PetPal.Api.Missions;
 using PetPal.Api.Notifications;
 using PetPal.Api.Realtime;
 using PetPal.Api.Parent;
+using PetPal.Api.PetBrain;
 using PetPal.Api.Pets;
 using PetPal.Api.Progress;
 using PetPal.Api.Rewards;
@@ -367,6 +368,24 @@ else
     builder.Services.AddSingleton<IDiscoveryPhotoStore, LocalDiscoveryPhotoStore>();
 }
 
+// ---------- Pet Brain (Adaptive Pet Director) ----------
+// Deterministik qat HƏMİŞƏ qeydiyyatdadır: qərar, çətinlik, mükafat və mətn
+// modelsiz də tam işləyir. Model yalnız BAŞLIQ və GİRİŞ cümləsini
+// zənginləşdirir və o da ayrıca açarla açılır.
+builder.Services.Configure<PetBrainOptions>(builder.Configuration.GetSection(PetBrainOptions.SectionName));
+
+var petBrainOptions = builder.Configuration
+    .GetSection(PetBrainOptions.SectionName)
+    .Get<PetBrainOptions>() ?? new PetBrainOptions();
+
+if (petBrainOptions.UseAiNarrative && aiOptions.IsEnabled)
+    builder.Services.AddHttpClient<IExperienceNarrativeProvider, AiExperienceNarrativeProvider>();
+else
+    builder.Services.AddSingleton<IExperienceNarrativeProvider, TemplateNarrativeProvider>();
+
+builder.Services.AddScoped<IBehaviorTracker, BehaviorTracker>();
+builder.Services.AddScoped<IPetBrainService, PetBrainService>();
+
 builder.Services.AddScoped<IDiscoveryService, DiscoveryService>();
 builder.Services.AddScoped<IParentService, ParentService>();
 builder.Services.AddScoped<IParentGateService, ParentGateService>();
@@ -479,6 +498,7 @@ app.MapDiscoveryEndpoints();
 app.MapSocialEndpoints();
 app.MapNotificationEndpoints();
 app.MapParentEndpoints();
+app.MapPetBrainEndpoints();
 
 // App-in tək real vaxt kanalı: arena, dostların onlayn vəziyyəti və komanda missiyaları.
 app.MapHub<LiveHub>("/hubs/live");

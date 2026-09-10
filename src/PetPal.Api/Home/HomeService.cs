@@ -4,6 +4,7 @@ using PetPal.Api.Ai;
 using PetPal.Api.Common;
 using PetPal.Api.Data;
 using PetPal.Api.Missions;
+using PetPal.Api.PetBrain;
 using PetPal.Api.Pets;
 using PetPal.Api.Progress;
 using PetPal.Api.Rewards;
@@ -25,6 +26,7 @@ public class HomeService : IHomeService
     private readonly IMissionService _missions;
     private readonly IDailyGoalService _dailyGoals;
     private readonly IPetVoiceGenerator _voice;
+    private readonly IPetBrainService _petBrain;
     private readonly TimeProvider _clock;
     private readonly ScreenTimeOptions _screenTime;
 
@@ -36,6 +38,7 @@ public class HomeService : IHomeService
         IMissionService missions,
         IDailyGoalService dailyGoals,
         IPetVoiceGenerator voice,
+        IPetBrainService petBrain,
         TimeProvider clock,
         IOptions<ScreenTimeOptions> screenTime)
     {
@@ -46,6 +49,7 @@ public class HomeService : IHomeService
         _missions = missions;
         _dailyGoals = dailyGoals;
         _voice = voice;
+        _petBrain = petBrain;
         _clock = clock;
         _screenTime = screenTime.Value;
     }
@@ -117,7 +121,11 @@ public class HomeService : IHomeService
             ScreenTime = screenTime,
             PetMessage = petDto.Message,
             ChatEnabled = child.ChatEnabled,
-            FeaturedMissions = await _missions.GetFeaturedAsync(childId, 3, ct)
+            FeaturedMissions = await _missions.GetFeaturedAsync(childId, 3, ct),
+
+            // Pet Brain təklifi ana ekranın ÖZ sorğusunda gəlir — açılışa ikinci
+            // şəbəkə gedişi əlavə olunmur (bax HomeStateDto.PetBrain).
+            PetBrain = await _petBrain.GetHomeChipAsync(childId, ct)
         });
     }
 }

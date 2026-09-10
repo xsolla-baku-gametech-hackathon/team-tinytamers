@@ -17,6 +17,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<AppSession>();
         services.AddSingleton<AppState>();
 
+        // Pet Brain keşi sessiyadan SONRA qurulur: o, aktiv uşaq dəyişəndə
+        // özünü sıfırlamaq üçün AppSession-a abunə olur.
+        services.AddSingleton<PetBrainState>();
+
         // Platforma implementasiyası verilməyibsə, app yenə də işə düşür.
         services.TryAddSingleton<ITokenStore, InMemoryTokenStore>();
         services.TryAddSingleton<IPhotoPicker, NullPhotoPicker>();

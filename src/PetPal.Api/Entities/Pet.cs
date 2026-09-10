@@ -32,6 +32,16 @@ public class Pet
     /// </summary>
     public DateTime? HatchedAt { get; set; }
 
+    /// <summary>
+    /// Bağ (0–100) — uşaqla pet arasındakı UZUNMÜDDƏTLİ münasibət.
+    ///
+    /// <para>Xoşbəxtlikdən qəsdən ayrıdır: <see cref="Happiness"/> qulluq statıdır
+    /// və vaxta görə azalır, bağ isə yalnız birlikdə yaşanan anlarla artır və
+    /// HEÇ VAXT azalmır — səhv cavab, uğursuz tapmaca, buraxılan gün onu
+    /// aşağı salmır. Uşağı geri qaytarmaq üçün itki hissi işlədilmir.</para>
+    /// </summary>
+    public int Bond { get; set; } = 10;
+
     /// <summary>Açılmış kosmetik əşyalar (JSON siyahı kimi saxlanılır).</summary>
     public List<string> UnlockedAccessories { get; set; } = new();
 

@@ -4,6 +4,7 @@ using PetPal.Api.Common;
 using PetPal.Api.Data;
 using PetPal.Api.Entities;
 using PetPal.Api.Missions;
+using PetPal.Api.PetBrain;
 using PetPal.Api.Pets;
 using PetPal.Api.Progress;
 using PetPal.Api.Rewards;
@@ -33,6 +34,7 @@ public class LearningService : ILearningService
     private readonly IMissionProgressTracker _missions;
     private readonly IDailyGoalService _dailyGoals;
     private readonly ITeamMissionTracker _teamMissions;
+    private readonly IBehaviorTracker _behavior;
     private readonly TimeProvider _clock;
     private readonly ScreenTimeOptions _screenTime;
 
@@ -43,6 +45,7 @@ public class LearningService : ILearningService
         IMissionProgressTracker missions,
         IDailyGoalService dailyGoals,
         ITeamMissionTracker teamMissions,
+        IBehaviorTracker behavior,
         TimeProvider clock,
         IOptions<ScreenTimeOptions> screenTime)
     {
@@ -52,6 +55,7 @@ public class LearningService : ILearningService
         _missions = missions;
         _dailyGoals = dailyGoals;
         _teamMissions = teamMissions;
+        _behavior = behavior;
         _clock = clock;
         _screenTime = screenTime.Value;
     }
@@ -195,6 +199,21 @@ public class LearningService : ILearningService
             await _teamMissions.TrackCorrectAnswerAsync(childId, ct);
         }
 
+        // Pet Brain üçün ZƏİF siqnal: TƏSDİQLƏNMİŞ cavabdan sonra göndərilir,
+        // yəni klientin "doğru bildim" iddiası deyil. Səhv cavab heç bir marağı
+        // azaltmır (bax ProfileLearningRules.ForSkillAnswer) — bacarmamaq
+        // sevməmək deyil. Bu, SkillMastery reytinqinə TOXUNMUR: o, məktəb
+        // mənimsəməsidir və maraq profili ilə qarışdırılmamalıdır.
+        await _behavior.TrackAsync(
+            childId,
+            PetBrainEventType.LearningAnswerValidated,
+            new PetBrainEventData(
+                question.Skill.ToString(),
+                isCorrect ? "correct" : "incorrect",
+                ProfileLearningRules.ForSkillAnswer(question.Skill, isCorrect)),
+            $"answer:{session.Id:N}:{question.Id:N}",
+            ct);
+
         await _db.SaveChangesAsync(ct);
 
         if (isCorrect)
@@ -255,6 +274,16 @@ public class LearningService : ILearningService
                 session.StarsEarned += sprintBonus;
                 await _rewards.GrantStarsAsync(child, sprintBonus, "Knowledge sprint", ct);
             }
+
+            // Sessiyanın tamamlanması jurnala düşür, amma XASSƏ dəyişmir:
+            // maraq artımı artıq hər cavabda verilib, burada təkrarlansaydı
+            // eyni iş iki dəfə sayılardı.
+            await _behavior.TrackAsync(
+                childId,
+                PetBrainEventType.LearningSessionCompleted,
+                new PetBrainEventData(session.Skill.ToString(), $"correct:{session.CorrectCount}", []),
+                $"session-complete:{session.Id:N}",
+                ct);
 
             await _db.SaveChangesAsync(ct);
         }

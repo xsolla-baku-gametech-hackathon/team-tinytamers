@@ -4,6 +4,7 @@ using PetPal.Api.Common;
 using PetPal.Api.Data;
 using PetPal.Api.Entities;
 using PetPal.Api.Missions;
+using PetPal.Api.PetBrain;
 using PetPal.Api.Pets;
 using PetPal.Api.Progress;
 using PetPal.Api.Rewards;
@@ -19,6 +20,7 @@ public class GameService : IGameService
     private readonly IRewardService _rewards;
     private readonly IMissionProgressTracker _missions;
     private readonly IDailyGoalService _dailyGoals;
+    private readonly IBehaviorTracker _behavior;
     private readonly TimeProvider _clock;
     private readonly ScreenTimeOptions _screenTime;
 
@@ -28,6 +30,7 @@ public class GameService : IGameService
         IRewardService rewards,
         IMissionProgressTracker missions,
         IDailyGoalService dailyGoals,
+        IBehaviorTracker behavior,
         TimeProvider clock,
         IOptions<ScreenTimeOptions> screenTime)
     {
@@ -36,6 +39,7 @@ public class GameService : IGameService
         _rewards = rewards;
         _missions = missions;
         _dailyGoals = dailyGoals;
+        _behavior = behavior;
         _clock = clock;
         _screenTime = screenTime.Value;
     }
@@ -138,6 +142,18 @@ public class GameService : IGameService
         goal.MinutesSpent += Math.Clamp((int)Math.Round(request.DurationMs / 60_000.0), 0, 30);
 
         await _missions.TrackAsync(childId, MissionType.CareForPet, null, 0, ct);
+
+        // Mini oyun Pet Brain üçün "şən oyun üslubu"nun zəif işarəsidir. Hansı
+        // oyun olduğu maraq balına təsir etmir — mini oyunlar bacarıq öyrədir,
+        // mövzu marağı bildirmir.
+        await _behavior.TrackAsync(
+            childId,
+            PetBrainEventType.MiniGameCompleted,
+            new PetBrainEventData(request.GameKey, $"score:{Math.Clamp(request.Score, 0, 100)}",
+                ProfileLearningRules.ForMiniGame()),
+            null,
+            ct);
+
         await _db.SaveChangesAsync(ct);
         await _rewards.EvaluateBadgesAsync(childId, ct);
 

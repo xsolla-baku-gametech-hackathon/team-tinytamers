@@ -230,6 +230,9 @@
             @* Duelin nəticəsi hazırdırsa o, sprintdən ÜSTÜNDÜR: uşaq nəticəni
                gözləyir, sprint isə hər an təklif oluna bilər. İkisi eyni yerdə
                üzdüyünə görə eyni anda göstərilmir. *@
+            @* Prioritet: hazır duel nəticəsi > yarımçıq macəra > macəra təklifi > sprint.
+               Dördü də EYNİ yerdə üzür və eyni anda yalnız biri görünür, ona görə
+               səhnənin hündürlük büdcəsi dəyişmir (bax ResponsiveLayoutTests). *@
             @if (_arenaResults > 0)
             {
                 <button class="sprint" @onclick='() => Navigation.NavigateTo("arena")'>
@@ -239,6 +242,19 @@
                         <span class="sprint__text">@Loc.T("Rəqib oynadı — kim qalib gəldi?", "Your rival played — who won?")</span>
                     </span>
                     <span class="sprint__go">@Loc.T("Bax", "See")</span>
+                </button>
+            }
+            else if (_home.PetBrain is { } brain)
+            {
+                <button class="sprint sprint--brain" @onclick='() => Navigation.NavigateTo("pet-brain")'>
+                    <span class="sprint__icon" aria-hidden="true">@brain.Icon</span>
+                    <span class="sprint__body">
+                        <span class="sprint__title">@brain.Title</span>
+                        <span class="sprint__text">@brain.Reason</span>
+                    </span>
+                    <span class="sprint__go">
+                        @(brain.HasActiveRun ? Loc.T("Davam", "Resume") : Loc.T("Başla", "Start"))
+                    </span>
                 </button>
             }
             else if (_showSprint)
@@ -366,7 +382,7 @@
     /// Səhnə bunu bilməlidir: çip mərhələ nişanının zolağına düşür, nişan da
     /// ondan yuxarı qalxmalıdır.
     /// </summary>
-    private bool HasFloatingChip => _arenaResults > 0 || _showSprint;
+    private bool HasFloatingChip => _arenaResults > 0 || _home?.PetBrain is not null || _showSprint;
 
     /// <summary>
     /// Yumurtanın açılmasına nə qədər qalıb. Care ekranındakı eyni hesabdır —

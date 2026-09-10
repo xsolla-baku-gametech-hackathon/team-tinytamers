@@ -87,4 +87,10 @@ public class ChildProfile
     public ICollection<Discovery> Discoveries { get; set; } = new List<Discovery>();
     public ICollection<ChatTurn> ChatTurns { get; set; } = new List<ChatTurn>();
     public ICollection<DuelEntry> DuelEntries { get; set; } = new List<DuelEntry>();
+
+    // ---------- Pet Brain ----------
+    public ICollection<PlayerTrait> Traits { get; set; } = new List<PlayerTrait>();
+    public ICollection<BehaviorEvent> BehaviorEvents { get; set; } = new List<BehaviorEvent>();
+    public ICollection<PetMemory> Memories { get; set; } = new List<PetMemory>();
+    public ICollection<ExperienceRun> ExperienceRuns { get; set; } = new List<ExperienceRun>();
 }

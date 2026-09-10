@@ -137,7 +137,45 @@
                     <path d="@Crown()" fill="var(--pp-spark)" stroke="var(--pp-spark-deep)"
                           stroke-width="2" stroke-linejoin="round" />
                 }
+
+                @* ---- Macəra mükafatları (Pet Brain) ----
+                   Bunlar yaş/xoşbəxtlik ilə açılmır, yalnız macəra tamamlananda
+                   verilir — bax PetAccessories.GrantFromExperience. Mövqe eyni
+                   Anchor sistemindəndir, ona görə hər yaş mərhələsində düzgün oturur. *@
+
+                @if (Has("helmet-mars"))
+                {
+                    @* Şüşə başın ÜSTÜNDƏDİR və yarımşəffafdır: üzü örtsəydi,
+                       pet-in əhvalı görünməzdi — o isə ekranın əsas geri dönüşüdür. *@
+                    <circle cx="100" cy="@N(A.EyeCy - 2)" r="@N(A.HeadRx + 7)"
+                            fill="#CFE3F0" fill-opacity="0.30"
+                            stroke="#EFEAFF" stroke-width="3" />
+                    <path d="@HelmetRim()" stroke="#9A93AE" stroke-width="5"
+                          fill="none" stroke-linecap="round" />
+                    <circle cx="@N(100 - A.HeadRx * 0.55)" cy="@N(A.EyeCy - A.HeadRx * 0.5)"
+                            r="@N(A.EyeR * 0.7)" fill="#FFFFFF" fill-opacity="0.75" />
+                }
+
+                @if (Has("wings-rainbow"))
+                {
+                    @* Qanadlar bədənin ARXASINDA deyil, YANLARINDADIR: siluet
+                       yumru qalmalıdır (bax DESIGN_SYSTEM.md — şirinlik itmir). *@
+                    <path d="@RainbowWing(-1)" fill="url(#pp-rainbow)" opacity="0.92" />
+                    <path d="@RainbowWing(1)" fill="url(#pp-rainbow)" opacity="0.92" />
+                }
             </g>
+
+            @if (Has("wings-rainbow"))
+            {
+                <defs>
+                    <linearGradient id="pp-rainbow" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#F0894F" />
+                        <stop offset="35%" stop-color="#E8C24A" />
+                        <stop offset="65%" stop-color="#4FBB91" />
+                        <stop offset="100%" stop-color="#8A78E4" />
+                    </linearGradient>
+                </defs>
+            }
 
             @if (Mood == PetMood.Sleepy)
             {
@@ -281,6 +319,31 @@
 
         return $"M{N(100 - w)} {N(y)} l {N(w * 0.34)} 14 l {N(w * 0.66)} -18 l {N(w * 0.66)} 18 " +
                $"l {N(w * 0.34)} -14 l 4 20 H{N(100 - w - 4)} z";
+    }
+
+    /// <summary>Dəbilqənin metal halqası — şüşənin altından boyun xəttinə oturur.</summary>
+    private string HelmetRim()
+    {
+        var y = A.CollarY - A.CollarHalf * 0.2;
+        var half = A.HeadRx * 0.86;
+
+        return $"M{N(100 - half)} {N(y)} q {N(half)} {N(A.CollarHalf * 0.5)} {N(half * 2)} 0";
+    }
+
+    /// <summary>
+    /// Göy qurşağı qanadı. Bədənin YANINDAN çıxır və yuxarı qalxır — arxaya
+    /// qoyulsaydı siluetdən itərdi, aşağı qoyulsaydı ayaqları kəsərdi.
+    /// </summary>
+    private string RainbowWing(int direction)
+    {
+        var rootX = 100 + (A.HeadRx * 0.72 * direction);
+        var rootY = A.CollarY + A.CollarHalf * 1.4;
+        var span = A.HeadRx * 1.15 * direction;
+        var lift = A.HeadRx * 0.95;
+
+        return $"M{N(rootX)} {N(rootY)} " +
+               $"q {N(span * 0.7)} {N(-lift * 1.15)} {N(span)} {N(-lift * 0.25)} " +
+               $"q {N(-span * 0.15)} {N(lift * 0.7)} {N(-span)} {N(lift * 0.25)} z";
     }
 
     private static string Zzz(double dx, double y, double w, double h) =>

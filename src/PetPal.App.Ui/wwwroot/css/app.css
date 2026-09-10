@@ -9165,3 +9165,1133 @@
 
 /* Dəvəti hələ cavablamamış üzv solğun görünür — töhfəsi də sayılmır. */
 .team__member--pending { opacity: 0.55; }
+
+/* ==================== PET BRAIN — ADAPTIVE PET DIRECTOR ====================
+ * Prefiks `pbx` (pet-brain-experience) — mövcud siniflərlə toqquşmasın deyə.
+ *
+ * Üç kətan qaydası burada da qüvvədədir və testlə qorunur:
+ *   1. `position: fixed` YOXDUR — tam ekran qatlar `absolute` + `inset: 0`
+ *      işlədir, yəni miqyasdan və kompüterdəki telefon çərçivəsindən qaçmır.
+ *   2. Ekran vahidi (vw/vh/dvh) YOXDUR — hündürlük lazım olanda `--pp-canvas-h`.
+ *   3. Toxunulan hər şey ən azı 56px (`--pp-tap`).
+ *
+ * Rənglər həmişə tokenlərdəndir; yeganə istisna SƏHNƏLƏRDİR (Mars, əjdaha) —
+ * onlar illüstrasiyadır və öz palitrasını daşıyır, eynilə otaqlar kimi.
+ * ========================================================================== */
+
+/* ---------- Giriş ekranı ---------- */
+
+.pbx-intro {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0 4px;
+}
+
+.pbx-intro__pet {
+    width: 116px;
+    height: 116px;
+}
+
+.pbx-intro__pet .pet-wrap,
+.pbx-intro__pet .pet {
+    width: 100%;
+    height: 100%;
+}
+
+.pbx-intro__bubble {
+    max-width: 320px;
+    padding: 12px 16px;
+    border-radius: var(--pp-radius);
+    background: var(--pp-card);
+    box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-md);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.35;
+    text-align: center;
+}
+
+.pbx-intro__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 15px;
+    border-radius: var(--pp-radius-pill);
+    background: var(--pp-primary-soft);
+    color: var(--pp-primary-dark);
+    font-size: 13px;
+    font-weight: 900;
+}
+
+/* ---------- Bağ zolağı ----------
+   Xoşbəxtlik halqasından qəsdən FƏRQLİ görünür: bu, azalmayan bir dəyərdir və
+   uşaq onu "toplanan" kimi oxumalıdır. */
+.pbx-bond {
+    position: relative;
+    width: 100%;
+    height: 12px;
+    border-radius: var(--pp-radius-pill);
+    background: var(--pp-track);
+    overflow: hidden;
+}
+
+.pbx-bond--intro { max-width: 260px; }
+
+.pbx-bond__fill {
+    display: block;
+    height: 100%;
+    border-radius: var(--pp-radius-pill);
+    background: linear-gradient(90deg, var(--pp-primary) 0%, var(--pp-alert-lift) 100%);
+    transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------- Tövsiyə kartı ---------- */
+
+.pbx-card { margin-top: 14px; }
+
+.pbx-card__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pbx-card__icon {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: var(--pp-radius-sm);
+    background: var(--pp-primary-soft);
+    font-size: 27px;
+}
+
+.pbx-card__title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 900;
+    line-height: 1.2;
+}
+
+.pbx-card__meta {
+    margin: 2px 0 0;
+    color: var(--pp-ink-soft);
+    font-size: 12.5px;
+    font-weight: 700;
+}
+
+.pbx-card__intro {
+    margin: 12px 0 0;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+/* Səbəblər uşağa da göstərilir — amma BAL yox, cümlə. */
+.pbx-reasons {
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pbx-reasons__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 8px 11px;
+    border-radius: var(--pp-radius-sm);
+    background: var(--pp-card-soft);
+    font-size: 12.5px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.pbx-card__start { margin-top: 14px; }
+
+.pbx-blocked { margin-top: 14px; }
+
+/* ---------- Xatirələr ---------- */
+
+.pbx-memories-card { margin-top: 14px; }
+
+.pbx-memories { margin-top: 14px; }
+
+.pbx-memories__title {
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--pp-ink-soft);
+}
+
+.pbx-memory {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 9px 0;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.pbx-memory + .pbx-memory { border-top: 1px solid var(--pp-border); }
+
+.pbx-memory__icon {
+    flex: 0 0 auto;
+    font-size: 17px;
+    line-height: 1.2;
+}
+
+/* ---------- Macəra çərçivəsi ----------
+   `absolute`, `fixed` YOX: kətan qaydası (bax ResponsiveLayoutTests). */
+.pbx {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--pp-bg);
+    animation: pbx-in 220ms ease-out;
+}
+
+@keyframes pbx-in {
+    from { opacity: 0; transform: scale(1.03); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.pbx__head {
+    position: relative;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: calc(12px + var(--pp-safe-top)) 14px 0;
+}
+
+.pbx__exit { flex: 0 0 auto; }
+
+.pbx__exit svg {
+    width: 22px;
+    height: 22px;
+}
+
+.pbx__badge {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: var(--pp-radius-pill);
+    background: rgba(251, 247, 239, 0.94);
+    box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss);
+}
+
+.pbx__title {
+    max-width: 100%;
+    font-size: 13.5px;
+    font-weight: 900;
+    line-height: 1.15;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pbx__dots {
+    display: flex;
+    gap: 5px;
+}
+
+.pbx__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--pp-track);
+}
+
+.pbx__dot--done { background: var(--pp-life); }
+
+/* Cari mərhələ rəngdən ƏLAVƏ ölçü ilə də seçilir. */
+.pbx__dot--now {
+    background: var(--pp-primary);
+    transform: scale(1.35);
+}
+
+/* Çətinlik nişanı: rəng tək daşıyıcı deyil, mətn də var. */
+.pbx__tier {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    border-radius: var(--pp-radius-pill);
+    font-size: 11.5px;
+    font-weight: 900;
+    background: var(--pp-card);
+    box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);
+}
+
+.pbx__tier--easy { color: var(--pp-life-deep); }
+.pbx__tier--medium { color: var(--pp-primary-dark); }
+.pbx__tier--hard { color: var(--pp-spark-deep); }
+
+/* ---------- Macəranın oynanan hissəsi ---------- */
+
+.pbx__stage {
+    position: relative;
+    z-index: 10;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px calc(14px + var(--pp-safe-bottom));
+
+    /* Panel yerə sığmayanda AŞAĞI daşsın, yuxarı yox. `justify-content:
+       flex-end` daşmanı BAŞLANĞICA atır — render göstərdi ki, o zaman pet-in
+       replikası başlıq zolağının altına sürüşür və oxunmaz olur. `margin-top:
+       auto` eyni "aşağıya yapış" görünüşünü verir, amma daşma sona düşür. */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.pbx__stage > :first-child { margin-top: auto; }
+
+.pbx__bubble {
+    align-self: center;
+    max-width: 330px;
+    padding: 10px 15px;
+    border-radius: var(--pp-radius);
+    background: rgba(251, 247, 239, 0.96);
+    box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-md);
+    font-size: 13.5px;
+    font-weight: 700;
+    line-height: 1.35;
+    text-align: center;
+}
+
+.pbx__panel {
+    border-radius: var(--pp-radius-lg);
+    background: var(--pp-card);
+    box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-lg);
+    padding: 14px;
+}
+
+/* Göstəriş ekranın ən böyük yazısıdır və mərhələ boyu QALIR. */
+.pbx__prompt {
+    margin: 0 0 12px;
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1.25;
+    text-align: center;
+}
+
+.pbx__hint {
+    margin-top: 11px;
+    padding: 10px 13px;
+    border-radius: var(--pp-radius-sm);
+    background: var(--pp-spark-soft);
+    color: var(--pp-spark-deep);
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.3;
+}
+
+.pbx__hint-btn { margin-top: 11px; }
+
+/* ---------- Variantlar ---------- */
+
+.pbx-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.pbx-choice {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    min-height: var(--pp-tap);
+    padding: 10px 13px;
+    border-radius: var(--pp-radius);
+    background: linear-gradient(180deg, var(--pp-card) 0%, var(--pp-card-soft) 100%);
+    box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss);
+    text-align: left;
+    transition: transform 130ms ease, box-shadow 130ms ease;
+}
+
+.pbx-choice:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);
+}
+
+.pbx-choice:disabled { opacity: 0.6; }
+
+.pbx-choice--pending {
+    background: linear-gradient(180deg, var(--pp-primary-lift) 0%, var(--pp-primary) 100%);
+    color: var(--pp-on-primary);
+    box-shadow: 0 4px 0 var(--pp-primary-edge), var(--pp-shadow-md);
+}
+
+.pbx-choice__icon {
+    flex: 0 0 auto;
+    font-size: 25px;
+    line-height: 1;
+}
+
+.pbx-choice__body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.pbx-choice__label {
+    display: block;
+    font-size: 14.5px;
+    font-weight: 900;
+    line-height: 1.2;
+}
+
+.pbx-choice__detail {
+    display: block;
+    margin-top: 2px;
+    font-size: 11.5px;
+    font-weight: 700;
+    opacity: 0.75;
+}
+
+.pbx-choice__mark {
+    flex: 0 0 auto;
+    font-size: 17px;
+    font-weight: 900;
+}
+
+/* ---------- Səhnə ----------
+   Arxa fon toxunuş qəbul etmir — bütün toxunulan elementlər üstündədir. */
+.pbx-scene {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* ---------- Mars səhnəsi ----------
+   Tünd, sərt, texniki. Əjdahanın tam əksi olsun deyə. */
+.pbx-mars { position: absolute; inset: 0; }
+
+.pbx-mars__sky {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #2A1620 0%, #5C2A28 46%, #9C4A31 74%, #C9773F 100%);
+}
+
+.pbx-mars__star {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #FFF3E2;
+    opacity: 0.85;
+}
+
+.pbx-mars__star--a { top: 46px; left: 58px; }
+.pbx-mars__star--b { top: 82px; left: 268px; width: 4px; height: 4px; }
+.pbx-mars__star--c { top: 132px; left: 154px; }
+
+.pbx-mars__planet {
+    position: absolute;
+    top: 54px;
+    right: 44px;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 34% 30%, #F0B27A 0%, #C97B3F 58%, #8A4A22 100%);
+    box-shadow: 0 0 26px rgba(240, 178, 122, 0.35);
+}
+
+/* ---- Səhnənin görünən zolağı ----
+   Oynanan panel ekranın ALT təxminən yarısını tutur (danışıq buludu + göstəriş
+   + üç seçim ≈ 345px). Ona görə səhnənin QƏHRƏMANI — Robo, əjdaha — bu zolağın
+   ÜSTÜNDƏ dayanmalıdır.
+
+   İlk versiyada belə deyildi: rover `bottom: 30%`-də idi və panelin arxasında
+   tamamilə görünmürdü. Səhv yalnız render ilə tapıldı (bax docs/PET_BRAIN.md —
+   vizual yoxlama), çünki kod səviyyəsində hər şey qaydasında görünürdü.
+
+   `--pbx-horizon` üfüq xəttidir: yer də, qəhrəman da ondan hesablanır, yəni
+   ikisi heç vaxt bir-birindən ayrı düşmür. */
+.pbx-scene { --pbx-horizon: 52%; }
+
+/* Ərazi uşağın seçdiyi yerdir — relyef seçimlə birlikdə dəyişir. */
+.pbx-mars__ground {
+    position: absolute;
+    left: -6%;
+    right: -6%;
+    bottom: 0;
+    height: var(--pbx-horizon);
+    background: linear-gradient(180deg, #B9603A 0%, #8E4527 58%, #6E3220 100%);
+}
+
+.pbx-mars__ground--plain { border-radius: 44% 56% 0 0 / 22% 20% 0 0; }
+.pbx-mars__ground--crater { border-radius: 50% 50% 0 0 / 40% 40% 0 0; }
+.pbx-mars__ground--canyon { border-radius: 18% 82% 0 0 / 34% 12% 0 0; }
+.pbx-mars__ground--mountain { border-radius: 60% 40% 0 0 / 62% 30% 0 0; }
+
+.pbx-mars__ship {
+    position: absolute;
+    right: 30px;
+    bottom: calc(var(--pbx-horizon) + 4%);
+    width: 74px;
+    height: 34px;
+    border-radius: 50% 50% 44% 44%;
+    background: linear-gradient(180deg, #E8E2D6 0%, #A9A2B8 100%);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- Robo ---------- */
+
+.pbx-rover {
+    position: absolute;
+    left: 50%;
+    bottom: var(--pbx-horizon);
+    width: 108px;
+    height: 92px;
+    transform: translateX(-50%);
+}
+
+.pbx-rover__body {
+    position: absolute;
+    left: 14px;
+    bottom: 20px;
+    width: 80px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #D8D2E4 0%, #9A93AE 100%);
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45);
+}
+
+.pbx-rover__wheel {
+    position: absolute;
+    bottom: 4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #3A3348;
+    border: 4px solid #6E667F;
+}
+
+.pbx-rover__wheel--left { left: 14px; }
+.pbx-rover__wheel--right { right: 14px; }
+
+.pbx-rover__mast {
+    position: absolute;
+    left: 50px;
+    bottom: 58px;
+    width: 7px;
+    height: 20px;
+    background: #6E667F;
+}
+
+.pbx-rover__head {
+    position: absolute;
+    left: 36px;
+    bottom: 72px;
+    width: 36px;
+    height: 22px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #EFEAFF 0%, #B7AECC 100%);
+}
+
+.pbx-rover__eye {
+    position: absolute;
+    left: 48px;
+    bottom: 79px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #6E667F;
+}
+
+/* Xilas ediləndən sonra göz yanır — nəticə ekranda görünür. */
+.pbx-rover__eye--on {
+    background: var(--pp-life);
+    box-shadow: 0 0 12px rgba(53, 165, 122, 0.85);
+}
+
+.pbx-rover__panel {
+    position: absolute;
+    left: 6px;
+    bottom: 60px;
+    width: 42px;
+    height: 22px;
+    border-radius: 4px;
+    background: repeating-linear-gradient(90deg, #2F6FB5 0 6px, #4E90D8 6px 12px);
+    transform: rotate(-16deg);
+}
+
+.pbx-rover__battery {
+    position: absolute;
+    right: 4px;
+    bottom: 30px;
+    width: 18px;
+    height: 28px;
+    border-radius: 4px;
+    background: linear-gradient(180deg, var(--pp-life-lift) 0%, var(--pp-life) 100%);
+}
+
+/* ---------- Əjdaha səhnəsi ----------
+   İşıqlı, yumşaq, rəngli. Palitra uşağın seçimindən gəlir. */
+.pbx-dragon {
+    position: absolute;
+    inset: 0;
+
+    --dg-body: #EFEAE2;
+    --dg-belly: #FBF7EF;
+    --dg-wing: #E2DCD2;
+    --dg-sky-a: #DDEBF4;
+    --dg-sky-b: #F3ECE0;
+}
+
+.pbx-dragon--sunset {
+    --dg-body: #F0894F;
+    --dg-belly: #FFD9B8;
+    --dg-wing: #D9536B;
+    --dg-sky-a: #FBD3A7;
+    --dg-sky-b: #F6E6D4;
+}
+
+.pbx-dragon--ocean {
+    --dg-body: #4FA8D8;
+    --dg-belly: #C8ECF7;
+    --dg-wing: #2F7FB5;
+    --dg-sky-a: #CDE9F5;
+    --dg-sky-b: #E9F4F2;
+}
+
+.pbx-dragon--forest {
+    --dg-body: #4FBB91;
+    --dg-belly: #D6F2E2;
+    --dg-wing: #2C8D6A;
+    --dg-sky-a: #D8EFDF;
+    --dg-sky-b: #F0F3E4;
+}
+
+.pbx-dragon--berry {
+    --dg-body: #A97BD8;
+    --dg-belly: #EFDDFA;
+    --dg-wing: #D671A8;
+    --dg-sky-a: #E6D8F5;
+    --dg-sky-b: #F7E7F0;
+}
+
+.pbx-dragon__sky {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, var(--dg-sky-a) 0%, var(--dg-sky-b) 100%);
+}
+
+.pbx-dragon__cloud {
+    position: absolute;
+    border-radius: var(--pp-radius-pill);
+    background: rgba(255, 255, 255, 0.82);
+}
+
+.pbx-dragon__cloud--a { top: 62px; left: 34px; width: 92px; height: 30px; }
+.pbx-dragon__cloud--b { top: 108px; right: 30px; width: 68px; height: 24px; }
+
+.pbx-dragon__crystal {
+    position: absolute;
+    width: 26px;
+    height: 58px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, var(--dg-wing) 100%);
+    clip-path: polygon(50% 0, 100% 34%, 78% 100%, 22% 100%, 0 34%);
+    opacity: 0.75;
+}
+
+.pbx-dragon__crystal--a { bottom: calc(var(--pbx-horizon) - 2%); left: 30px; }
+.pbx-dragon__crystal--b { bottom: calc(var(--pbx-horizon) - 4%); right: 36px; height: 44px; }
+
+.pbx-dragon__flower {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #FFD966 0 30%, var(--dg-wing) 32% 100%);
+}
+
+.pbx-dragon__flower--a { bottom: calc(var(--pbx-horizon) - 4%); left: 46px; }
+.pbx-dragon__flower--b { bottom: calc(var(--pbx-horizon) - 1%); right: 52px; }
+
+.pbx-dragon__body {
+    position: absolute;
+    left: 50%;
+    bottom: var(--pbx-horizon);
+    width: 190px;
+    height: 150px;
+    transform: translateX(-50%);
+    transition: filter 320ms ease;
+
+    /* Rəng seçilməmişdən əvvəl əjdaha SOLĞUNDUR — "rənglərini itirib" budur. */
+    filter: saturate(0.15);
+}
+
+.pbx-dragon__body--colored { filter: saturate(1); }
+
+.pbx-dragon__torso {
+    position: absolute;
+    left: 46px;
+    bottom: 8px;
+    width: 104px;
+    height: 74px;
+    border-radius: 50% 50% 46% 46%;
+    background: var(--dg-body);
+}
+
+.pbx-dragon__neck {
+    position: absolute;
+    left: 106px;
+    bottom: 56px;
+    width: 30px;
+    height: 44px;
+    border-radius: 14px;
+    background: var(--dg-body);
+}
+
+.pbx-dragon__head {
+    position: absolute;
+    left: 96px;
+    bottom: 88px;
+    width: 60px;
+    height: 48px;
+    border-radius: 50% 50% 44% 44%;
+    background: var(--dg-body);
+}
+
+.pbx-dragon__horn {
+    position: absolute;
+    bottom: 128px;
+    width: 12px;
+    height: 20px;
+    border-radius: 50% 50% 0 0;
+    background: var(--dg-wing);
+}
+
+.pbx-dragon__horn--left { left: 106px; transform: rotate(-16deg); }
+.pbx-dragon__horn--right { left: 136px; transform: rotate(14deg); }
+
+.pbx-dragon__eye {
+    position: absolute;
+    left: 128px;
+    bottom: 108px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #2B2140;
+}
+
+.pbx-dragon__cheek {
+    position: absolute;
+    left: 112px;
+    bottom: 96px;
+    width: 14px;
+    height: 9px;
+    border-radius: 50%;
+    background: rgba(255, 158, 168, 0.7);
+}
+
+.pbx-dragon__tail {
+    position: absolute;
+    left: 6px;
+    bottom: 18px;
+    width: 62px;
+    height: 20px;
+    border-radius: var(--pp-radius-pill);
+    background: var(--dg-wing);
+}
+
+.pbx-dragon__wing {
+    position: absolute;
+    border-radius: 60% 20% 60% 20%;
+    background: var(--dg-wing);
+}
+
+.pbx-dragon__wing--back {
+    left: 40px;
+    bottom: 58px;
+    width: 66px;
+    height: 54px;
+    opacity: 0.62;
+    transform: rotate(-12deg);
+}
+
+.pbx-dragon__wing--front {
+    left: 58px;
+    bottom: 48px;
+    width: 78px;
+    height: 62px;
+    overflow: hidden;
+}
+
+/* Naxış qanadın ÜSTÜNDƏDİR — uşaq "bura çəkdim" deyə bilməlidir. */
+.pbx-dragon__pattern {
+    position: absolute;
+    inset: 0;
+    opacity: 0.85;
+}
+
+.pbx-dragon__pattern--stars {
+    background-image: radial-gradient(circle, #FFF3E2 0 2.5px, transparent 3px);
+    background-size: 20px 20px;
+}
+
+.pbx-dragon__pattern--spots {
+    background-image: radial-gradient(circle, var(--dg-belly) 0 5px, transparent 6px);
+    background-size: 22px 22px;
+}
+
+.pbx-dragon__pattern--stripes {
+    background-image: repeating-linear-gradient(62deg, var(--dg-belly) 0 6px, transparent 6px 16px);
+}
+
+.pbx-dragon__pattern--hearts {
+    background-image: radial-gradient(circle at 30% 40%, var(--dg-belly) 0 4px, transparent 5px),
+                      radial-gradient(circle at 62% 40%, var(--dg-belly) 0 4px, transparent 5px);
+    background-size: 24px 24px;
+}
+
+/* ---------- Ümumi səhnə ----------
+   Kataloqa yeni macəra əlavə edən adam ayrıca rəsm çəkməyə məcbur deyil. */
+.pbx-generic { position: absolute; inset: 0; }
+
+.pbx-generic__sky {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #CFE3F0 0%, #E9F0E6 62%, #F2ECDF 100%);
+}
+
+.pbx-generic__glow {
+    position: absolute;
+    top: 64px;
+    left: 50%;
+    width: 190px;
+    height: 190px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 243, 226, 0.9) 0%, rgba(255, 243, 226, 0) 70%);
+    transform: translateX(-50%);
+}
+
+.pbx-generic__ground {
+    position: absolute;
+    left: -6%;
+    right: -6%;
+    bottom: 0;
+    height: calc(var(--pbx-horizon) - 8%);
+    border-radius: 46% 54% 0 0 / 26% 24% 0 0;
+    background: linear-gradient(180deg, #A5D3B7 0%, #62A783 100%);
+}
+
+.pbx-generic__icon {
+    position: absolute;
+    top: 122px;
+    left: 50%;
+    font-size: 74px;
+    line-height: 1;
+    transform: translateX(-50%);
+}
+
+/* ---------- Yekun ---------- */
+
+.pbx-summary {
+    position: relative;
+    z-index: 10;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px calc(14px + var(--pp-safe-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.pbx-summary__pet {
+    width: 116px;
+    height: 116px;
+    flex: 0 0 auto;
+}
+
+.pbx-summary__pet .pet-wrap,
+.pbx-summary__pet .pet {
+    width: 100%;
+    height: 100%;
+}
+
+.pbx-summary__bubble {
+    max-width: 320px;
+    padding: 10px 15px;
+    border-radius: var(--pp-radius);
+    background: rgba(251, 247, 239, 0.96);
+    box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-md);
+    font-size: 13.5px;
+    font-weight: 800;
+    line-height: 1.35;
+    text-align: center;
+}
+
+.pbx-summary__card {
+    width: 100%;
+    padding: 15px;
+    border-radius: var(--pp-radius-lg);
+    background: var(--pp-card);
+    box-shadow: 0 5px 0 var(--pp-edge-neutral), var(--pp-shadow-lg);
+}
+
+.pbx-summary__title {
+    margin: 0 0 12px;
+    font-size: 16px;
+    font-weight: 900;
+    text-align: center;
+}
+
+.pbx-summary__stats {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.pbx-stat {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 9px 6px;
+    border-radius: var(--pp-radius-sm);
+    background: var(--pp-primary-soft);
+}
+
+.pbx-stat--bond { background: var(--pp-alert-soft); }
+.pbx-stat--level { background: var(--pp-spark-soft); }
+
+.pbx-stat__value {
+    font-size: 19px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.pbx-stat__label {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: var(--pp-ink-soft);
+}
+
+.pbx-unlock {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-top: 12px;
+    padding: 11px 13px;
+    border-radius: var(--pp-radius-sm);
+    background: linear-gradient(135deg, var(--pp-spark-soft) 0%, var(--pp-card) 100%);
+    border: 2px solid var(--pp-spark);
+}
+
+.pbx-unlock__icon { font-size: 27px; line-height: 1; }
+
+.pbx-unlock__title {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 800;
+    color: var(--pp-spark-deep);
+}
+
+.pbx-unlock__name {
+    display: block;
+    font-size: 14.5px;
+    font-weight: 900;
+}
+
+.pbx-summary__done { margin-top: 14px; }
+
+/* ---------- Nümayiş paneli ----------
+   Yalnız PetBrain:DemoMode açıq olanda render olunur. */
+
+.pbx-debug {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: var(--pp-radius);
+    background: var(--pp-card);
+    border: 2px dashed var(--pp-primary);
+    box-shadow: var(--pp-shadow-sm);
+}
+
+.pbx-debug__headline {
+    margin-bottom: 12px;
+    padding: 8px 10px;
+    border-radius: var(--pp-radius-sm);
+    background: var(--pp-primary-dark);
+    color: var(--pp-on-primary);
+    font-size: 10.5px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-align: center;
+}
+
+.pbx-debug__block + .pbx-debug__block { margin-top: 14px; }
+
+.pbx-debug__title {
+    margin: 0 0 7px;
+    font-size: 12px;
+    font-weight: 900;
+    color: var(--pp-ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.pbx-debug__line { font-size: 12.5px; line-height: 1.35; }
+
+.pbx-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+}
+
+.pbx-bar__label {
+    flex: 0 0 108px;
+    font-size: 11.5px;
+    font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pbx-bar__track {
+    flex: 1 1 auto;
+    height: 9px;
+    border-radius: var(--pp-radius-pill);
+    background: var(--pp-track);
+    overflow: hidden;
+}
+
+.pbx-bar__fill {
+    display: block;
+    height: 100%;
+    border-radius: var(--pp-radius-pill);
+    background: var(--pp-primary);
+}
+
+.pbx-bar__fill--style { background: var(--pp-life); }
+
+.pbx-bar__value {
+    flex: 0 0 26px;
+    font-size: 11px;
+    font-weight: 900;
+    text-align: right;
+    color: var(--pp-ink-soft);
+}
+
+.pbx-table {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.pbx-table__row {
+    display: grid;
+    grid-template-columns: 1fr 34px 34px 34px 38px;
+    gap: 4px;
+    align-items: center;
+    padding: 6px 7px;
+    border-radius: 8px;
+    background: var(--pp-card-soft);
+    font-size: 10.5px;
+    font-weight: 700;
+}
+
+.pbx-table__row--head {
+    background: none;
+    color: var(--pp-ink-muted);
+    font-weight: 900;
+}
+
+/* Seçilmiş sətir rənglə YANAŞI ✓ nişanı daşıyır — rəng korluğunda da oxunur. */
+.pbx-table__row--picked {
+    background: var(--pp-life-soft);
+    color: var(--pp-life-deep);
+    font-weight: 900;
+}
+
+.pbx-table__row > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pbx-debug__note {
+    margin: 7px 0 0;
+    font-size: 10.5px;
+    color: var(--pp-ink-muted);
+    font-weight: 700;
+}
+
+.pbx-debug__list {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.pbx-debug__event {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 11px;
+    border-bottom: 1px solid var(--pp-border);
+}
+
+.pbx-debug__event-type { font-weight: 800; }
+
+.pbx-debug__event-source {
+    color: var(--pp-ink-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* AI iddiası yalnız DOĞRU olanda görünür — dürüstlük məsələsidir. */
+.pbx-debug__source {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--pp-border);
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--pp-ink-soft);
+    text-align: center;
+}
+
+/* Ana ekrandakı macəra çipi sprint çipi ilə eyni yerdə üzür və eyni anda
+   yalnız biri görünür — səhnənin hündürlük büdcəsi dəyişmir. */
+.sprint--brain {
+    background: linear-gradient(135deg, #3E2E7A 0%, var(--pp-primary) 100%);
+}
+
+/* «Niyə məhz bu?» — səbəb siyahısının başlığı. Düymədən SONRA gəlir, ona görə
+   ayrıca başlıq lazımdır: onsuz siyahı düymənin davamı kimi oxunurdu. */
+.pbx-reasons__title {
+    margin: 16px 0 0;
+    font-size: 12px;
+    font-weight: 900;
+    color: var(--pp-ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.pbx-reasons__title + .pbx-reasons { margin-top: 8px; }
+
