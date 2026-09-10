@@ -1,4 +1,5 @@
 using PetPal.Api.Common;
+using PetPal.Shared.Dtos.PetBrain;
 using PetPal.Shared.Enums;
 
 namespace PetPal.Api.PetBrain.Mind;
@@ -97,11 +98,9 @@ public static class BondTiers
     /// </summary>
     ///
     /// <remarks>
-    /// <b>Bu gün ekranda YALNIZ <see cref="BondUnlock.Emote"/> görünür.</b>
-    /// Qalan üçü — otaq bəzəyi, macəra reaksiyası və poza — tərif kimi
-    /// yazılıb, amma hələ heç bir ekrana bağlanmayıb; onlar pet avatarına və
-    /// otaq səhnəsinə toxunmağı tələb edir. Bax
-    /// <c>docs/PET_BRAIN_V2.md</c> backlog bölməsi.
+    /// Beşi də ekrana çatır: emote pet-in yanında, poza avatarın duruşunda,
+    /// otaq bəzəyi qulluq otağında, macəra reaksiyası yekun ekranında,
+    /// salamlama variantı isə <see cref="PetBrainGreeting"/>-də.
     /// </remarks>
     public static BondUnlock UnlockFor(PetBrainBondTier tier) => tier switch
     {
@@ -129,4 +128,55 @@ public static class BondTiers
     /// <summary>Bu pilləyə qədər açılmış HƏR ŞEY — pillə geri düşmədiyi üçün siyahı yığılır.</summary>
     public static IReadOnlyList<PetBrainBondTier> UnlockedThrough(PetBrainBondTier tier) =>
         [.. Enum.GetValues<PetBrainBondTier>().Where(t => t <= tier)];
+
+    /// <summary>
+    /// Salamlamanın pilləyə uyğun körpüsü.
+    ///
+    /// <para>Xarakter salamlamanın RƏNGİNİ, pillə isə YAXINLIĞINI dəyişir:
+    /// yeni dostla "salam" deyən pet, ömürlük komandada "yenə birlikdəyik"
+    /// deyir. Heç bir variant uşağı geri qaytarmağa çağırmır.</para>
+    /// </summary>
+    public static string GreetingOpener(PetBrainBondTier tier, string language, string childName) =>
+        UnlockFor(tier).GreetingVariant switch
+        {
+            "warm" => Localized.T(language, $"{childName}, gəldin!", $"{childName}, you came!"),
+            "adventurous" => Localized.T(language, $"{childName}, yoldaşım!", $"{childName}, partner!"),
+            "close" => Localized.T(language, $"{childName}, ən yaxınım!", $"{childName}, my closest friend!"),
+            "lifelong" => Localized.T(language, $"{childName}, yenə birlikdəyik.", $"{childName}, together again."),
+            _ => Localized.T(language, $"Salam, {childName}!", $"Hello, {childName}!")
+        };
+
+    /// <summary>
+    /// Macəra bitəndə pet-in reaksiyası — pillə ilə birlikdə isinir.
+    /// </summary>
+    public static string AdventureReactionLine(
+        PetBrainBondTier tier, string language) =>
+        UnlockFor(tier).AdventureReaction switch
+        {
+            "cheer" => Localized.T(language, "Bacardıq!", "We did it!"),
+            "high-five" => Localized.T(language, "Beşlik ver — bu, bizim macəramız idi!", "High five — that was our adventure!"),
+            "proud-nod" => Localized.T(language, "Səninlə fəxr edirəm.", "I am proud of you."),
+            "team-cheer" => Localized.T(language, "Komandamız yenilməzdir!", "Our team is unstoppable!"),
+            _ => Localized.T(language, "Yaxşı iş!", "Nicely done!")
+        };
+
+    /// <summary>
+    /// BÜTÜN pillələrin nərdivanı — çatılanlar işarələnmiş.
+    ///
+    /// <para>Çatılmayan pillələr də göstərilir və bu, qəsdəndir: uşaq irəlidə
+    /// nə olduğunu görməlidir. Amma bu, itki mexanikası deyil — heç nə geri
+    /// alınmır, sadəcə vəd görünür.</para>
+    /// </summary>
+    public static IReadOnlyList<PetBrainBondUnlockDto> Ladder(
+        PetBrainBondTier current, string language, string petName) =>
+        [.. Enum.GetValues<PetBrainBondTier>()
+            .OrderBy(t => (int)t)
+            .Select(tier => new PetBrainBondUnlockDto
+            {
+                Tier = tier,
+                Label = Label(tier, language),
+                Emote = UnlockFor(tier).Emote,
+                Line = UnlockLine(tier, language, petName),
+                Reached = tier <= current
+            })];
 }

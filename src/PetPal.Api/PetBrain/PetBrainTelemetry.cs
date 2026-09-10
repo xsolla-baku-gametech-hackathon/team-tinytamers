@@ -27,6 +27,8 @@ public sealed class PetBrainTelemetry
     private readonly Counter<long> _narrativeCache;
     private readonly Counter<long> _fallbacks;
     private readonly Counter<long> _conflicts;
+    private readonly Counter<long> _intents;
+    private readonly Counter<long> _aiPlans;
 
     public PetBrainTelemetry(IMeterFactory factory)
     {
@@ -55,6 +57,12 @@ public sealed class PetBrainTelemetry
 
         _conflicts = meter.CreateCounter<long>(
             "petbrain.conflict", "count", "Eyni vaxtlı sorğu münaqişəsi.");
+
+        _intents = meter.CreateCounter<long>(
+            "petbrain.intent", "count", "Pet-in niyyəti seçildi, tamamlandı və ya kənara qoyuldu.");
+
+        _aiPlans = meter.CreateCounter<long>(
+            "petbrain.ai_plan", "count", "Modelin təklif etdiyi plan qəbul və ya rədd edildi.");
     }
 
     public void Recommendation(
@@ -104,6 +112,29 @@ public sealed class PetBrainTelemetry
 
     public void NarrativeCache(bool hit) =>
         _narrativeCache.Add(1, new KeyValuePair<string, object?>("result", hit ? "hit" : "miss"));
+
+    /// <summary>
+    /// Pet-in niyyəti seçildi, tamamlandı və ya kənara qoyuldu.
+    ///
+    /// <para>Səbəb açarı qapalı siyahıdandır (<c>low-energy</c>, <c>mission</c>),
+    /// ona görə etiket kimi təhlükəsizdir — sərbəst mətn deyil.</para>
+    /// </summary>
+    public void Intent(string phase, PetBrainIntentType type, string reasonKey) =>
+        _intents.Add(1,
+            new KeyValuePair<string, object?>("phase", phase),
+            new KeyValuePair<string, object?>("type", type.ToString()),
+            new KeyValuePair<string, object?>("reason", reasonKey));
+
+    /// <summary>
+    /// Modelin təklif etdiyi plan qəbul və ya RƏDD edildi.
+    ///
+    /// <para>Rədd səbəbi qapalı siyahıdandır: hansı yoxlamanın saxladığını
+    /// bilmək validatoru təkmilləşdirmək üçün lazımdır.</para>
+    /// </summary>
+    public void AiPlan(string outcome, string reason) =>
+        _aiPlans.Add(1,
+            new KeyValuePair<string, object?>("outcome", outcome),
+            new KeyValuePair<string, object?>("reason", reason));
 
     public void Fallback(string reason) =>
         _fallbacks.Add(1, new KeyValuePair<string, object?>("reason", reason));

@@ -33,9 +33,18 @@
                 <div class="stage__bubble">@BubbleText</div>
             }
 
+            @if (!string.IsNullOrWhiteSpace(_pet.BondRoomDecor))
+            {
+                @* Bağ pilləsinin QAZANDIRDIĞI otaq detalı. Açar serverdəndir;
+                   naməlum açar heç nə çəkmir. *@
+                <div class="stage__decor stage__decor--@_pet.BondRoomDecor" aria-hidden="true"></div>
+            }
+
             <div class="stage__pet">
+                @* Poza da pillədəndir: duruş bir neçə piksel dəyişir — pet-in
+                   kim olduğu yox. *@
                 <PetAvatar Stage="_pet.Stage" Mood="_pet.Mood" Species="@_pet.Species" Name="@_pet.Name"
-                           Accessories="_pet.EquippedAccessories"
+                           Accessories="_pet.EquippedAccessories" Pose="@_pet.BondPose"
                            MouthOpen="MouthOpen" ReactionClass="@_reaction" />
             </div>
         </section>

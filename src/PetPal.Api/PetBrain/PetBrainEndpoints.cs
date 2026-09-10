@@ -144,6 +144,49 @@ public static class PetBrainEndpoints
             .WithTags("PetBrain")
             .WithSummary("Valideynin ÖZ uşaqlarının Pet Brain müqayisəsi.");
 
+        // ---- Yaddaş üzərində valideyn nəzarəti ----
+        //
+        // Pet uşaq haqqında bir şey «öyrənir» və onu aylarla saxlayır.
+        // Valideyn bunu GÖRƏ və LƏĞV EDƏ bilməlidir, yoxsa yaddaş nəzarətdən
+        // kənar, davamlı bir profilə çevrilir.
+        //
+        // Sahiblik HƏR ÜÇ marşrutda yoxlanılır: yad uşağın yaddaşı nə
+        // oxunur, nə silinir.
+        var memory = app.MapGroup("/api/parent/pet-brain/children/{childId:guid}/memories")
+            .RequireAuthorization(AuthorizationPolicies.Parent)
+            .WithTags("PetBrain");
+
+        memory.MapGet("/", async (
+                Guid childId,
+                HttpContext http,
+                PetMemoryAdmin admin,
+                CancellationToken ct) =>
+            await admin.ListAsync(http.User.UserIdOrThrow(), childId, ct) is { } list
+                ? Results.Ok(list)
+                : Results.NotFound())
+            .WithSummary("Uşağın bütün xatirələri — valideyn üçün, cümlə şəklində.");
+
+        memory.MapDelete("/{memoryId:guid}", async (
+                Guid childId,
+                Guid memoryId,
+                HttpContext http,
+                PetMemoryAdmin admin,
+                CancellationToken ct) =>
+            await admin.ForgetAsync(http.User.UserIdOrThrow(), childId, memoryId, ct)
+                ? Results.NoContent()
+                : Results.NotFound())
+            .WithSummary("BİR xatirəni unutdurur. Geri qaytarılmır.");
+
+        memory.MapDelete("/", async (
+                Guid childId,
+                HttpContext http,
+                PetMemoryAdmin admin,
+                CancellationToken ct) =>
+            await admin.ResetAsync(http.User.UserIdOrThrow(), childId, ct) is { } removed
+                ? Results.Ok(new { removed })
+                : Results.NotFound())
+            .WithSummary("Yaddaşı tam sıfırlayır — xassələrə və mükafata TOXUNMUR.");
+
         return app;
     }
 }

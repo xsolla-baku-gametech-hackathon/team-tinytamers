@@ -17,6 +17,13 @@
 
     <div class="pbx-summary__bubble" aria-live="polite">@Summary.PetLine</div>
 
+    @if (!string.IsNullOrWhiteSpace(Summary.BondReaction))
+    {
+        @* Bağ pilləsinin QAZANILMIŞ reaksiyası: eyni macərəni bitirən iki uşaq
+           yaxınlığına görə fərqli cümlə eşidir. *@
+        <p class="pbx-summary__bond">@Summary.BondReaction</p>
+    }
+
     <div class="pbx-summary__card">
         <h2 class="pbx-summary__title">@Summary.Title</h2>
 

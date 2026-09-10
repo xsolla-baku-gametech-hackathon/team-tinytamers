@@ -170,7 +170,8 @@
             <section class="pbx-intro">
                 <div class="pbx-intro__pet">
                     <PetAvatar Stage="PetStageValue" Mood="PetMoodValue" Species="@PetSpecies"
-                               Accessories="PetAccessoriesValue" Name="@_state.PetName" />
+                               Accessories="PetAccessoriesValue" Name="@_state.PetName"
+                               Pose="@_state.BondPose" />
                 </div>
 
                 <div class="pbx-intro__bubble" aria-live="polite">@_state.Greeting</div>
@@ -196,6 +197,18 @@
                 @if (!string.IsNullOrWhiteSpace(_state.BondUnlockLine))
                 {
                     <p class="pbx-tier__line">@_state.BondUnlockLine</p>
+                }
+
+                @if (_state.Intent is { } intent)
+                {
+                    @* Pet-in ÖZ işi. Cümlə serverin təsdiqlədiyi açardan
+                       qurulur və heç bir variant uşağı çağırmır, günahlandırmır
+                       və ya tələsdirmir. *@
+                    <div class="pbx-intent @(intent.IsComplete ? "pbx-intent--done" : null)"
+                         aria-live="polite">
+                        <span class="pbx-intent__icon" aria-hidden="true">@intent.Icon</span>
+                        <span class="pbx-intent__text">@intent.Line</span>
+                    </div>
                 }
             </section>
 
@@ -280,6 +293,38 @@
                             }
                         </ul>
                     }
+                </section>
+            }
+
+            @if (_state.BondUnlocks.Count > 0)
+            {
+                <section class="card pbx-ladder-card">
+                    <h2 class="card__title">
+                        @Loc.T($"{_state.PetName} ilə dostluğunuz", $"Your friendship with {_state.PetName}")
+                    </h2>
+
+                    @* Nərdivan bütöv göstərilir: uşaq irəlidə nə olduğunu
+                       görməlidir. Bu, itki mexanikası DEYİL — heç nə geri
+                       alınmır, çünki bağ azalmır. *@
+                    <ol class="pbx-ladder">
+                        @foreach (var unlock in _state.BondUnlocks)
+                        {
+                            <li class="pbx-ladder__step @(unlock.Reached ? "pbx-ladder__step--reached" : null)">
+                                <span class="pbx-ladder__emote" aria-hidden="true">@unlock.Emote</span>
+
+                                <div class="pbx-ladder__body">
+                                    <span class="pbx-ladder__label">@unlock.Label</span>
+                                    <span class="pbx-ladder__line">@unlock.Line</span>
+                                </div>
+
+                                @* Rəng tək daşıyıcı deyil: çatılan pillənin
+                                   mətn işarəsi də var. *@
+                                <span class="pbx-ladder__state">
+                                    @(unlock.Reached ? Loc.T("açıq", "unlocked") : Loc.T("irəlidə", "ahead"))
+                                </span>
+                            </li>
+                        }
+                    </ol>
                 </section>
             }
 

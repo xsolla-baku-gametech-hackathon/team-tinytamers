@@ -43,6 +43,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<ExperienceRun> ExperienceRuns => Set<ExperienceRun>();
     public DbSet<RunStageOutcome> RunStageOutcomes => Set<RunStageOutcome>();
     public DbSet<RecommendationDecision> RecommendationDecisions => Set<RecommendationDecision>();
+    public DbSet<PetIntent> PetIntents => Set<PetIntent>();
     public DbSet<IssuedPuzzle> IssuedPuzzles => Set<IssuedPuzzle>();
     public DbSet<PuzzleIllustration> PuzzleIllustrations => Set<PuzzleIllustration>();
     public DbSet<AdventureRecap> AdventureRecaps => Set<AdventureRecap>();
@@ -503,6 +504,21 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             e.HasOne(x => x.ExperienceRun)
                 .WithMany(r => r.StageOutcomes)
                 .HasForeignKey(x => x.ExperienceRunId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<PetIntent>(e =>
+        {
+            e.Property(x => x.ReasonKey).HasMaxLength(40).IsRequired();
+            e.Property(x => x.OutcomeKey).HasMaxLength(40).IsRequired();
+            e.Property(x => x.RelatedMissionKey).HasMaxLength(40).IsRequired();
+
+            // «İndi nə edir?» sualı hər açılışda verilir.
+            e.HasIndex(x => new { x.ChildProfileId, x.Status, x.StartedAt });
+
+            e.HasOne(x => x.ChildProfile)
+                .WithMany()
+                .HasForeignKey(x => x.ChildProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

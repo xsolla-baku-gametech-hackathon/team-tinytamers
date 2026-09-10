@@ -63,13 +63,130 @@ public static class MemoryPolicy
             .ThenBy(m => m.Id)
             .FirstOrDefault();
 
-    /// <summary>Saxlama limitini aşan, ən az vacib və ən köhnə xatirələr.</summary>
+    /// <summary>
+    /// Saxlama limitini aşan, ən az vacib və ən köhnə xatirələr.
+    ///
+    /// <para>SEMANTİK nəticələr əvvəl gəlir və praktiki olaraq heç vaxt
+    /// düşmür: «kosmosu sevir» faktını itirmək «üçüncü Ay macərasını bitirdi»
+    /// faktını itirməkdən qat-qat bahalıdır.</para>
+    /// </summary>
     public static IReadOnlyList<PetMemory> Prune(IEnumerable<PetMemory> memories) =>
         [.. memories
-            .OrderByDescending(m => m.Importance)
+            .OrderByDescending(m => m.Tier == PetBrainMemoryTier.Semantic)
+            .ThenByDescending(m => m.Importance)
             .ThenByDescending(m => m.CreatedAt)
             .ThenBy(m => m.Id)
             .Skip(RetentionLimit)];
+
+    // ==================== Axtarış balı ====================
+
+    /// <summary>
+    /// Yaxınlarda işlədilmiş xatirəyə verilən cəza — pet özünü təkrarlamamalıdır.
+    /// </summary>
+    public const int RecentlyUsedPenalty = 40;
+
+    /// <summary>Bu qədər saatdan sonra «yaxınlarda işlədilib» sayılmır.</summary>
+    public const int RecentlyUsedHours = 20;
+
+    /// <summary>
+    /// Bir xatirənin CARİ AN üçün uyğunluq balı.
+    ///
+    /// <para>Əvvəl seçim yalnız vacibliyə baxırdı, ona görə pet həmişə eyni
+    /// bir neçə «ən vacib» xatirəni deyirdi və zamanla yalnız ilk günlərini
+    /// xatırlayan olurdu. Bal indi altı şeyi birlikdə çəkir:</para>
+    ///
+    /// <list type="number">
+    ///   <item><b>Mövzu uyğunluğu</b> — indi Aydayıqsa, Ay xatirəsi öndədir.</item>
+    ///   <item><b>Niyyət uyğunluğu</b> — seçim anında seçim xatirəsi işə yarayır.</item>
+    ///   <item><b>Yenilik</b> — təzə hadisə daha canlıdır.</item>
+    ///   <item><b>Vaciblik</b> — ilk macəra hər zaman qiymətlidir.</item>
+    ///   <item><b>İnam</b> — semantik nəticə neçə müşahidəyə söykənir.</item>
+    ///   <item><b>Təkrar cəzası</b> — yaxınlarda deyilən cümlə arxaya keçir.</item>
+    /// </list>
+    /// </summary>
+    /// <param name="theme">İndiki mövzu; bilinmirsə boş.</param>
+    /// <param name="intent">İndiki an: <c>choice</c>, <c>greeting</c>, <c>puzzle</c>.</param>
+    public static int RetrievalScore(
+        PetMemory memory, DateTime now, string theme = "", string intent = "")
+    {
+        var score = memory.Importance;
+
+        // 1) Mövzu uyğunluğu — ən güclü siqnal, çünki uşaq məhz orada durur.
+        if (!string.IsNullOrEmpty(theme) &&
+            (memory.Tags.Contains(theme, StringComparer.Ordinal)
+             || string.Equals(memory.FactKey, theme, StringComparison.Ordinal)))
+            score += 45;
+
+        // 2) Niyyət uyğunluğu.
+        score += (intent, memory.Kind) switch
+        {
+            ("choice", PetBrainMemoryKind.ChoiceMade) => 30,
+            ("greeting", PetBrainMemoryKind.FirstAdventure) => 25,
+            ("greeting", PetBrainMemoryKind.CosmeticUnlocked) => 15,
+            ("puzzle", PetBrainMemoryKind.PatternLearned) => 25,
+            _ => 0
+        };
+
+        // 3) Yenilik — bir aydan köhnə hadisə tədricən sönür.
+        var ageDays = Math.Max(0, (now - memory.CreatedAt).TotalDays);
+        score += (int)Math.Round(20 * Math.Max(0, 1 - (ageDays / 45.0)), MidpointRounding.AwayFromZero);
+
+        // 5) İnam — semantik nəticə nə qədər müşahidəyə söykənir.
+        if (memory.Tier == PetBrainMemoryTier.Semantic)
+            score += Math.Min(25, memory.SupportCount * 8);
+
+        // 6) Təkrar cəzası — pet eyni cümləni dalbadal deməməlidir.
+        if (memory.LastUsedAt is { } used && (now - used).TotalHours < RecentlyUsedHours)
+            score -= RecentlyUsedPenalty;
+
+        return score;
+    }
+
+    /// <summary>
+    /// Cari an üçün ən uyğun xatirələr — MÜXTƏLİFLİK qorunmaqla.
+    ///
+    /// <para>Eyni növdən ikinci xatirə siyahıya düşmür: üç «macəranı
+    /// bitirdik» cümləsi bir ekranda pet-i lentə çevirir.</para>
+    /// </summary>
+    public static IReadOnlyList<PetMemory> Retrieve(
+        IEnumerable<PetMemory> memories,
+        DateTime now,
+        string theme = "",
+        string intent = "",
+        int limit = RetrievalLimit)
+    {
+        var ranked = memories
+            .Where(m => m.ExpiresAt is null || m.ExpiresAt > now)
+            .OrderByDescending(m => RetrievalScore(m, now, theme, intent))
+            .ThenByDescending(m => m.CreatedAt)
+            .ThenBy(m => m.Id)
+            .ToList();
+
+        List<PetMemory> picked = [];
+        HashSet<PetBrainMemoryKind> kinds = [];
+
+        foreach (var memory in ranked)
+        {
+            if (picked.Count >= limit)
+                break;
+
+            if (kinds.Add(memory.Kind))
+                picked.Add(memory);
+        }
+
+        // Müxtəliflik limiti doldurmadısa qalanı sırayla tamamlanır — boş
+        // ekran müxtəliflikdən vacibdir.
+        foreach (var memory in ranked)
+        {
+            if (picked.Count >= limit)
+                break;
+
+            if (!picked.Contains(memory))
+                picked.Add(memory);
+        }
+
+        return picked;
+    }
 
     /// <summary>
     /// Xatirəni uşağın dilində TƏBİİ cümləyə çevirir.
@@ -79,6 +196,10 @@ public static class MemoryPolicy
     /// </summary>
     public static string Render(PetMemory memory, string language, string petName)
     {
+        // Semantik nəticə şablona bağlı deyil — o, bir hadisə yox, NAXIŞDIR.
+        if (memory.Kind == PetBrainMemoryKind.PatternLearned)
+            return SemanticMemory.Render(memory.FactKey, language, petName);
+
         var template = ExperienceCatalog.Find(memory.FactKey);
         var title = template?.Title(language) ?? memory.FactKey;
 
@@ -115,6 +236,7 @@ public static class MemoryPolicy
         PetBrainMemoryKind.ChoiceMade => "💡",
         PetBrainMemoryKind.CosmeticUnlocked => "🎁",
         PetBrainMemoryKind.PreferenceObserved => "💜",
+        PetBrainMemoryKind.PatternLearned => "🧠",
         _ => "✨"
     };
 

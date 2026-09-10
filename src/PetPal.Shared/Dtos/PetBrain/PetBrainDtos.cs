@@ -39,6 +39,21 @@ public class PetBrainStateDto
     /// <summary>Pilləni izah edən bir cümlə (vəd, tələb deyil).</summary>
     public string BondUnlockLine { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Pillənin açdığı POZA açarı — pet-in duruşu bir neçə piksel dəyişir.
+    /// Açar SERVERİN qapalı siyahısındandır; klient yenisini uydura bilmir.
+    /// </summary>
+    public string BondPose { get; set; } = string.Empty;
+
+    /// <summary>Pillənin açdığı otaq bəzəyinin açarı; yoxdursa boş.</summary>
+    public string BondRoomDecor { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Bu pilləyə qədər açılmış HƏR ŞEY — pillə geri düşmədiyi üçün siyahı
+    /// yalnız uzanır. Ekran «nə qazandım» görünüşünü bundan qurur.
+    /// </summary>
+    public List<PetBrainBondUnlockDto> BondUnlocks { get; set; } = new();
+
     public PetBrainPersonality Personality { get; set; }
 
     /// <summary>Xarakterin uşağın dilində adı.</summary>
@@ -66,6 +81,53 @@ public class PetBrainStateDto
 
     /// <summary>Yalnız <see cref="DemoMode"/> açıq olanda dolur.</summary>
     public PetBrainDebugDto? Debug { get; set; }
+
+    /// <summary>
+    /// Pet-in öz niyyəti — <c>PetBrainV2:IntentEnabled</c> açıq olanda dolur.
+    /// Bağlıdırsa <c>null</c> qalır və ekran onu ümumiyyətlə çəkmir.
+    /// </summary>
+    public PetBrainIntentDto? Intent { get; set; }
+}
+
+/// <summary>
+/// Pet-in ÖZ niyyəti — uşaq baxmayanda nə etdiyi.
+///
+/// <para>Cümlə serverin təsdiqlədiyi açardan qurulur; pet burada sərbəst mətn
+/// yaratmır. Heç bir variant uşağı günahlandırmır və ya tələsdirmir.</para>
+/// </summary>
+public class PetBrainIntentDto
+{
+    public PetBrainIntentType Type { get; set; }
+
+    public string Icon { get; set; } = string.Empty;
+
+    /// <summary>Niyyət BİTİBMİ — bitibsə cümlə nəticəni danışır.</summary>
+    public bool IsComplete { get; set; }
+
+    /// <summary>Uşağın dilində hazır cümlə.</summary>
+    public string Line { get; set; } = string.Empty;
+
+    /// <summary>Təsdiqlənmiş artefakt açarı; niyyət bitməyibsə boş.</summary>
+    public string OutcomeKey { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Bir bağ pilləsinin açdığı görünən şey — uşağa «nə qazandım» kimi göstərilir.
+/// </summary>
+public class PetBrainBondUnlockDto
+{
+    public PetBrainBondTier Tier { get; set; }
+
+    /// <summary>Pillənin uşağın dilində adı.</summary>
+    public string Label { get; set; } = string.Empty;
+
+    public string Emote { get; set; } = string.Empty;
+
+    /// <summary>Nə açıldığını bir cümlə ilə deyir — bal rəqəmi ilə yox.</summary>
+    public string Line { get; set; } = string.Empty;
+
+    /// <summary>Uşaq bu pilləyə ÇATIBMI. Çatmayanlar da göstərilir — vəd görünür.</summary>
+    public bool Reached { get; set; }
 }
 
 public class PetBrainTraitDto
@@ -81,8 +143,16 @@ public class PetBrainTraitDto
     public int Score { get; set; }
 }
 
-public class PetBrainMemoryDto
+public record PetBrainMemoryDto
 {
+    /// <summary>
+    /// Sətrin id-si — YALNIZ valideyn görünüşündə doldurulur.
+    ///
+    /// <para>Uşaq ekranında boş qalır: uşağa xatirəni silmək düyməsi
+    /// verilmir, bu, valideyn qərarıdır.</para>
+    /// </summary>
+    public Guid Id { get; set; }
+
     public PetBrainMemoryKind Kind { get; set; }
 
     /// <summary>Hazır, uşağa uyğun cümlə: "Ay macərasını birlikdə bitirdik!"</summary>
@@ -306,6 +376,13 @@ public class PetBrainSummaryDto
 
     /// <summary>Pet-in yekun replikası.</summary>
     public string PetLine { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Bağ pilləsinin açdığı macəra reaksiyası — pillə qalxdıqca isinir.
+    /// «Bacardıq!» ilə «Komandamız yenilməzdir!» arasındakı fərq uşağın
+    /// QAZANDIĞI şeydir.
+    /// </summary>
+    public string BondReaction { get; set; } = string.Empty;
 
     public int XpEarned { get; set; }
     public int BondEarned { get; set; }

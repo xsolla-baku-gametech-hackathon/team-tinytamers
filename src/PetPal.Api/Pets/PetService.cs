@@ -312,6 +312,13 @@ public class PetService : IPetService
         Fullness = pet.Fullness,
         Cleanliness = pet.Cleanliness,
         Bond = PetBrain.BondRules.Clamp(pet.Bond),
+
+        // Pillə və onun açdıqları SERVERDƏ hesablanır: hədləri klientdə
+        // təkrarlasaydıq, balans dəyişəndə biri unudulardı.
+        BondTier = PetBrain.Mind.BondTiers.Of(pet.Bond),
+        BondPose = PetBrain.Mind.BondTiers.UnlockFor(PetBrain.Mind.BondTiers.Of(pet.Bond)).Pose,
+        BondRoomDecor = PetBrain.Mind.BondTiers.UnlockFor(PetBrain.Mind.BondTiers.Of(pet.Bond)).RoomDecor,
+
         Mood = PetProgression.MoodFor(pet),
         Message = message ?? PetVoice.Idle(languageCode, PetProgression.MoodFor(pet), childName, pet.Name),
         UnlockedAccessories = pet.UnlockedAccessories.ToList(),

@@ -29,10 +29,12 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
 
     public GeneratedPuzzle Generate(PuzzleGenerationContext context)
     {
-        var target = TargetDifficulty(context);
-
         foreach (var blueprint in Rank(context))
         {
+            // Hədəf MEXANİKAYA görə hesablanır: uşaq marşrutda güclü,
+            // sıralamada təzə ola bilər və tək rəqəm bunu gizlədir.
+            var target = TargetDifficulty(context, blueprint.Key);
+
             for (var attempt = 0; attempt < MaxAttemptsPerBlueprint; attempt++)
             {
                 var seedHex = PuzzleSeed.Hex(
@@ -54,7 +56,7 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
             }
         }
 
-        return Fallback(context, target);
+        return Fallback(context, TargetDifficulty(context, blueprintKey: null));
     }
 
     // ==================== Şablon seçimi ====================
@@ -104,9 +106,21 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
     ///
     /// <para>Yaş TAVANDIR və hər şeyin üstündədir.</para>
     /// </summary>
-    public static int TargetDifficulty(PuzzleGenerationContext context)
+    public static int TargetDifficulty(PuzzleGenerationContext context) =>
+        TargetDifficulty(context, blueprintKey: null);
+
+    /// <param name="blueprintKey">
+    /// Hansı mexanika üçün. Verilibsə və uşağın orada tarixçəsi varsa, pillə
+    /// MƏHZ o mexanikadan götürülür — qlobaldan yox.
+    /// </param>
+    public static int TargetDifficulty(PuzzleGenerationContext context, string? blueprintKey)
     {
-        var tierBase = context.Difficulty switch
+        var tier = blueprintKey is not null
+                   && context.MechanicTiers.TryGetValue(blueprintKey, out var mechanic)
+            ? mechanic
+            : context.Difficulty;
+
+        var tierBase = tier switch
         {
             PetBrainDifficulty.Easy => 2,
             PetBrainDifficulty.Hard => 8,

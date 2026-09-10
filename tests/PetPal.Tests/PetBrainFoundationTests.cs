@@ -737,6 +737,7 @@ public class PetBrainPuzzleCompatibilityTests
         Interests: profile[0],
         PlayStyles: profile[1],
         Difficulty: difficulty,
+        MechanicTiers: new Dictionary<string, PetBrainDifficulty>(),
         MasteryTargetDifficulty: 5,
         Assisted: false,
         RecentSignatures: new HashSet<string>(StringComparer.Ordinal));

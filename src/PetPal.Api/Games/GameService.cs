@@ -143,14 +143,16 @@ public class GameService : IGameService
 
         await _missions.TrackAsync(childId, MissionType.CareForPet, null, 0, ct);
 
-        // Mini oyun Pet Brain üçün "şən oyun üslubu"nun zəif işarəsidir. Hansı
-        // oyun olduğu maraq balına təsir etmir — mini oyunlar bacarıq öyrədir,
-        // mövzu marağı bildirmir.
+        // Mini oyun Pet Brain üçün "şən oyun üslubu"nun zəif işarəsidir.
+        //
+        // Oyunun AİLƏSİ də sayılır (yaddaş/ardıcıllıq, hərəkət, sərbəst oyun),
+        // amma bir pillə daha zəif: mini oyun mövzu seçimi deyil — uşaq orada
+        // "kosmos" yox, "əylən" seçir (bax MiniGameFamilies).
         await _behavior.TrackAsync(
             childId,
             PetBrainEventType.MiniGameCompleted,
             new PetBrainEventData(request.GameKey, $"score:{Math.Clamp(request.Score, 0, 100)}",
-                ProfileLearningRules.ForMiniGame()),
+                ProfileLearningRules.ForMiniGame(request.GameKey)),
             null,
             ct);
 

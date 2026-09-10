@@ -124,7 +124,33 @@ public enum PetBrainMemoryKind
     CosmeticUnlocked = 3,
 
     /// <summary>"Bu, bizim ilk böyük macəramız idi."</summary>
-    FirstAdventure = 4
+    FirstAdventure = 4,
+
+    /// <summary>
+    /// SEMANTİK nəticə: bir neçə epizoddan çıxarılmış yüksək səviyyəli fakt —
+    /// "kəşf seçimlərinə üstünlük verir", "tapmacada dəstək faydalı olur".
+    ///
+    /// <para>Episodik faktlardan (yuxarıdakılardan) FƏRQLİDİR: onlar bir
+    /// hadisəni saxlayır, bu isə bir NAXIŞI. Ona görə də bir epizoddan
+    /// çıxarılmır — ən azı iki təsdiqlənmiş müşahidə tələb edir.</para>
+    /// </summary>
+    PatternLearned = 5
+}
+
+/// <summary>
+/// Yaddaşın SƏVİYYƏSİ — nəyi saxladığı, nə qədər yaşadığı.
+/// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum PetBrainMemoryTier
+{
+    /// <summary>Bir hadisə: "Ayda şimal kraterini seçdin".</summary>
+    Episodic = 0,
+
+    /// <summary>
+    /// Bir neçə epizoddan çıxarılan nəticə: "kəşf seçimlərinə üstünlük verir".
+    /// Daha az, daha davamlı və təmizlənərkən daha güclü qorunur.
+    /// </summary>
+    Semantic = 1
 }
 
 /// <summary>

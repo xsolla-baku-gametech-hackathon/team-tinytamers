@@ -305,3 +305,109 @@ public class PetBrainV2MarkupTests
         File.ReadAllText(Path.Combine(
             Path.GetDirectoryName(path)!, "..", "..", "src", "PetPal.App.Ui", "wwwroot", "css", name));
 }
+
+/// <summary>
+/// Milestone 4 və 5-in ekran qaydaları.
+/// </summary>
+public class PetBrainV2LaterMilestoneMarkupTests
+{
+    /// <summary>Pet-in niyyəti ekranda var və ekran oxuyucusuna bildirilir.</summary>
+    [Fact]
+    public void PetNiyyeti_EkrandaVarVeBildirilir()
+    {
+        var page = ReadPage("PetBrain.razor");
+
+        Assert.Contains("_state.Intent", page, StringComparison.Ordinal);
+        Assert.Contains("pbx-intent", page, StringComparison.Ordinal);
+        Assert.Contains("aria-live", page, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Bağ nərdivanı rəngdən ƏLAVƏ mətn işarəsi daşıyır: «açıq» / «irəlidə».
+    /// </summary>
+    [Fact]
+    public void BagNerdivani_RengeTekBaglanmir()
+    {
+        var page = ReadPage("PetBrain.razor");
+
+        Assert.Contains("pbx-ladder", page, StringComparison.Ordinal);
+        Assert.Contains("Loc.T(\"açıq\", \"unlocked\")", page, StringComparison.Ordinal);
+        Assert.Contains("Loc.T(\"irəlidə\", \"ahead\")", page, StringComparison.Ordinal);
+    }
+
+    /// <summary>Bağ pilləsinin POZASI pet avatarına çatır.</summary>
+    [Fact]
+    public void BagPozasi_AvataraCatir()
+    {
+        var avatar = ReadShared("PetAvatar");
+        var care = ReadPage("Care.razor");
+        var brain = ReadPage("PetBrain.razor");
+
+        Assert.Contains("PoseClass", avatar, StringComparison.Ordinal);
+
+        // Naməlum poza DOM-a düşmür (fail closed).
+        Assert.Contains("KnownPoses.Contains", avatar, StringComparison.Ordinal);
+
+        Assert.Contains("Pose=\"@_pet.BondPose\"", care, StringComparison.Ordinal);
+        Assert.Contains("Pose=\"@_state.BondPose\"", brain, StringComparison.Ordinal);
+    }
+
+    /// <summary>Otaq bəzəyi qulluq otağında çəkilir.</summary>
+    [Fact]
+    public void OtaqBezeyi_QulluqOtagindaCekilir()
+    {
+        var care = ReadPage("Care.razor");
+
+        Assert.Contains("BondRoomDecor", care, StringComparison.Ordinal);
+        Assert.Contains("stage__decor", care, StringComparison.Ordinal);
+    }
+
+    /// <summary>Macəra reaksiyası yekun ekranındadır.</summary>
+    [Fact]
+    public void MaceraReaksiyasi_YekunEkranindadir()
+    {
+        var summary = ReadComponent("RunSummary");
+
+        Assert.Contains("Summary.BondReaction", summary, StringComparison.Ordinal);
+    }
+
+    /// <summary>Yeni ekran parçaları HTML render etmir.</summary>
+    [Fact]
+    public void YeniParcalar_ServerHtmlRenderEtmir()
+    {
+        foreach (var source in new[]
+                 {
+                     ReadPage("PetBrain.razor"), ReadPage("Care.razor"),
+                     ReadComponent("RunSummary"), ReadShared("PetAvatar")
+                 })
+            Assert.DoesNotContain("MarkupString", source, StringComparison.Ordinal);
+    }
+
+    /// <summary>Poza hərəkət həssaslığı qaydasını pozmur.</summary>
+    [Fact]
+    public void Poza_HereketHessasligiQaydasiniQoruyur()
+    {
+        var css = ReadCss("app.css");
+        var section = css[css.IndexOf(".pet--pose-lean-in", StringComparison.Ordinal)..];
+
+        Assert.Contains("prefers-reduced-motion", section, StringComparison.Ordinal);
+    }
+
+    private static string ReadPage(string name, [CallerFilePath] string path = "") =>
+        File.ReadAllText(Path.Combine(
+            Path.GetDirectoryName(path)!, "..", "..", "src", "PetPal.App.Ui", "Pages", name));
+
+    private static string ReadComponent(string name, [CallerFilePath] string path = "") =>
+        File.ReadAllText(Path.Combine(
+            Path.GetDirectoryName(path)!, "..", "..", "src", "PetPal.App.Ui",
+            "Components", "PetBrain", name + ".razor"));
+
+    private static string ReadShared(string name, [CallerFilePath] string path = "") =>
+        File.ReadAllText(Path.Combine(
+            Path.GetDirectoryName(path)!, "..", "..", "src", "PetPal.App.Ui",
+            "Components", "Shared", name + ".razor"));
+
+    private static string ReadCss(string name, [CallerFilePath] string path = "") =>
+        File.ReadAllText(Path.Combine(
+            Path.GetDirectoryName(path)!, "..", "..", "src", "PetPal.App.Ui", "wwwroot", "css", name));
+}

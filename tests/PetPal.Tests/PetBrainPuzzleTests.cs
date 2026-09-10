@@ -47,6 +47,7 @@ public class PetBrainPuzzleTests
             [TraitKeys.Caring] = 25
         },
         Difficulty: PetBrainDifficulty.Medium,
+        MechanicTiers: new Dictionary<string, PetBrainDifficulty>(),
         MasteryTargetDifficulty: 5,
         Assisted: assisted,
         RecentSignatures: new HashSet<string>());
@@ -87,6 +88,7 @@ public class PetBrainPuzzleTests
             [TraitKeys.ProblemSolver] = 20
         },
         Difficulty: PetBrainDifficulty.Medium,
+        MechanicTiers: new Dictionary<string, PetBrainDifficulty>(),
         MasteryTargetDifficulty: 4,
         Assisted: false,
         RecentSignatures: new HashSet<string>());

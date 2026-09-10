@@ -76,8 +76,21 @@ public sealed record PetMindContext(
     /// <summary>SAXLANAN xarakter — hər sorğuda yenidən çıxarılan deyil.</summary>
     PetBrainPersonality Personality,
 
+    /// <summary>Köhnəlmə tətbiq olunmuş EFFEKTİV maraq balları.</summary>
     IReadOnlyDictionary<string, int> Interests,
+
     IReadOnlyDictionary<string, int> PlayStyles,
+
+    /// <summary>
+    /// Açar üzrə İNAM (0–100): nə qədər müşahidə, nə qədər müxtəlif mənbə,
+    /// nə qədər təzə, nə qədər ziddiyyətsiz.
+    ///
+    /// <para>Baldan AYRIDIR və bu, qəsdəndir: «70 bal, amma cəmi bir
+    /// müşahidə» ilə «70 bal, üç mənbədən on müşahidə» eyni şey deyil.</para>
+    /// </summary>
+    IReadOnlyDictionary<string, int> InterestConfidence,
+
+    IReadOnlyDictionary<string, int> PlayStyleConfidence,
 
     /// <summary>Ən yenidən köhnəyə doğru.</summary>
     IReadOnlyList<MindRunOutcome> RecentOutcomes,

@@ -40,6 +40,18 @@ public sealed record PuzzleGenerationContext(
     /// <summary>Pet Brain-in təcrübə pilləsi (məktəb Elo-su DEYİL).</summary>
     PetBrainDifficulty Difficulty,
 
+    /// <summary>
+    /// MEXANİKA ailəsi üzrə pillə: hansı tapmaca növündə uşağın necə getdiyi.
+    ///
+    /// <para>Qlobal pillə hekayənin ritmini seçir, bu isə tapmacanın özünü
+    /// incələyir. Marşrutda güclü, sıralamada təzə olan uşaq üçün tək rəqəm
+    /// yanlışdır: o, bir mexanikada darıxır, digərində əziyyət çəkir.</para>
+    ///
+    /// <para>Açar tapılmasa <see cref="Difficulty"/> işlənir — yeni mexanika
+    /// heç bir tarixçə olmadan orta pillədən başlayır.</para>
+    /// </summary>
+    IReadOnlyDictionary<string, PetBrainDifficulty> MechanicTiers,
+
     /// <summary>Mövcud adaptiv mühərrikin hədəfi (1–10) — çətinliyi incələmək üçün.</summary>
     int MasteryTargetDifficulty,
 

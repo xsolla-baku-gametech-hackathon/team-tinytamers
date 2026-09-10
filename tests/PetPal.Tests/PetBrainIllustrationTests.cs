@@ -247,6 +247,7 @@ public class PetBrainIllustrationTests
             [TraitKeys.Explorer] = 75
         },
         Difficulty: PetBrainDifficulty.Medium,
+        MechanicTiers: new Dictionary<string, PetBrainDifficulty>(),
         MasteryTargetDifficulty: 5,
         Assisted: false,
         RecentSignatures: new HashSet<string>());

@@ -28,7 +28,7 @@
     else
     {
         @* data-pet-target: sürüklənən əşyanın hədəf sahəsini JS bu atributla tapır. *@
-        <svg class="pet @MoodClass @ReactionClass" viewBox="0 0 200 200" role="img"
+        <svg class="pet @MoodClass @ReactionClass @PoseClass" viewBox="0 0 200 200" role="img"
              aria-label="@AccessibleLabel" data-pet-target
              style="--pet-fur:@FurColor;--pet-belly:@BellyColor;--pet-inner-ear:@InnerEarColor">
 
@@ -249,6 +249,24 @@
 
     /// <summary>Qulluq reaksiyası — qısa animasiya sinfi.</summary>
     [Parameter] public string? ReactionClass { get; set; }
+
+    /// <summary>
+    /// Bağ pilləsinin açdığı POZA açarı (<c>lean-in</c>, <c>ready-stance</c>…).
+    ///
+    /// <para>Serverin qapalı siyahısındandır (bax <c>BondTiers.UnlockFor</c>) və
+    /// yalnız duruşu bir neçə piksel dəyişir — pet-in kim olduğunu yox. Boş
+    /// buraxıla bilər.</para>
+    /// </summary>
+    [Parameter] public string? Pose { get; set; }
+
+    /// <summary>Naməlum poza səssizcə buraxılır — uydurma sinif DOM-a düşmür.</summary>
+    private static readonly string[] KnownPoses =
+        ["idle", "lean-in", "ready-stance", "shoulder-lean", "victory-hop"];
+
+    private string? PoseClass =>
+        Pose is not null && KnownPoses.Contains(Pose, StringComparer.Ordinal)
+            ? $"pet--pose-{Pose}"
+            : null;
 
     /// <summary>
     /// Mərhələnin üz və əşya nöqtələri. Rəqəmlər Codex-in çəkdiyi bədənlərdən

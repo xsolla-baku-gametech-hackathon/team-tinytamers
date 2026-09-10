@@ -19,6 +19,27 @@ public class PetMemory
 
     public PetBrainMemoryKind Kind { get; set; }
 
+    /// <summary>
+    /// Yaddaşın SƏVİYYƏSİ.
+    ///
+    /// <para>Episodik fakt bir hadisəni saxlayır və çox olur; semantik nəticə
+    /// bir naxışı saxlayır, az olur və təmizlənərkən daha güclü qorunur —
+    /// «kosmosu sevir» faktını itirmək «üçüncü Ay macərasını bitirdi»
+    /// faktını itirməkdən qat-qat bahalıdır.</para>
+    ///
+    /// <para>Köhnə sətirlərdə <c>0</c> (episodik) qalır — miqrasiya heç nəyi
+    /// yenidən təsnif etmir.</para>
+    /// </summary>
+    public PetBrainMemoryTier Tier { get; set; } = PetBrainMemoryTier.Episodic;
+
+    /// <summary>
+    /// Bu faktı neçə müstəqil müşahidə dəstəkləyir.
+    ///
+    /// <para>Semantik nəticə üçün şərtdir: bir epizoddan naxış çıxarmaq
+    /// «bir dəfə seçdi, deməli sevir» səhvidir.</para>
+    /// </summary>
+    public int SupportCount { get; set; } = 1;
+
     /// <summary>Faktın mövzusu — şablon açarı, mövzu adı və ya kosmetik kodu.</summary>
     public string FactKey { get; set; } = string.Empty;
 

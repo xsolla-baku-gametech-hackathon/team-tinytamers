@@ -63,6 +63,8 @@ public static class PetBrainGreeting
         DateTime now,
         PetBrainPersonality personality)
     {
+        var tier = Mind.BondTiers.Of(pet.Bond);
+
         if (pet.HatchedAt is null)
             return new GreetingResult(PetVoice.StillAnEgg(language), GreetingSource.Egg, null);
 
@@ -91,10 +93,12 @@ public static class PetBrainGreeting
         var recalled = MemoryPolicy.Render(memory, language, pet.Name);
 
         // Xatirə cümləsinin qarşısına qısa bir körpü qoyulur ki, replika
-        // "arxivdən oxunmuş" kimi yox, danışıq kimi səslənsin.
+        // "arxivdən oxunmuş" kimi yox, danışıq kimi səslənsin. Körpünün
+        // YAXINLIĞI bağ pilləsindən gəlir: yeni dost başqa cür salamlayır,
+        // ömürlük komanda başqa cür.
         var opener = Localized.T(language,
-            $"{childName}, yadındadır?",
-            $"{childName}, do you remember?");
+            $"{Mind.BondTiers.GreetingOpener(tier, language, childName)} Yadındadır?",
+            $"{Mind.BondTiers.GreetingOpener(tier, language, childName)} Do you remember?");
 
         return new GreetingResult($"{opener} {recalled}", GreetingSource.Memory, memory);
     }

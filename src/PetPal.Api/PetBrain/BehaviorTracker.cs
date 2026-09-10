@@ -145,12 +145,23 @@ public class BehaviorTracker : IBehaviorTracker
                     ProfileLearningRules.DailyGainCapPerKey,
                     ct);
 
-                // Tavan dolub: xassə TOXUNULMUR — yarım bal da verilmir.
+                // Tavan dolub: bal ARTMIR, amma müşahidənin özü itmir —
+                // uşaq bunu yenə seçdi və bu, sübutdur.
                 if (delta == 0)
+                {
+                    TraitEvidence.Record(trait, adjustment.Source, 0, now);
+                    trait.UpdatedAt = now;
                     continue;
+                }
             }
 
             trait.Score = TraitKeys.Clamp(trait.Score + delta);
+
+            // Balın yanında SÜBUT da yazılır: neçə müşahidə, uşağın öz seçimi
+            // idimi, hansı mənbədən. Bal «nə qədər», sübut «nə dərəcədə
+            // əminik» sualına cavab verir (bax TraitEvidence).
+            TraitEvidence.Record(trait, adjustment.Source, delta, now);
+
             trait.UpdatedAt = now;
         }
     }

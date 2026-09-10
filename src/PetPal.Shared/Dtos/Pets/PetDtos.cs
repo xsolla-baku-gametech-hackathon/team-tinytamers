@@ -38,6 +38,25 @@ public class PetDto
     /// </summary>
     public int Bond { get; set; }
 
+    /// <summary>
+    /// Bağın PİLLƏSİ — server hesablayır.
+    ///
+    /// <para>Hədləri klientdə təkrarlamaq olmaz: onda balans dəyişəndə iki
+    /// yerdə düzəliş lazım gələr və biri unudular.</para>
+    /// </summary>
+    public PetBrainBondTier BondTier { get; set; }
+
+    /// <summary>
+    /// Pillənin açdığı POZA açarı — pet-in duruşu. Qapalı siyahıdandır.
+    /// </summary>
+    public string BondPose { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Pillənin açdığı otaq bəzəyinin açarı; yoxdursa boş. Qulluq otağı onu
+    /// çəkir — «qazandığım şey otağımda görünür».
+    /// </summary>
+    public string BondRoomDecor { get; set; } = string.Empty;
+
     public PetMood Mood { get; set; }
 
     /// <summary>Pet-in ekranda dediyi replika (mood + son fəaliyyətdən seçilir).</summary>

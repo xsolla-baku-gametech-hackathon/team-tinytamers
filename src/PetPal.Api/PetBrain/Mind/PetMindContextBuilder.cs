@@ -143,8 +143,8 @@ public sealed class PetMindContextBuilder
             .Take(5)
             .ToListAsync(ct);
 
-        var interests = ScoresOf(child, PetBrainTraitCategory.Interest);
-        var playStyles = ScoresOf(child, PetBrainTraitCategory.PlayStyle);
+        var interests = ScoresOf(child, PetBrainTraitCategory.Interest, now);
+        var playStyles = ScoresOf(child, PetBrainTraitCategory.PlayStyle, now);
 
         return new PetMindContext(
             ChildId: child.Id,
@@ -164,6 +164,8 @@ public sealed class PetMindContextBuilder
             Personality: child.Personality,
             Interests: interests,
             PlayStyles: playStyles,
+            InterestConfidence: ConfidenceOf(child, PetBrainTraitCategory.Interest, now),
+            PlayStyleConfidence: ConfidenceOf(child, PetBrainTraitCategory.PlayStyle, now),
             RecentOutcomes: outcomes,
             CompletedTemplates: completed.ToHashSet(StringComparer.Ordinal),
             Memories: await MemoriesAsync(child, now, ct),
@@ -178,11 +180,29 @@ public sealed class PetMindContextBuilder
             Difficulty: DifficultyFor(child, outcomes));
     }
 
-    /// <summary>Uşağın xassələri — bazada sətri olmayan açar başlanğıc balı ilə gəlir.</summary>
-    private static Dictionary<string, int> ScoresOf(ChildProfile child, PetBrainTraitCategory category) =>
+    /// <summary>
+    /// Uşağın xassələri — <b>köhnəlmə tətbiq olunmuş</b> effektiv bal.
+    ///
+    /// <para>Saxlanan bal monotondur: hər müsbət hadisə onu qaldırır, heç nə
+    /// endirmir. Ona görə direktora verilən dəyər burada hesablanır — köhnə,
+    /// təkrarlanmayan siqnal öz çəkisini tədricən itirir və profillər zamanla
+    /// bir-birinə oxşamır (bax <see cref="TraitEvidence.EffectiveScore"/>).</para>
+    ///
+    /// <para>Köhnəlmə bazaya YAZILMIR: uşağın tarixçəsi toxunulmazdır və fon
+    /// işçisi lazım gəlmir — dəyər hər oxunuşda saatdan hesablanır.</para>
+    /// </summary>
+    private static Dictionary<string, int> ScoresOf(
+        ChildProfile child, PetBrainTraitCategory category, DateTime now) =>
         child.Traits
             .Where(t => t.Category == category)
-            .ToDictionary(t => t.Key, t => TraitKeys.Clamp(t.Score), StringComparer.Ordinal);
+            .ToDictionary(t => t.Key, t => TraitEvidence.EffectiveScore(t, now), StringComparer.Ordinal);
+
+    /// <summary>Açar üzrə inam — nümayiş panelində və gələcək planlayıcıda.</summary>
+    private static Dictionary<string, int> ConfidenceOf(
+        ChildProfile child, PetBrainTraitCategory category, DateTime now) =>
+        child.Traits
+            .Where(t => t.Category == category)
+            .ToDictionary(t => t.Key, t => TraitEvidence.Confidence(t, now), StringComparer.Ordinal);
 
     private async Task<IReadOnlyList<MindRunOutcome>> RecentOutcomesAsync(Guid childId, CancellationToken ct)
     {
