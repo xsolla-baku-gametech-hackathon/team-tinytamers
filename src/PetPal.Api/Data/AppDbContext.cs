@@ -39,6 +39,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<BehaviorEvent> BehaviorEvents => Set<BehaviorEvent>();
     public DbSet<PetMemory> PetMemories => Set<PetMemory>();
     public DbSet<ExperienceRun> ExperienceRuns => Set<ExperienceRun>();
+    public DbSet<IssuedPuzzle> IssuedPuzzles => Set<IssuedPuzzle>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -440,6 +441,37 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                 .WithMany(c => c.ExperienceRuns)
                 .HasForeignKey(x => x.ChildProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<IssuedPuzzle>(e =>
+        {
+            e.Property(x => x.BlueprintKey).HasMaxLength(40).IsRequired();
+            e.Property(x => x.Seed).HasMaxLength(64).IsRequired();
+            e.Property(x => x.ContentSignature).HasMaxLength(64).IsRequired();
+
+            // Məzmun və həll JSON mətnidir; həll HEÇ BİR DTO-ya düşmür.
+            e.Property(x => x.PublicPayload).HasMaxLength(4000).IsRequired();
+            e.Property(x => x.PrivateSolution).HasMaxLength(1000).IsRequired();
+
+            // Bir run-ın bir mərhələsinə YALNIZ BİR tapmaca verilir. Bu, təkcə
+            // səliqə deyil: iki eyni vaxtlı sorğu ikinci tapmaca yaratmağa
+            // çalışsa, bazada dayanır və uşaq sualın dəyişdiyini görmür.
+            e.HasIndex(x => new { x.ExperienceRunId, x.StageIndex }).IsUnique();
+
+            // Təkrar yoxlaması bu oxu oxuyur: uşağın son tapmacaları.
+            e.HasIndex(x => new { x.ChildProfileId, x.IssuedAt });
+
+            e.HasOne(x => x.ChildProfile)
+                .WithMany()
+                .HasForeignKey(x => x.ChildProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Run silinsə tapmaca da getməlidir, amma uşaq üzərindən ikinci
+            // kaskad yolu yaranmasın deyə Restrict.
+            e.HasOne(x => x.ExperienceRun)
+                .WithMany(r => r.Puzzles)
+                .HasForeignKey(x => x.ExperienceRunId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<TeamMissionMember>(e =>

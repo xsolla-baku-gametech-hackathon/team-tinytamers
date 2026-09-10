@@ -1,0 +1,295 @@
+@inject Loc Loc
+
+@* Marşrut lövhəsi — REFERANS mexanikanın ekranı.
+
+   Burada uşaq sual cavablandırmır, dronu PLANLAŞDIRIR. Ona görə lövhə
+   "variantlar siyahısı" kimi deyil, xəritə kimi görünür: düyünlər səhnənin
+   üstündə öz yerindədir, keçidlər xətlə çəkilir, enerji isə hər addımda
+   dəyişən canlı göstəricidir.
+
+   Rəsm ATMOSFERDİR. Bütün toxunuş hədəfləri, xətlər və geri dönüş bu
+   deterministik overlay-dədir — rəsm gəlməsə də tapmaca tam oynanandır. *@
+
+<div class="pbx-route">
+
+    <div class="pbx-route__board" style="@BackdropStyle">
+
+        @* Fon rəsmi yalnız bəzəkdir: ekran oxuyucusuna görünmür, çünki
+           mənanı daşıyan məlumat aşağıdakı düyün düymələrindədir. *@
+        @if (!string.IsNullOrEmpty(SceneImage))
+        {
+            <img class="pbx-route__art" src="@SceneImage" alt="" aria-hidden="true" />
+        }
+
+        <svg class="pbx-route__lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            @foreach (var edge in Puzzle.Edges)
+            {
+                var a = Node(edge.From);
+                var b = Node(edge.To);
+
+                if (a is null || b is null)
+                {
+                    continue;
+                }
+
+                <line x1="@a.X" y1="@a.Y" x2="@b.X" y2="@b.Y"
+                      class="pbx-route__line @(IsWalked(a.Id, b.Id) ? "pbx-route__line--walked" : null)"
+                      vector-effect="non-scaling-stroke" />
+            }
+        </svg>
+
+        @foreach (var node in Puzzle.Nodes)
+        {
+            var step = Route.IndexOf(node.Id);
+            var reachable = IsReachable(node.Id);
+
+            <button type="button"
+                    class="pbx-node pbx-node--@Kind(node) @(step >= 0 ? "pbx-node--on" : null) @(reachable ? "pbx-node--open" : null)"
+                    style="left:@(node.X)%; top:@(node.Y)%"
+                    disabled="@(Busy || (step < 0 && !reachable))"
+                    aria-pressed="@(step >= 0)"
+                    aria-label="@AriaFor(node, step)"
+                    @onclick="() => Step(node.Id)">
+
+                <span class="pbx-node__icon" aria-hidden="true">@node.Icon</span>
+
+                @if (step >= 0)
+                {
+                    @* Nömrə rəngdən ASILI OLMAYAN sıra işarəsidir. *@
+                    <span class="pbx-node__step" aria-hidden="true">@(step + 1)</span>
+                }
+                else if (node.EnergyDelta > 0)
+                {
+                    <span class="pbx-node__gain" aria-hidden="true">+@node.EnergyDelta</span>
+                }
+            </button>
+        }
+
+        @* Dron marşrutun sonundadır — uşaq hərəkəti GÖRÜR, təsəvvür etmir. *@
+        @if (Head is not null)
+        {
+            <span class="pbx-route__drone" style="left:@(Head.X)%; top:@(Head.Y)%" aria-hidden="true">🛸</span>
+        }
+
+        @if (!string.IsNullOrEmpty(_notice))
+        {
+            @* Bu, "səhv etdin" deyil: uşaq hələ cavab göndərməyib. Sadəcə niyə
+               ora gedə bilmədiyini eşidir — və mesaj XƏRİTƏYƏ aid olduğu üçün
+               onun üstündə görünür. *@
+            <p class="pbx-route__notice" aria-live="polite">@_notice</p>
+        }
+    </div>
+
+    <div class="pbx-route__bar">
+        <div class="pbx-route__energy" aria-label="@Loc.T($"Enerji {Energy} / {Maximum}", $"Energy {Energy} of {Maximum}")">
+            <span class="pbx-route__energy-icon" aria-hidden="true">⚡</span>
+
+            @* Enerji həm zolaq, həm də RƏQƏMDİR — zolaq tək daşıyıcı deyil. *@
+            <span class="pbx-route__energy-cells" aria-hidden="true">
+                @for (var i = 0; i < Maximum; i++)
+                {
+                    <span class="pbx-route__energy-cell @(i < Energy ? "pbx-route__energy-cell--on" : null)"></span>
+                }
+            </span>
+
+            <span class="pbx-route__energy-value">@Energy/@Maximum</span>
+        </div>
+
+        <button type="button" class="pbx-route__undo"
+                disabled="@(Busy || Route.Count < 2)" @onclick="Undo">
+            ↩ @Loc.T("Geri", "Back")
+        </button>
+    </div>
+
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PetBrainPuzzleDto Puzzle { get; set; } = new();
+
+    /// <summary>Cari marşrut — başlanğıc düyünü daxil olmaqla.</summary>
+    [Parameter, EditorRequired] public List<string> Route { get; set; } = [];
+
+    [Parameter] public bool Busy { get; set; }
+
+    /// <summary>
+    /// Hazır hekayə rəsmi (data URI). YOXDURSA deterministik fon qalır və
+    /// lövhə eyni cür işləyir — toxunuş hədəfləri hər iki halda EYNİ yerdədir.
+    /// </summary>
+    [Parameter] public string? SceneImage { get; set; }
+
+    /// <summary>Marşrut dəyişdi — lövhə valideyn komponentə xəbər verir.</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private string? _notice;
+
+    private PetBrainNodeDto? Node(string id) =>
+        Puzzle.Nodes.FirstOrDefault(n => n.Id == id);
+
+    private PetBrainNodeDto? Head =>
+        Route.Count == 0 ? null : Node(Route[^1]);
+
+    private int Maximum => Puzzle.MaximumEnergy ?? 0;
+
+    private int Cost => Puzzle.MoveCost ?? 1;
+
+    /// <summary>
+    /// Cari enerji — server qaydası ilə EYNİ hesablanır (bax RouteRules).
+    /// Ona görə ekranda görünən rəqəm serverin gördüyü ilə fərqlənmir.
+    /// </summary>
+    private int Energy => EnergyAfter(Route);
+
+    private int EnergyAfter(IReadOnlyList<string> route)
+    {
+        var energy = Puzzle.InitialEnergy ?? 0;
+
+        for (var i = 0; i < route.Count; i++)
+        {
+            if (i > 0)
+            {
+                energy -= Cost;
+            }
+
+            if (Node(route[i]) is { Kind: PetBrainNodeKind.Recharge } node)
+            {
+                energy = Math.Min(Maximum, energy + (node.EnergyDelta ?? 0));
+            }
+        }
+
+        return energy;
+    }
+
+    private bool IsAdjacent(string a, string b) =>
+        Puzzle.Edges.Any(e => (e.From == a && e.To == b) || (e.From == b && e.To == a));
+
+    /// <summary>Marşrutda dalbadal gələn cütdürmü — çəkilmiş xətt üçün.</summary>
+    private bool IsWalked(string a, string b)
+    {
+        for (var i = 1; i < Route.Count; i++)
+        {
+            if ((Route[i - 1] == a && Route[i] == b) || (Route[i - 1] == b && Route[i] == a))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Növbəti addım ola bilərmi. Dəstək rejimində bu, həm də GÖRÜNƏN işarəyə
+    /// çevrilir — cavabı vermir, sadəcə qonşuluğu oxunaqlı edir.
+    /// </summary>
+    private bool IsReachable(string id)
+    {
+        if (Route.Count == 0 || Route.Contains(id))
+        {
+            return false;
+        }
+
+        return Puzzle.AssistHighlight && IsAdjacent(Route[^1], id);
+    }
+
+    private string Kind(PetBrainNodeDto node) => node.Kind switch
+    {
+        PetBrainNodeKind.Start => "start",
+        PetBrainNodeKind.Recharge => "recharge",
+        PetBrainNodeKind.Required => "required",
+        PetBrainNodeKind.Goal => "goal",
+        PetBrainNodeKind.Blocked => "blocked",
+
+        // TƏLƏ düyünü xüsusi görünmür: göründüyü an tələ olmaqdan çıxardı.
+        _ => "path"
+    };
+
+    private string AriaFor(PetBrainNodeDto node, int step)
+    {
+        var suffix = node.Kind switch
+        {
+            PetBrainNodeKind.Recharge => Loc.T($" · enerji +{node.EnergyDelta}", $" · energy +{node.EnergyDelta}"),
+            PetBrainNodeKind.Goal => Loc.T(" · hədəf", " · goal"),
+            _ => string.Empty
+        };
+
+        return step >= 0
+            ? Loc.T($"{node.Label}{suffix} · {step + 1}-ci dayanacaq", $"{node.Label}{suffix} · stop {step + 1}")
+            : $"{node.Label}{suffix}";
+    }
+
+    /// <summary>
+    /// Bir addım. Qaydaya uymayan toxunuş SƏHV CAVAB sayılmır — uşaq hələ
+    /// cavab göndərməyib. O, sadəcə niyə ora gedə bilmədiyini öyrənir və
+    /// planını dəyişir; enerji dərsi məhz burada, dərhal verilir.
+    /// </summary>
+    private async Task Step(string id)
+    {
+        if (Busy)
+        {
+            return;
+        }
+
+        _notice = null;
+
+        // Sonuncu dayanacağa toxunmaq = geri qayıtmaq.
+        if (Route.Count > 1 && Route[^1] == id)
+        {
+            await Undo();
+            return;
+        }
+
+        if (Route.Count == 0 || Route.Contains(id))
+        {
+            return;
+        }
+
+        if (!IsAdjacent(Route[^1], id))
+        {
+            _notice = Loc.T("Oradan bura yol yoxdur.", "There is no path from there to here.");
+            return;
+        }
+
+        if (Node(id) is not { } node)
+        {
+            return;
+        }
+
+        if (node.Kind == PetBrainNodeKind.Blocked)
+        {
+            _notice = Loc.T("Bu yol bağlıdır.", "That way is blocked.");
+            return;
+        }
+
+        // Enerji yoxlaması qabaqcadan aparılır: dron havada qalmamalıdır.
+        if (EnergyAfter([.. Route, id]) < 0)
+        {
+            _notice = Loc.T(
+                "Enerji çatmır — əvvəlcə doldurmaq lazımdır.",
+                "Not enough energy — we need to recharge first.");
+            return;
+        }
+
+        if (Route.Count >= Puzzle.AnswerSchema.Max)
+        {
+            return;
+        }
+
+        Route.Add(id);
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task Undo()
+    {
+        if (Busy || Route.Count < 2)
+        {
+            return;
+        }
+
+        _notice = null;
+        Route.RemoveAt(Route.Count - 1);
+
+        await OnChanged.InvokeAsync();
+    }
+
+    /// <summary>Ehtiyat fon — rəsm gəlməsə də lövhə boş görünmür.</summary>
+    private string BackdropStyle =>
+        $"--pbx-route-art: var(--pbx-art-{(string.IsNullOrEmpty(Puzzle.Scene.OverlayLayout) ? "default" : Puzzle.Scene.OverlayLayout)});";
+}

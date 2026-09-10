@@ -93,6 +93,26 @@ public class GameApiClient : ApiClientBase
             $"api/pet-brain/runs/{runId}/choices",
             new PetBrainChoiceRequest { StageIndex = stageIndex, OptionKey = optionKey }, ct);
 
+    /// <summary>
+    /// Tapmaca cavabı — YALNIZ seçilmiş elementlərin id-ləri.
+    ///
+    /// <para>Sıra ardıcıllıq sxemində əhəmiyyətlidir. Doğruluğu server öz
+    /// saxladığı həllə qarşı müəyyən edir: burada "düzdür", "bal" və ya
+    /// "mükafat" sahəsi ümumiyyətlə yoxdur.</para>
+    /// </summary>
+    public Task<ApiResult<PetBrainRunDto>> SubmitPetBrainPuzzleAsync(
+        Guid runId, int stageIndex, List<string> selectedIds, CancellationToken ct = default) =>
+        PostAsync<PetBrainChoiceRequest, PetBrainRunDto>(
+            $"api/pet-brain/runs/{runId}/choices",
+            new PetBrainChoiceRequest { StageIndex = stageIndex, SelectedIds = selectedIds }, ct);
+
+    /// <summary>İpucu istəyi — mərhələ irəliləmir.</summary>
+    public Task<ApiResult<PetBrainRunDto>> RequestPetBrainHintAsync(
+        Guid runId, int stageIndex, CancellationToken ct = default) =>
+        PostAsync<PetBrainChoiceRequest, PetBrainRunDto>(
+            $"api/pet-brain/runs/{runId}/choices",
+            new PetBrainChoiceRequest { StageIndex = stageIndex, RequestHint = true }, ct);
+
     /// <summary>Mükafat serverdə DƏQİQ BİR DƏFƏ verilir — təkrar çağırış təhlükəsizdir.</summary>
     public Task<ApiResult<PetBrainRunDto>> CompletePetBrainRunAsync(Guid runId, CancellationToken ct = default) =>
         PostAsync<PetBrainRunDto>($"api/pet-brain/runs/{runId}/complete", ct);

@@ -1,0 +1,76 @@
+@inject Loc Loc
+
+@* İşıq parçaları — yaradıcı yolun ekranı.
+
+   Burada DOĞRU/SƏHV yoxdur, ona görə nə "yoxla" dili, nə xəta rəngi, nə də
+   ipucu var. Uşaq nə seçirsə, qanadın üstündəki yuvaya ELƏ O düşür: seçim
+   dərhal səhnədə görünür, "cavabı göndər, sonra nəticəni gör" gözləməsi yoxdur.
+
+   Marsdakı lövhə ilə eyni keyfiyyət həddidir, amma tam başqa qarşılıqlı təsir:
+   orada uşaq DÜŞÜNÜR, burada QURUR. *@
+
+<div class="pbx-fragments">
+
+    <div class="pbx-fragments__wing">
+        @if (!string.IsNullOrEmpty(SceneImage))
+        {
+            <img class="pbx-fragments__art" src="@SceneImage" alt="" aria-hidden="true" />
+        }
+
+        @foreach (var (slot, index) in Puzzle.Slots.Select((s, i) => (s, i)))
+        {
+            var filled = index < Selected.Count ? Item(Selected[index]) : null;
+
+            <span class="pbx-slot @(filled is not null ? "pbx-slot--full" : null)"
+                  style="left:@(slot.X)%; top:@(slot.Y)%"
+                  aria-hidden="true">
+                @(filled?.Icon ?? "·")
+            </span>
+        }
+    </div>
+
+    @if (Puzzle.ClueIcons.Count > 0)
+    {
+        @* Hekayə ipucu naxışın ƏHVALINI xatırladır, cavabı yox — cavab yoxdur. *@
+        <p class="pbx-fragments__clue">
+            <span aria-hidden="true">@string.Concat(Puzzle.ClueIcons)</span>
+            @Loc.T("Qanad belə parıldayırdı…", "This is how the wing used to shine…")
+        </p>
+    }
+
+    <div class="pbx-fragments__grid">
+        @foreach (var item in Puzzle.Items)
+        {
+            var order = Selected.IndexOf(item.Id);
+
+            <button type="button"
+                    class="pbx-piece pbx-cell--@item.Shape @(order >= 0 ? "pbx-piece--on" : null)"
+                    disabled="@Busy"
+                    aria-pressed="@(order >= 0)"
+                    aria-label="@item.Label"
+                    @onclick="() => OnToggle.InvokeAsync(item.Id)">
+                <span class="pbx-piece__icon" aria-hidden="true">@item.Icon</span>
+                <span class="pbx-piece__label">@item.Label</span>
+
+                @if (order >= 0)
+                {
+                    <span class="pbx-piece__mark" aria-hidden="true">✓</span>
+                }
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PetBrainPuzzleDto Puzzle { get; set; } = new();
+    [Parameter, EditorRequired] public List<string> Selected { get; set; } = [];
+    [Parameter] public bool Busy { get; set; }
+
+    /// <summary>Hazır hekayə rəsmi (data URI) — yoxdursa deterministik fon qalır.</summary>
+    [Parameter] public string? SceneImage { get; set; }
+
+    [Parameter] public EventCallback<string> OnToggle { get; set; }
+
+    private PetBrainPuzzleItemDto? Item(string id) =>
+        Puzzle.Items.FirstOrDefault(i => i.Id == id);
+}

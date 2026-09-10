@@ -1,0 +1,184 @@
+@inject Loc Loc
+
+@* Tapmaca lövhəsi — QAPALI mexanika açarını tanınan komponentə bağlayır.
+
+   Server HEÇ VAXT hazır HTML göndərmir: yalnız mexanika açarı, lövhə məlumatı
+   və cavab sxemi gəlir, çəkmək isə tamamilə burada baş verir. Naməlum açar
+   BAĞLI sınır (fail closed) — heç nə render olunmur.
+
+   Seçim vəziyyəti bir yerdədir, çünki dörd mexanikanın hamısı eyni işi görür:
+   sıralı id siyahısı yığır. Fərq TƏQDİMATDADIR — biri xəritədə marşrut çəkir,
+   digəri kartları sıralayır. *@
+
+<div class="pbx-puzzle pbx-puzzle--@MechanicClass">
+
+    @if (!string.IsNullOrWhiteSpace(Puzzle.StoryPrompt))
+    {
+        @* Hekayə cümləsi göstərişdən ƏVVƏL gəlir: uşaq əvvəlcə NİYƏ, sonra
+           NƏ etdiyini bilməlidir. *@
+        <p class="pbx-puzzle__story">@Puzzle.StoryPrompt</p>
+    }
+
+    @switch (Puzzle.Mechanic)
+    {
+        case PetBrainPuzzleMechanic.OrderedRoute:
+            <OrderedRoutePuzzle Puzzle="Puzzle" Route="_selected" Busy="Busy"
+                                SceneImage="@SceneImage" OnChanged="StateHasChanged" />
+            break;
+
+        case PetBrainPuzzleMechanic.SequenceOrder:
+            <SequenceOrderPuzzle Puzzle="Puzzle" Selected="_selected" Busy="Busy" OnToggle="Toggle" />
+            break;
+
+        case PetBrainPuzzleMechanic.RouteLogic:
+            <RouteLogicPuzzle Puzzle="Puzzle" Selected="_selected" Busy="Busy" OnToggle="Toggle" />
+            break;
+
+        case PetBrainPuzzleMechanic.LightFragments:
+            <LightFragmentsPuzzle Puzzle="Puzzle" Selected="_selected" Busy="Busy"
+                                  SceneImage="@SceneImage" OnToggle="Toggle" />
+            break;
+    }
+
+    @* Seçimin vəziyyəti mətnlə də bildirilir — rəng tək daşıyıcı deyil. *@
+    <div class="pbx-puzzle__status" aria-live="polite">@StatusText</div>
+
+    <button class="btn btn--primary btn--block pbx-puzzle__send"
+            disabled="@(Busy || !IsReady)" @onclick="SubmitAsync">
+        @SubmitLabel
+    </button>
+
+    @if (Puzzle.HintAvailable)
+    {
+        @if (!string.IsNullOrWhiteSpace(Puzzle.Hint))
+        {
+            @* İpucu MARAĞI AZALTMIR və mükafatı kəsmir — sadəcə köməkdir. *@
+            <div class="pbx__hint" aria-live="polite">
+                <span aria-hidden="true">💡</span> @Puzzle.Hint
+            </div>
+        }
+        else
+        {
+            <button class="btn btn--ghost btn--block pbx__hint-btn" disabled="@Busy" @onclick="OnHint">
+                💡 @Loc.T("İpucu ver", "Give me a hint")
+            </button>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PetBrainPuzzleDto Puzzle { get; set; } = new();
+
+    [Parameter] public bool Busy { get; set; }
+
+    /// <summary>
+    /// Hazır hekayə rəsmi (data URI) — YOXDURSA lövhə deterministik səhnə ilə
+    /// çəkilir. Həndəsə hər iki halda EYNİDİR: rəsm yalnız fondur.
+    /// </summary>
+    [Parameter] public string? SceneImage { get; set; }
+
+    /// <summary>Cavab serverə YALNIZ id siyahısı kimi gedir.</summary>
+    [Parameter] public EventCallback<List<string>> OnSubmit { get; set; }
+
+    [Parameter] public EventCallback OnHint { get; set; }
+
+    /// <summary>Seçilmiş id-lər — SIRA saxlanılır, çünki ardıcıllıq sxemi ondan asılıdır.</summary>
+    private readonly List<string> _selected = [];
+
+    /// <summary>Tapmaca dəyişəndə (yeni mərhələ, yeni cəhd) seçim sıfırlanır.</summary>
+    private Guid _renderedPuzzleId;
+
+    private bool IsRoute => Puzzle.Mechanic == PetBrainPuzzleMechanic.OrderedRoute;
+
+    protected override void OnParametersSet()
+    {
+        if (_renderedPuzzleId == Puzzle.PuzzleId)
+            return;
+
+        _renderedPuzzleId = Puzzle.PuzzleId;
+        _selected.Clear();
+
+        // Marşrut həmişə başlanğıc düyünündən açılır — dron onsuz da oradadır,
+        // uşağı "əvvəlcə eniş moduluna toxun" addımına məcbur etmək mənasızdır.
+        if (IsRoute && Puzzle.Nodes.FirstOrDefault(n => n.Kind == PetBrainNodeKind.Start) is { } start)
+            _selected.Add(start.Id);
+    }
+
+    /// <summary>
+    /// Göndərməyə hazırdırmı.
+    ///
+    /// <para>Marşrutda şərt say deyil, VARIŞDIR: dron bir yerə çatmalıdır.
+    /// Yarımçıq yol göndərmək uşağa "səhv etdin" eşitdirərdi — halbuki o,
+    /// sadəcə hələ yolda idi.</para>
+    /// </summary>
+    private bool IsReady => IsRoute
+        ? _selected.Count >= Puzzle.AnswerSchema.Min
+            && Puzzle.Nodes.Any(n => n.Id == _selected[^1] && n.Kind == PetBrainNodeKind.Goal)
+        : _selected.Count >= Puzzle.AnswerSchema.Min;
+
+    private string MechanicClass => Puzzle.Mechanic switch
+    {
+        PetBrainPuzzleMechanic.OrderedRoute => "route-map",
+        PetBrainPuzzleMechanic.SequenceOrder => "sequence",
+        PetBrainPuzzleMechanic.RouteLogic => "route",
+        _ => "fragments"
+    };
+
+    /// <summary>
+    /// Təzyiqsiz yolda "yoxla" sözü işlədilmir: orada yoxlanılası doğru cavab
+    /// yoxdur, uşaq sadəcə qurur.
+    /// </summary>
+    private string SubmitLabel => Puzzle.LowPressure
+        ? Loc.T("Hazırdır!", "Done!")
+        : IsRoute
+            ? Loc.T("Dronu göndər", "Send the drone")
+            : Loc.T("Yoxla", "Check");
+
+    private string StatusText
+    {
+        get
+        {
+            if (IsRoute)
+            {
+                return IsReady
+                    ? Loc.T("Marşrut hazırdır", "The route is ready")
+                    : Loc.T("Dronu Roboya çatdır", "Guide the drone to Robo");
+            }
+
+            var remaining = Puzzle.AnswerSchema.Min - _selected.Count;
+
+            if (remaining > 0)
+                return Loc.T($"Daha {remaining} seç", $"Choose {remaining} more");
+
+            return Puzzle.LowPressure
+                ? Loc.T("Gözəl seçimdir!", "Lovely choice!")
+                : Loc.T("Hazırsan — yoxlaya bilərik", "Ready — we can check it");
+        }
+    }
+
+    /// <summary>
+    /// Elementə toxunuş. Hədd dolubsa ƏN KÖHNƏ seçim çıxarılır — uşaq
+    /// "əvvəlcə birini ləğv et" məcburiyyəti ilə üzləşmir.
+    /// </summary>
+    private void Toggle(string id)
+    {
+        if (Busy)
+            return;
+
+        if (_selected.Remove(id))
+            return;
+
+        if (_selected.Count >= Puzzle.AnswerSchema.Max)
+            _selected.RemoveAt(0);
+
+        _selected.Add(id);
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (!IsReady || Busy)
+            return;
+
+        await OnSubmit.InvokeAsync([.. _selected]);
+    }
+}

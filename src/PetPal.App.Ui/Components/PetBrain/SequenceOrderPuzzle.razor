@@ -1,0 +1,35 @@
+@* Ardıcıllıq — seçim SIRASI cavabın özüdür, ona görə hər seçilmiş element
+   üzərində nömrə görünür. Nömrə həm də rəngdən asılı olmayan işarədir. *@
+
+<div class="pbx-sequence">
+    <p class="pbx-sequence__rule">@Puzzle.Instruction</p>
+
+    <div class="pbx-sequence__grid">
+        @foreach (var item in Puzzle.Items)
+        {
+            var index = Selected.IndexOf(item.Id);
+
+            <button type="button"
+                    class="pbx-cell pbx-cell--@item.Shape @(index >= 0 ? "pbx-cell--on" : null)"
+                    disabled="@Busy"
+                    aria-pressed="@(index >= 0)"
+                    aria-label="@item.Label"
+                    @onclick="() => OnToggle.InvokeAsync(item.Id)">
+                <span class="pbx-cell__icon" aria-hidden="true">@item.Icon</span>
+                <span class="pbx-cell__value">@item.Label</span>
+
+                @if (index >= 0)
+                {
+                    <span class="pbx-cell__order" aria-hidden="true">@(index + 1)</span>
+                }
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PetBrainPuzzleDto Puzzle { get; set; } = new();
+    [Parameter, EditorRequired] public List<string> Selected { get; set; } = [];
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public EventCallback<string> OnToggle { get; set; }
+}

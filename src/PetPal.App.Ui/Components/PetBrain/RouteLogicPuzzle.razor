@@ -1,0 +1,35 @@
+@* Marşrut — yollar SƏTİR kimi düzülür, çünki müqayisə olunan şey uzunluqdur.
+   Bağlılıq həm ikonla, həm formayla, həm də mətnlə bildirilir. *@
+
+<div class="pbx-route">
+    <p class="pbx-route__rule">@Puzzle.Instruction</p>
+
+    <div class="pbx-route__list">
+        @foreach (var item in Puzzle.Items)
+        {
+            var chosen = Selected.Contains(item.Id);
+
+            <button type="button"
+                    class="pbx-route__item pbx-cell--@item.Shape @(chosen ? "pbx-route__item--on" : null)"
+                    disabled="@Busy"
+                    aria-pressed="@chosen"
+                    aria-label="@item.Label"
+                    @onclick="() => OnToggle.InvokeAsync(item.Id)">
+                <span class="pbx-route__icon" aria-hidden="true">@item.Icon</span>
+                <span class="pbx-route__label">@item.Label</span>
+
+                @if (chosen)
+                {
+                    <span class="pbx-route__mark" aria-hidden="true">✓</span>
+                }
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PetBrainPuzzleDto Puzzle { get; set; } = new();
+    [Parameter, EditorRequired] public List<string> Selected { get; set; } = [];
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public EventCallback<string> OnToggle { get; set; }
+}

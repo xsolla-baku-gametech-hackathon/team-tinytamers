@@ -28,6 +28,7 @@ using PetPal.Api.Notifications;
 using PetPal.Api.Realtime;
 using PetPal.Api.Parent;
 using PetPal.Api.PetBrain;
+using PetPal.Api.PetBrain.Puzzles;
 using PetPal.Api.Pets;
 using PetPal.Api.Progress;
 using PetPal.Api.Rewards;
@@ -382,6 +383,9 @@ if (petBrainOptions.UseAiNarrative && aiOptions.IsEnabled)
     builder.Services.AddHttpClient<IExperienceNarrativeProvider, AiExperienceNarrativeProvider>();
 else
     builder.Services.AddSingleton<IExperienceNarrativeProvider, TemplateNarrativeProvider>();
+
+// Tapmaca generatoru SAFDIR (I/O, saat və şəbəkə yoxdur) — ona görə singleton.
+builder.Services.AddSingleton<IPersonalizedPuzzleGenerator, DeterministicPuzzleGenerator>();
 
 builder.Services.AddScoped<IBehaviorTracker, BehaviorTracker>();
 builder.Services.AddScoped<IPetBrainService, PetBrainService>();

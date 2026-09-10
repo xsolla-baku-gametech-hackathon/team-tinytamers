@@ -9509,6 +9509,13 @@
     gap: 9px;
 }
 
+/* Tapmaca variantları qısadır (rəqəm) — sıx şəbəkə oxunaqlığı artırır. */
+.pbx-choices--compact {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
 .pbx-choice {
     display: flex;
     align-items: center;
@@ -9566,6 +9573,19 @@
     flex: 0 0 auto;
     font-size: 17px;
     font-weight: 900;
+}
+
+/* Sıx şəbəkədə rəqəm mərkəzdədir və iridir. */
+.pbx-choices--compact .pbx-choice {
+    justify-content: center;
+    min-height: 62px;
+}
+
+.pbx-choices--compact .pbx-choice__body { flex: 0 0 auto; }
+
+.pbx-choices--compact .pbx-choice__label {
+    font-size: 24px;
+    text-align: center;
 }
 
 /* ---------- Səhnə ----------
@@ -10294,4 +10314,621 @@
 }
 
 .pbx-reasons__title + .pbx-reasons { margin-top: 8px; }
+
+/* ---------- Tapmaca lövhəsi ----------
+   Dörd mexanika, dörd təqdimat — amma eyni toxunuş qaydaları: hər hədəf ən azı
+   56px, seçim rənglə YANAŞI nişanla bildirilir, heç bir yerdə taymer yoxdur. */
+
+.pbx-puzzle {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.pbx-puzzle__status {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: var(--pp-ink-soft);
+    text-align: center;
+    min-height: 17px;
+}
+
+.pbx-puzzle__send { margin-top: 2px; }
+
+/* Hekayə cümləsi göstərişdən ƏVVƏL gəlir: uşaq əvvəlcə NİYƏ, sonra NƏ
+   etdiyini bilməlidir. */
+.pbx-puzzle__story {
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 800;
+    line-height: 1.35;
+    text-align: center;
+    color: var(--pp-ink);
+}
+
+/* ---- Ortaq xana ---- */
+
+.pbx-cell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 68px;
+    padding: 8px 6px;
+    border-radius: var(--pp-radius);
+    background: linear-gradient(180deg, var(--pp-card) 0%, var(--pp-card-soft) 100%);
+    box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss);
+    transition: transform 130ms ease, box-shadow 130ms ease;
+}
+
+.pbx-cell:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);
+}
+
+.pbx-cell:disabled { opacity: 0.6; }
+
+/* Seçilmiş xana: rəng DƏYİŞİR, amma tək daşıyıcı deyil — sıra nömrəsi və ya
+   ✓ nişanı da əlavə olunur (bax komponentlər). */
+.pbx-cell--on {
+    background: linear-gradient(180deg, var(--pp-primary-lift) 0%, var(--pp-primary) 100%);
+    color: var(--pp-on-primary);
+    box-shadow: 0 4px 0 var(--pp-primary-edge), var(--pp-shadow-md);
+}
+
+.pbx-cell__icon { font-size: 22px; line-height: 1; }
+
+.pbx-cell__value {
+    font-size: 19px;
+    font-weight: 900;
+    line-height: 1.1;
+}
+
+/* Forma işarəsi xananın küncündə — rəng korluğunda ayırıcı ipucu. */
+.pbx-cell::after {
+    content: "";
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    background: var(--pp-ink-muted);
+    opacity: 0.55;
+}
+
+.pbx-cell--circle::after { border-radius: 50%; }
+.pbx-cell--square::after { border-radius: 2px; }
+.pbx-cell--diamond::after { border-radius: 2px; transform: rotate(45deg); }
+.pbx-cell--triangle::after { clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.pbx-cell--hexagon::after { clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
+
+.pbx-cell--on::after { background: var(--pp-on-primary); opacity: 0.8; }
+
+/* Seçim sırası — ardıcıllıq mexanikasında cavabın ÖZÜdür. */
+.pbx-cell__order {
+    position: absolute;
+    left: 6px;
+    top: 6px;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--pp-card);
+    color: var(--pp-primary-dark);
+    font-size: 12px;
+    font-weight: 900;
+}
+
+/* ---- Marşrut xəritəsi (referans mexanika) ----
+
+   Bu, "variantlar şəbəkəsi" DEYİL: uşaq xəritəyə baxır və dronun yolunu
+   çəkir. Ona görə düyünlər öz coğrafi yerində (normallaşdırılmış faizlə)
+   dayanır, keçidlər isə xətlə görünür.
+
+   Rəsm ATMOSFERDİR — bütün toxunuş hədəfləri bu overlay-dədir, yəni rəsm
+   gəlməsə də lövhə tam işləkdir. */
+
+.pbx-route {
+    position: relative;
+    --pbx-art-mars-signal-route:
+        radial-gradient(120% 80% at 78% 12%, rgba(255, 236, 210, 0.55) 0%, rgba(255, 236, 210, 0) 55%),
+        linear-gradient(180deg, #b6512f 0%, #d4784b 46%, #e8a878 100%);
+    --pbx-art-light-fragments:
+        radial-gradient(100% 70% at 50% 20%, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 60%),
+        linear-gradient(180deg, #4b3d86 0%, #7159b8 55%, #a98ede 100%);
+    --pbx-art-default: linear-gradient(180deg, var(--pp-primary-soft) 0%, var(--pp-card-soft) 100%);
+
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.pbx-route__board {
+    position: relative;
+
+    /* Nisbət RENDER ilə seçilib: 1:1 lövhədə «göndər» düyməsi foldun altına
+       düşürdü, uşaq isə əsas hərəkət üçün sürüşdürməməlidir. */
+    aspect-ratio: 5 / 4;
+    border-radius: var(--pp-radius);
+    overflow: hidden;
+    background: var(--pbx-route-art, var(--pbx-art-default));
+    box-shadow: var(--pp-shadow-sm);
+}
+
+/* Deterministik üfüq və qaya siluetləri.
+
+   Rəsm gəlməsə də lövhə "boş rəngli düzbucaqlı" olmamalıdır — uşaq harada
+   olduğunu görməlidir. Bu iki qat AI-dan ASILI DEYİL və rəsm gələndə onun
+   altında qalır. */
+.pbx-route__board::before {
+    content: "";
+    position: absolute;
+    left: -10%;
+    right: -10%;
+    bottom: -14%;
+    height: 46%;
+    border-radius: 50% 50% 0 0;
+    background: rgba(0, 0, 0, 0.13);
+}
+
+.pbx-route__board::after {
+    content: "";
+    position: absolute;
+    left: -18%;
+    right: 42%;
+    bottom: -22%;
+    height: 44%;
+    border-radius: 50% 50% 0 0;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.pbx-route__art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.pbx-route__lines {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.pbx-route__line {
+    stroke: rgba(255, 255, 255, 0.5);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 5 5;
+}
+
+/* Gedilmiş hissə DOLU xətdir — sıra rəngdən asılı olmayan işarə ilə oxunur. */
+.pbx-route__line--walked {
+    stroke: var(--pp-on-primary);
+    stroke-width: 5;
+    stroke-dasharray: none;
+}
+
+.pbx-node {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.18), var(--pp-shadow-sm);
+    font-size: 21px;
+    line-height: 1;
+    transition: transform 130ms ease, box-shadow 130ms ease;
+}
+
+/* Görünən dairə 44px-dir, TOXUNULAN sahə isə 60px: xəritədə düyünlər bir-birinə
+   yaxındır, ona görə dairəni böyütmək onları üst-üstə salardı. Barmaq üçün
+   sahə görünəndən böyük olmalıdır. */
+.pbx-node::before {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+}
+
+.pbx-node:active:not(:disabled) { transform: translate(-50%, -50%) scale(0.94); }
+
+/* Gedilə bilməyən düyün SÖNÜK olur, amma yox olmur: uşaq xəritənin
+   hamısını görməlidir ki, plan qura bilsin. */
+.pbx-node:disabled { opacity: 0.55; }
+
+.pbx-node--on {
+    background: var(--pp-primary);
+    color: var(--pp-on-primary);
+    box-shadow: 0 3px 0 var(--pp-primary-dark), var(--pp-shadow-md);
+    opacity: 1;
+}
+
+/* Dəstək rejimində növbəti mümkün addımlar nəfəs alır — CAVABI vermir,
+   sadəcə qonşuluğu oxunaqlı edir. */
+.pbx-node--open { outline: 3px solid var(--pp-on-primary); outline-offset: 2px; }
+
+.pbx-node--start { box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-sm); }
+.pbx-node--recharge { background: var(--pp-life-lift); }
+.pbx-node--required { background: var(--pp-spark-lift); }
+.pbx-node--goal { width: 52px; height: 52px; font-size: 26px; }
+.pbx-node--blocked { opacity: 0.45; }
+
+.pbx-node__step {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--pp-card);
+    color: var(--pp-primary-dark);
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.pbx-node__gain {
+    position: absolute;
+    bottom: -7px;
+    padding: 0 5px;
+    border-radius: var(--pp-radius-pill);
+    background: var(--pp-life);
+    color: var(--pp-on-life);
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.pbx-route__drone {
+    position: absolute;
+    transform: translate(-50%, -160%);
+    font-size: 22px;
+    pointer-events: none;
+    transition: left 220ms ease, top 220ms ease;
+}
+
+.pbx-route__bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pbx-route__energy {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border-radius: var(--pp-radius-pill);
+    background: var(--pp-primary-soft);
+}
+
+.pbx-route__energy-icon { font-size: 15px; line-height: 1; }
+
+.pbx-route__energy-cells { display: flex; gap: 3px; }
+
+.pbx-route__energy-cell {
+    width: 9px;
+    height: 15px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.14);
+}
+
+.pbx-route__energy-cell--on { background: var(--pp-life); }
+
+.pbx-route__energy-value {
+    margin-left: auto;
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--pp-primary-dark);
+}
+
+.pbx-route__undo {
+    flex: 0 0 auto;
+    padding: 8px 13px;
+    border-radius: var(--pp-radius-pill);
+    background: var(--pp-card);
+    box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.pbx-route__undo:disabled { opacity: 0.5; }
+
+/* Bu, "səhv etdin" mesajı DEYİL — uşaq hələ cavab göndərməyib. Ona görə
+   xəta rəngi yox, sakit izah rəngi işlədilir.
+
+   Xəritənin ÜSTÜNDƏ üzür, ayrıca sətir tutmur: render göstərdi ki, sətir kimi
+   qoyulanda ipucu ilə birlikdə paneli 36px daşırırdı — yəni uşaq məhz istədiyi
+   ipucunu görmək üçün sürüşdürməli olurdu. Üstəlik mesaj xəritəyə aiddir,
+   deməli yeri də oradır. */
+.pbx-route__notice {
+    position: absolute;
+
+    /* Mesaj xəritənin üstündə üzür, ona görə ALTINDAKI düyünü bloklamamalıdır:
+       əks halda «enerji çatmır» yazısı elə həmin anda başlanğıc düyününə
+       toxunmağı əngəlləyərdi. */
+    pointer-events: none;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    margin: 0;
+    padding: 7px 11px;
+    border-radius: var(--pp-radius-sm);
+    background: rgba(251, 247, 239, 0.94);
+    font-size: 12.5px;
+    font-weight: 800;
+    line-height: 1.3;
+    text-align: center;
+    color: var(--pp-ink);
+}
+
+.pbx-sequence__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 9px;
+    margin-top: 10px;
+}
+
+/* ---- Ardıcıllıq ---- */
+
+.pbx-sequence__rule,
+.pbx-route__rule {
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 800;
+    line-height: 1.3;
+    text-align: center;
+    color: var(--pp-ink-soft);
+}
+
+/* ---- Marşrut ----
+   Yollar SƏTİRDİR: müqayisə olunan şey uzunluqdur, yan-yana duran kvadratlar
+   bunu oxumağı çətinləşdirirdi. */
+
+.pbx-route__list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.pbx-route__item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    min-height: var(--pp-tap);
+    padding: 10px 14px;
+    border-radius: var(--pp-radius);
+    background: linear-gradient(180deg, var(--pp-card) 0%, var(--pp-card-soft) 100%);
+    box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss);
+    text-align: left;
+    transition: transform 130ms ease, box-shadow 130ms ease;
+}
+
+.pbx-route__item:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);
+}
+
+.pbx-route__item:disabled { opacity: 0.6; }
+
+.pbx-route__item--on {
+    background: linear-gradient(180deg, var(--pp-primary-lift) 0%, var(--pp-primary) 100%);
+    color: var(--pp-on-primary);
+    box-shadow: 0 4px 0 var(--pp-primary-edge), var(--pp-shadow-md);
+}
+
+.pbx-route__icon { font-size: 22px; line-height: 1; flex: 0 0 auto; }
+
+.pbx-route__label {
+    flex: 1 1 auto;
+    font-size: 14.5px;
+    font-weight: 800;
+}
+
+.pbx-route__mark { font-size: 17px; font-weight: 900; }
+
+/* ---- İşıq parçaları ----
+   Burada səhv seçim YOXDUR, ona görə moruq (xəta) rəngi ümumiyyətlə
+   işlədilmir və parçalar daha iri göstərilir.
+
+   Seçilən parça DƏRHAL qanadın yuvasına düşür: uşaq nəticəni "göndər"
+   düyməsindən sonra deyil, elə toxunan anda görür. */
+
+.pbx-fragments {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    margin-top: 8px;
+}
+
+.pbx-fragments__wing {
+    position: relative;
+    aspect-ratio: 3 / 2;
+    border-radius: var(--pp-radius);
+    overflow: hidden;
+    background:
+        radial-gradient(100% 70% at 50% 22%, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 62%),
+        linear-gradient(180deg, #4b3d86 0%, #7159b8 55%, #a98ede 100%);
+    box-shadow: var(--pp-shadow-sm);
+}
+
+/* Qanadın deterministik silueti — yuvalar məhz onun üstünə düşür.
+
+   Rəsm gəlməsə də uşaq NƏYİ bəzədiyini görməlidir: boş rəngli düzbucaqlıq
+   "naxışı bərpa et" tapşırığını mənasız edərdi. */
+.pbx-fragments__wing::before {
+    content: "";
+    position: absolute;
+    left: 16%;
+    top: 22%;
+    width: 62%;
+    height: 56%;
+    border-radius: 62% 12% 58% 30%;
+    background: linear-gradient(150deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.1) 70%);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+/* Kristal bağçanın çiçəkləri — atmosfer, qayda daşımır. */
+.pbx-fragments__wing::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -8%;
+    height: 30%;
+    border-radius: 50% 50% 0 0;
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.pbx-fragments__art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.pbx-slot {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px dashed rgba(255, 255, 255, 0.65);
+    background: rgba(255, 255, 255, 0.14);
+    font-size: 20px;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.7);
+    transition: transform 180ms ease, background 180ms ease;
+}
+
+.pbx-slot--full {
+    border-style: solid;
+    border-color: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.9);
+    transform: translate(-50%, -50%) scale(1.12);
+}
+
+.pbx-fragments__clue {
+    margin: 0;
+    font-size: 12.5px;
+    font-weight: 800;
+    line-height: 1.3;
+    text-align: center;
+    color: var(--pp-ink-soft);
+}
+
+/* Parçalar BİR sətirdədir: iki sətir «hazırdır» düyməsini foldun altına
+   itələyirdi. Dörd hədəfin hər biri hələ də 70px+-dır. */
+.pbx-fragments__grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.pbx-fragments__grid .pbx-piece {
+    min-height: 74px;
+    padding: 8px 4px;
+    gap: 2px;
+}
+
+.pbx-fragments__grid .pbx-piece__icon { font-size: 26px; }
+
+.pbx-fragments__grid .pbx-piece__label { font-size: 10.5px; }
+
+.pbx-fragments__grid .pbx-piece__mark { top: 4px; right: 5px; font-size: 13px; }
+
+.pbx-piece {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 88px;
+    padding: 10px;
+    border-radius: var(--pp-radius);
+    background: linear-gradient(180deg, var(--pp-card) 0%, var(--pp-card-soft) 100%);
+    box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-sm), var(--pp-gloss);
+    transition: transform 130ms ease, box-shadow 130ms ease;
+}
+
+.pbx-piece:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 var(--pp-edge-neutral), var(--pp-shadow-sm);
+}
+
+.pbx-piece:disabled { opacity: 0.6; }
+
+.pbx-piece--on {
+    background: linear-gradient(180deg, var(--pp-life-lift) 0%, var(--pp-life) 100%);
+    color: var(--pp-on-life);
+    box-shadow: 0 4px 0 var(--pp-life-edge), var(--pp-shadow-md);
+}
+
+.pbx-piece__icon { font-size: 32px; line-height: 1; }
+
+.pbx-piece__label { font-size: 13px; font-weight: 900; }
+
+.pbx-piece__mark {
+    position: absolute;
+    top: 7px;
+    right: 9px;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+/* ---------- Tapmaca mərhələsində üfüq ----------
+   Tapmaca paneli seçim panelindən HÜNDÜRDÜR (hədəf zolağı + şəbəkə + yoxla +
+   ipucu). İlk renderdə bu, Robonu tamamilə örtdü: uşaq "Roboya kömək et"
+   deyilən ekranda Robonu görmürdü.
+
+   Ona görə tapmaca zamanı üfüq qalxır. Əjdaha istisnadır — onun rəsmi
+   digərlərindən 60px hündürdür və qalxsaydı başlıq zolağına dırmaşardı. */
+.pbx--puzzle .pbx-scene { --pbx-horizon: 66%; }
+
+.pbx--puzzle .pbx-scene--dragon { --pbx-horizon: 52%; }
+
+/* ---------- Öz səhnəsi olan lövhələr ----------
+   Marşrut xəritəsi və əjdahanın qanadı ARTIQ səhnədir. Dekorativ fon onların
+   yanında nə görünür, nə də məna daşıyır — üstəlik xəritədə Robo düyünü ola-ola
+   fonda ikinci Robo çəkmək uşağı çaşdırırdı.
+
+   Ona görə fon geri çəkilir və bütün hündürlük lövhəyə qalır: replika başlığın
+   altına sürüşmür, "göndər" düyməsi isə foldun üstündə qalır. */
+
+.pbx--board .pbx-scene { display: none; }
+
+.pbx--board .pbx__stage { justify-content: flex-start; }
+
+.pbx--board .pbx__stage > :first-child { margin-top: 0; }
+
+.pbx--board .pbx__panel {
+    /* Fon olmadığı üçün panel çərçivənin özü ilə birləşir — kölgə yüngülləşir. */
+    box-shadow: 0 4px 0 var(--pp-edge-neutral), var(--pp-shadow-md);
+}
+
+/* Hərəkət həssaslığı: dronun sürüşməsi tamamilə bəzəkdir — mövqe eyni qalır,
+   yalnız keçid söndürülür. Tapmaca bundan heç nə itirmir. */
+@media (prefers-reduced-motion: reduce) {
+    .pbx-route__drone { transition: none; }
+    .pbx-slot { transition: none; }
+    .pbx-node { transition: none; }
+}
 
