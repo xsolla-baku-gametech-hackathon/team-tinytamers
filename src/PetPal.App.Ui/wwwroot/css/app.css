@@ -12261,3 +12261,252 @@
     line-height: 1.1;
     white-space: nowrap;
 }
+
+/* ---------- Valideyn: Pet Brain profili ----------
+
+   Panelin bir işi var: valideyn TOPLANANI görsün, dəyişsin və silə bilsin.
+   Ona görə layout iki şeyi ayrı saxlayır — «nə sevir» (bal) və «nə bacarır»
+   (ustalıq) fərqli bloklardır, çünki onları qarışdırmaq panelin bütün mənasını
+   itirərdi. */
+
+.ppp__legend,
+.ppp__note {
+    display: flex;
+    gap: 8px;
+    margin: 0 0 10px;
+    color: var(--pp-ink-soft);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.ppp__confidence {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--pp-card-soft);
+    font-size: 14px;
+}
+
+.ppp__block {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 2px solid var(--pp-border);
+}
+
+.ppp__block--mastery {
+    background: var(--pp-card-soft);
+    margin-left: -10px;
+    margin-right: -10px;
+    padding: 14px 10px;
+    border-radius: 14px;
+}
+
+.ppp__block--danger {
+    border-top-color: var(--pp-edge-warn, var(--pp-border));
+}
+
+.ppp__heading {
+    margin: 0 0 8px;
+    font-size: 16px;
+}
+
+.ppp__subheading {
+    margin: 14px 0 6px;
+    font-size: 14px;
+    color: var(--pp-ink-soft);
+}
+
+.ppp__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+}
+
+.ppp__entry,
+.ppp__mastery,
+.ppp__choice {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--pp-card);
+    border: 2px solid var(--pp-border);
+}
+
+.ppp__row-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.ppp__row-name { flex: 1; }
+
+.ppp__band,
+.ppp__choice-kind,
+.ppp__decision-explore {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--pp-card-soft);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.ppp__bars {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 13px;
+}
+
+.ppp__bar-label { min-width: 68px; color: var(--pp-ink-soft); }
+
+.ppp__bar {
+    flex: 1;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--pp-card-soft);
+    overflow: hidden;
+}
+
+.ppp__bar-fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--pp-accent, #4C8DFF);
+}
+
+/* İnam balın YANINDA, amma ondan fərqli görünür: valideyn «72 bal» ilə «72-yə
+   nə qədər inanırıq» arasındakı fərqi bir baxışda tutmalıdır. */
+.ppp__bar-fill--soft {
+    background: repeating-linear-gradient(
+        90deg,
+        var(--pp-ink-soft) 0 4px,
+        transparent 4px 8px);
+}
+
+.ppp__bar-value { min-width: 28px; text-align: right; font-variant-numeric: tabular-nums; }
+
+.ppp__evidence,
+.ppp__empty,
+.ppp__status {
+    margin: 6px 0 0;
+    color: var(--pp-ink-soft);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.ppp__toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 4px 0;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.ppp__toggle input { width: 22px; height: 22px; }
+
+.ppp__field { position: relative; }
+
+.ppp__source {
+    display: inline-block;
+    margin-bottom: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--pp-card-soft);
+    color: var(--pp-ink-soft);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.ppp__select { min-height: 44px; }
+
+.ppp__save,
+.ppp__danger,
+.ppp__export,
+.ppp__decisions,
+.ppp__block-toggle,
+.ppp__confirm-cancel,
+.ppp__confirm-go {
+    min-height: 44px;
+}
+
+.ppp__blocks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+}
+
+.ppp__block-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.ppp__block-toggle { margin-left: auto; }
+
+.ppp__confirm {
+    padding: 12px;
+    border-radius: 12px;
+    border: 2px solid var(--pp-border);
+    background: var(--pp-card-soft);
+}
+
+.ppp__confirm-text { margin: 0 0 8px; font-size: 14px; }
+
+.ppp__confirm-kept {
+    display: flex;
+    gap: 8px;
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: var(--pp-ink-soft);
+}
+
+.ppp__confirm-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.ppp__confirm-actions > .btn { flex: 1; }
+
+.ppp__export-box {
+    max-height: 220px;
+    overflow: auto;
+    margin: 10px 0 0;
+    padding: 10px;
+    border-radius: 12px;
+    background: var(--pp-card-soft);
+    font-size: 11px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.ppp__decisions-list { margin-top: 10px; }
+
+.ppp__decision {
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--pp-card-soft);
+}
+
+.ppp__decision-title { display: block; font-weight: 600; font-size: 13px; }
+
+.ppp__decision-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+    color: var(--pp-ink-soft);
+    font-size: 12px;
+}

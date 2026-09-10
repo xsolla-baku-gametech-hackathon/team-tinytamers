@@ -1,0 +1,827 @@
+@inject ParentApiClient ParentApi
+@inject Loc Loc
+
+<div class="card ppp">
+    <h2 class="card__title">🧠 @Loc.T("Pet Brain profili", "Pet Brain profile")</h2>
+
+    <p class="card__subtitle">
+        @Loc.T("Pet uşağınız haqqında nə öyrənib, bu bilik nəyə təsir edir və istəsəniz necə silinir.",
+               "What the pet has learned about your child, what it affects, and how to erase it.")
+    </p>
+
+    @if (_loading)
+    {
+        <p class="ppp__status" role="status">@Loc.T("Yüklənir…", "Loading…")</p>
+    }
+    else if (_profile is null)
+    {
+        <p class="ppp__status" role="status">
+            @Loc.T("Profil hələ yoxdur — uşaq bir neçə macəra oynayandan sonra burada görünəcək.",
+                   "No profile yet — it will appear here after a few adventures.")
+        </p>
+    }
+    else
+    {
+        <p class="ppp__legend">
+            <span aria-hidden="true">ℹ️</span>
+            <span>
+                @Loc.T("«Bal» — nə qədər sevdiyini düşünürük. «İnam» — bunda nə qədər əminik. İkisi ayrı şeydir.",
+                       "«Score» is how much we think they like it. «Confidence» is how sure we are. They are two different things.")
+            </span>
+        </p>
+
+        <div class="ppp__confidence">
+            <span aria-hidden="true">🎯</span>
+            <span>@Loc.T("Profilin ümumi inamı", "Overall profile confidence"):</span>
+            <strong>@_profile.ProfileConfidence / 100</strong>
+        </div>
+
+        <section class="ppp__block">
+            <h3 class="ppp__heading">@Loc.T("Nə öyrənilib", "What was learned")</h3>
+
+            @RenderEntries(Loc.T("Mövzular", "Topics"), _profile.Interests)
+            @RenderEntries(Loc.T("Oyun üslubu", "Play style"), _profile.PlayStyles)
+            @RenderEntries(Loc.T("Mexanikalar", "Mechanics"), _profile.Mechanics)
+        </section>
+
+        <section class="ppp__block ppp__block--mastery">
+            <h3 class="ppp__heading">@Loc.T("Nəyi bacarır", "What they can do")</h3>
+
+            <p class="ppp__note">
+                @Loc.T("Bu, yuxarıdakından AYRI ölçüdür: bir şeyi sevmək və onu bacarmaq eyni şey deyil.",
+                       "This is a separate measure: liking something and being good at it are not the same.")
+            </p>
+
+            @if (_profile.Mastery.Count == 0)
+            {
+                <p class="ppp__empty">@Loc.T("Hələ ölçüləcək qədər tapmaca oynanmayıb.", "Not enough puzzles played to measure yet.")</p>
+            }
+            else
+            {
+                <ul class="ppp__list">
+                    @foreach (var entry in _profile.Mastery)
+                    {
+                        <li class="ppp__mastery">
+                            <div class="ppp__row-head">
+                                <span aria-hidden="true">@entry.Icon</span>
+                                <span class="ppp__row-name">@entry.Label</span>
+                                <span class="ppp__band">@BandLabel(entry.RecommendedBand)</span>
+                            </div>
+
+                            <div class="ppp__bars">
+                                <span class="ppp__bar-label">@Loc.T("Səviyyə", "Level")</span>
+                                <span class="ppp__bar"><span class="ppp__bar-fill" style="width:@(entry.EstimatedLevel)%"></span></span>
+                                <span class="ppp__bar-value">@entry.EstimatedLevel</span>
+                            </div>
+
+                            <div class="ppp__bars ppp__bars--soft">
+                                <span class="ppp__bar-label">@Loc.T("İnam", "Confidence")</span>
+                                <span class="ppp__bar"><span class="ppp__bar-fill ppp__bar-fill--soft" style="width:@(entry.Confidence)%"></span></span>
+                                <span class="ppp__bar-value">@entry.Confidence</span>
+                            </div>
+
+                            <p class="ppp__evidence">
+                                @Loc.T("Cəhd", "Attempts"): @entry.Attempts ·
+                                @Loc.T("müstəqil", "unaided"): @entry.Successes ·
+                                @Loc.T("köməkli", "assisted"): @entry.AssistedSuccesses ·
+                                @Loc.T("meyl", "trend"): @TrendLabel(entry.RecentTrend)
+                            </p>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+
+        <section class="ppp__block">
+            <h3 class="ppp__heading">@Loc.T("Ayarlar", "Settings")</h3>
+
+            <p class="ppp__note">
+                @Loc.T("Sizin seçiminizi heç bir təxmin əvəz edə bilmir — hər sahənin yanında onu kimin yazdığı görünür.",
+                       "No guess can overwrite your choice — each field shows who set it.")
+            </p>
+
+            <label class="ppp__toggle">
+                <input type="checkbox" @bind="_form.PersonalizationEnabledValue" />
+                <span>@Loc.T("Fərdiləşdirmə açıqdır", "Personalization is on")</span>
+            </label>
+
+            <label class="ppp__toggle">
+                <input type="checkbox" @bind="_form.AiNarrativeEnabledValue" />
+                <span>@Loc.T("Model mətn yazsın", "Let the model write the text")</span>
+            </label>
+
+            <label class="ppp__toggle">
+                <input type="checkbox" @bind="_form.SurpriseEnabledValue" />
+                <span>@Loc.T("Sürpriz təkliflər", "Surprise suggestions")</span>
+            </label>
+
+            @RenderSelect(
+                Loc.T("Sessiya uzunluğu", "Session length"),
+                _profile.Settings.SessionLengthSource,
+                _form.SessionLengthValue,
+                value => _form.SessionLengthValue = value,
+                SessionLengthOptions)
+
+            @RenderSelect(
+                Loc.T("Temp", "Pace"),
+                _profile.Settings.PaceSource,
+                _form.PaceValue,
+                value => _form.PaceValue = value,
+                PaceOptions)
+
+            @RenderSelect(
+                Loc.T("Yeniliyə açıqlıq", "Openness to new things"),
+                _profile.Settings.NoveltyToleranceSource,
+                _form.NoveltyValue,
+                value => _form.NoveltyValue = value,
+                NoveltyOptions)
+
+            @RenderSelect(
+                Loc.T("İpucunun forması", "Hint style"),
+                _profile.Settings.HintStyleSource,
+                _form.HintStyleValue,
+                value => _form.HintStyleValue = value,
+                HintStyleOptions)
+
+            @RenderSelect(
+                Loc.T("İpucu nə vaxt", "When help appears"),
+                _profile.Settings.HintTimingSource,
+                _form.HintTimingValue,
+                value => _form.HintTimingValue = value,
+                HintTimingOptions)
+
+            @RenderSelect(
+                Loc.T("Oxu səviyyəsi", "Reading level"),
+                _profile.Settings.ReadingLevelSource,
+                _form.ReadingLevelValue,
+                value => _form.ReadingLevelValue = value,
+                ReadingLevelOptions)
+
+            @RenderSelect(
+                Loc.T("Mükafat növü", "Reward kind"),
+                _profile.Settings.RewardPreferenceSource,
+                _form.RewardValue,
+                value => _form.RewardValue = value,
+                RewardOptions)
+
+            <h4 class="ppp__subheading">@Loc.T("Dəstək", "Support")</h4>
+
+            <label class="ppp__toggle">
+                <input type="checkbox" @bind="_form.ReducedOptionsValue" />
+                <span>@Loc.T("Daha az variant göstər", "Show fewer options")</span>
+            </label>
+
+            <label class="ppp__toggle">
+                <input type="checkbox" @bind="_form.DemonstrationFirstValue" />
+                <span>@Loc.T("Əvvəlcə nümunə göstər", "Show an example first")</span>
+            </label>
+
+            <label class="ppp__toggle">
+                <input type="checkbox" @bind="_form.ExtraResponseTimeValue" />
+                <span>@Loc.T("Cavab üçün əlavə vaxt", "Extra time to answer")</span>
+            </label>
+
+            <h4 class="ppp__subheading">@Loc.T("Əlçatanlıq", "Accessibility")</h4>
+
+            <label class="ppp__toggle">
+                <input type="checkbox" @bind="_form.ReducedMotionValue" />
+                <span>@Loc.T("Hərəkəti azalt", "Reduce motion")</span>
+            </label>
+
+            <label class="ppp__toggle">
+                <input type="checkbox" @bind="_form.LargeTextValue" />
+                <span>@Loc.T("Böyük şrift", "Large text")</span>
+            </label>
+
+            <label class="ppp__toggle">
+                <input type="checkbox" @bind="_form.HighContrastValue" />
+                <span>@Loc.T("Yüksək kontrast", "High contrast")</span>
+            </label>
+
+            <label class="ppp__toggle">
+                <input type="checkbox" @bind="_form.IconWithTextValue" />
+                <span>@Loc.T("İşarələrin yanında mətn", "Text beside icons")</span>
+            </label>
+
+            <label class="ppp__toggle">
+                <input type="checkbox" @bind="_form.NarrationValue" />
+                <span>@Loc.T("Mətni səsləndir", "Read text aloud")</span>
+            </label>
+
+            <label class="ppp__toggle">
+                <input type="checkbox" @bind="_form.SubtitlesValue" />
+                <span>@Loc.T("Altyazı", "Subtitles")</span>
+            </label>
+
+            <button type="button" class="btn btn--primary btn--block ppp__save"
+                    disabled="@_saving" @onclick="SaveAsync">
+                @(_saving ? Loc.T("Yadda saxlanılır…", "Saving…") : Loc.T("Ayarları yadda saxla", "Save settings"))
+            </button>
+
+            @if (_saved)
+            {
+                <p class="ppp__status" role="status">
+                    <span aria-hidden="true">✅</span>
+                    <span>@Loc.T("Yadda saxlanıldı.", "Saved.")</span>
+                </p>
+            }
+        </section>
+
+        <section class="ppp__block">
+            <h3 class="ppp__heading">@Loc.T("Mövzu blokları", "Blocked topics")</h3>
+
+            <p class="ppp__note">
+                @Loc.T("Bloklanan mövzu ümumiyyətlə təklif olunmur.",
+                       "A blocked topic is never suggested.")
+            </p>
+
+            <ul class="ppp__blocks">
+                @foreach (var theme in _profile.BlockableThemes)
+                {
+                    var blocked = IsBlocked(theme.Key);
+
+                    <li class="ppp__block-row">
+                        <span aria-hidden="true">@theme.Icon</span>
+                        <span class="ppp__row-name">@theme.Label</span>
+
+                        <button type="button"
+                                class="btn btn--ghost ppp__block-toggle"
+                                disabled="@_blocking"
+                                @onclick="() => ToggleBlockAsync(theme.Key, !blocked)">
+                            <span aria-hidden="true">@(blocked ? "🚫" : "✅")</span>
+                            <span>@(blocked ? Loc.T("Bloklanıb", "Blocked") : Loc.T("Açıqdır", "Allowed"))</span>
+                        </button>
+                    </li>
+                }
+            </ul>
+
+            @if (ChildChoices.Count > 0)
+            {
+                <h4 class="ppp__subheading">@Loc.T("Uşağın öz sözü", "What the child said")</h4>
+
+                <p class="ppp__note">
+                    @Loc.T("Bunları uşaq özü seçib. Siz görürsünüz, amma səssizcə dəyişmirsiniz.",
+                           "The child chose these. You can see them, but they are not silently rewritten.")
+                </p>
+
+                <ul class="ppp__list">
+                    @foreach (var choice in ChildChoices)
+                    {
+                        <li class="ppp__choice">
+                            <span aria-hidden="true">@(choice.Kind == PetBrainContentPreferenceKind.Liked ? "💚" : "🔕")</span>
+                            <span class="ppp__row-name">@choice.Label</span>
+                            <span class="ppp__choice-kind">
+                                @(choice.Kind == PetBrainContentPreferenceKind.Liked
+                                    ? Loc.T("bəyənir", "likes")
+                                    : Loc.T("daha az istəyir", "wants less"))
+                            </span>
+                            @if (choice.ExpiresAt is { } expires)
+                            {
+                                <span class="ppp__choice-expiry">@expires.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+
+        <section class="ppp__block ppp__block--danger">
+            <h3 class="ppp__heading">@Loc.T("Sıfırla və ixrac et", "Reset and export")</h3>
+
+            @if (!_confirmingReset)
+            {
+                <button type="button" class="btn btn--ghost ppp__danger" @onclick="() => _confirmingReset = true">
+                    <span aria-hidden="true">🧹</span>
+                    <span>@Loc.T("Öyrənilənləri sıfırla", "Reset what was learned")</span>
+                </button>
+            }
+            else
+            {
+                <div class="ppp__confirm">
+                    <p class="ppp__confirm-text">
+                        @Loc.T("Maraqlar, mexanikalar, ustalıq və uşağın «bəyənirəm»/«daha az göstər» qeydləri silinir.",
+                               "Interests, mechanics, mastery and the child's like / show-less notes are deleted.")
+                    </p>
+
+                    <p class="ppp__confirm-kept">
+                        <span aria-hidden="true">🔒</span>
+                        <span>
+                            @Loc.T("SİLİNMİR: sizin ayarlarınız, mövzu bloklarınız, oynanmış macəralar, mükafatlar və ulduzlar.",
+                                   "NOT deleted: your settings, your topic blocks, finished adventures, rewards and stars.")
+                        </span>
+                    </p>
+
+                    <label class="ppp__toggle">
+                        <input type="checkbox" @bind="_resetMemories" />
+                        <span>@Loc.T("Pet-in xatirələrini də sil", "Also delete the pet's memories")</span>
+                    </label>
+
+                    <div class="ppp__confirm-actions">
+                        <button type="button" class="btn btn--ghost ppp__confirm-cancel"
+                                disabled="@_resetting" @onclick="() => _confirmingReset = false">
+                            @Loc.T("İmtina", "Cancel")
+                        </button>
+
+                        <button type="button" class="btn btn--primary ppp__confirm-go"
+                                disabled="@_resetting" @onclick="ResetAsync">
+                            @(_resetting ? Loc.T("Silinir…", "Deleting…") : Loc.T("Bəli, sıfırla", "Yes, reset"))
+                        </button>
+                    </div>
+                </div>
+            }
+
+            @if (_resetResult is { } result)
+            {
+                <p class="ppp__status" role="status">
+                    <span aria-hidden="true">✅</span>
+                    <span>
+                        @Loc.T($"Silindi: {result.TraitsRemoved} xassə, {result.MasteryRemoved} ustalıq, {result.PreferencesRemoved} seçim, {result.MemoriesRemoved} xatirə.",
+                               $"Deleted: {result.TraitsRemoved} traits, {result.MasteryRemoved} mastery rows, {result.PreferencesRemoved} preferences, {result.MemoriesRemoved} memories.")
+                    </span>
+                </p>
+            }
+
+            <button type="button" class="btn btn--ghost ppp__export" disabled="@_exporting" @onclick="ExportAsync">
+                <span aria-hidden="true">📄</span>
+                <span>@(_exporting ? Loc.T("Hazırlanır…", "Preparing…") : Loc.T("Profili ixrac et", "Export the profile"))</span>
+            </button>
+
+            @if (!string.IsNullOrEmpty(_exportJson))
+            {
+                <pre class="ppp__export-box" tabindex="0">@_exportJson</pre>
+            }
+
+            <button type="button" class="btn btn--ghost ppp__decisions" disabled="@_loadingDecisions" @onclick="LoadDecisionsAsync">
+                <span aria-hidden="true">🕘</span>
+                <span>@Loc.T("Son qərarlar", "Recent decisions")</span>
+            </button>
+
+            @if (_decisions.Count > 0)
+            {
+                <ul class="ppp__list ppp__decisions-list">
+                    @foreach (var decision in _decisions)
+                    {
+                        <li class="ppp__decision">
+                            <span class="ppp__decision-title">@decision.Title</span>
+                            <span class="ppp__decision-meta">
+                                @decision.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")
+                                · @SlotLabel(decision.Slot)
+                                · @FeedbackLabel(decision.Feedback)
+                                @if (decision.WasExploration)
+                                {
+                                    <span class="ppp__decision-explore">@Loc.T("kəşf", "exploration")</span>
+                                }
+                            </span>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    }
+</div>
+
+@code {
+    /// <summary>Panelin göstərdiyi uşaq. Dəyişəndə profil yenidən yüklənir.</summary>
+    [Parameter]
+    [EditorRequired]
+    public Guid ChildId { get; set; }
+
+    private ParentPersonalizationDto? _profile;
+    private readonly SettingsForm _form = new();
+    private readonly List<ParentDecisionEntryDto> _decisions = [];
+
+    private Guid _loadedChildId;
+    private bool _loading = true;
+    private bool _saving;
+    private bool _saved;
+    private bool _blocking;
+    private bool _confirmingReset;
+    private bool _resetMemories;
+    private bool _resetting;
+    private bool _exporting;
+    private bool _loadingDecisions;
+    private string _exportJson = string.Empty;
+    private PetBrainResetResultDto? _resetResult;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedChildId == ChildId)
+            return;
+
+        _loadedChildId = ChildId;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _decisions.Clear();
+        _exportJson = string.Empty;
+        _resetResult = null;
+
+        var result = await ParentApi.GetPersonalizationAsync(ChildId);
+
+        _profile = result.Value;
+        _loading = false;
+
+        if (_profile is not null)
+            _form.Load(_profile.Settings);
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_saving || _profile is null)
+            return;
+
+        _saving = true;
+        _saved = false;
+
+        var result = await ParentApi.UpdatePersonalizationAsync(ChildId, _form.ToRequest());
+
+        _saving = false;
+
+        if (result.Succeeded && result.Value is { } settings)
+        {
+            _profile.Settings = settings;
+            _form.Load(settings);
+            _saved = true;
+        }
+    }
+
+    private async Task ToggleBlockAsync(string themeKey, bool blocked)
+    {
+        if (_blocking)
+            return;
+
+        _blocking = true;
+
+        var result = await ParentApi.SetContentBlockAsync(ChildId, new ParentBlockContentRequest
+        {
+            Scope = PetBrainContentScope.Theme,
+            Key = themeKey,
+            Blocked = blocked
+        });
+
+        _blocking = false;
+
+        if (result.Succeeded)
+            await LoadAsync();
+    }
+
+    private async Task ResetAsync()
+    {
+        if (_resetting)
+            return;
+
+        _resetting = true;
+
+        var result = await ParentApi.ResetPersonalizationAsync(ChildId, _resetMemories);
+
+        _resetting = false;
+        _confirmingReset = false;
+
+        if (!result.Succeeded)
+            return;
+
+        await LoadAsync();
+        _resetResult = result.Value;
+    }
+
+    private async Task ExportAsync()
+    {
+        if (_exporting)
+            return;
+
+        _exporting = true;
+
+        var result = await ParentApi.ExportPersonalizationAsync(ChildId);
+
+        _exporting = false;
+
+        if (result.Succeeded && result.Value is { } export)
+            _exportJson = System.Text.Json.JsonSerializer.Serialize(export, ExportJson);
+    }
+
+    private async Task LoadDecisionsAsync()
+    {
+        if (_loadingDecisions)
+            return;
+
+        _loadingDecisions = true;
+
+        var result = await ParentApi.GetPersonalizationDecisionsAsync(ChildId);
+
+        _loadingDecisions = false;
+
+        _decisions.Clear();
+
+        if (result.Succeeded && result.Value is { } list)
+            _decisions.AddRange(list);
+    }
+
+    /// <summary>Valideynin oxuduğu ixrac — girintili, seçilə və köçürülə bilən.</summary>
+    private static readonly System.Text.Json.JsonSerializerOptions ExportJson = new()
+    {
+        WriteIndented = true
+    };
+
+    private bool IsBlocked(string themeKey) =>
+        _profile is not null
+        && _profile.ContentPreferences.Any(p =>
+            p.Scope == PetBrainContentScope.Theme
+            && p.Key == themeKey
+            && p.Kind == PetBrainContentPreferenceKind.Blocked);
+
+    /// <summary>Uşağın ÖZ qeydləri — valideyn blokları buraya düşmür.</summary>
+    private List<ParentContentPreferenceDto> ChildChoices =>
+        _profile is null
+            ? []
+            : [.. _profile.ContentPreferences.Where(p => p.Kind != PetBrainContentPreferenceKind.Blocked)];
+
+    private RenderFragment RenderEntries(string title, List<ParentProfileEntryDto> entries) => builder =>
+    {
+        var sequence = 0;
+
+        builder.OpenElement(sequence++, "h4");
+        builder.AddAttribute(sequence++, "class", "ppp__subheading");
+        builder.AddContent(sequence++, title);
+        builder.CloseElement();
+
+        if (entries.Count == 0)
+        {
+            builder.OpenElement(sequence++, "p");
+            builder.AddAttribute(sequence++, "class", "ppp__empty");
+            builder.AddContent(sequence++, Loc.T("Hələ heç nə öyrənilməyib.", "Nothing learned yet."));
+            builder.CloseElement();
+
+            return;
+        }
+
+        builder.OpenElement(sequence++, "ul");
+        builder.AddAttribute(sequence++, "class", "ppp__list");
+
+        foreach (var entry in entries)
+        {
+            builder.OpenElement(sequence++, "li");
+            builder.AddAttribute(sequence++, "class", "ppp__entry");
+
+            builder.OpenElement(sequence++, "div");
+            builder.AddAttribute(sequence++, "class", "ppp__row-head");
+            builder.AddContent(sequence++, $"{entry.Icon} {entry.Label}");
+            builder.CloseElement();
+
+            builder.OpenElement(sequence++, "div");
+            builder.AddAttribute(sequence++, "class", "ppp__bars");
+            builder.AddContent(sequence++, $"{Loc.T("Bal", "Score")}: {entry.Score} · {Loc.T("İnam", "Confidence")}: {entry.Confidence}");
+            builder.CloseElement();
+
+            builder.OpenElement(sequence++, "p");
+            builder.AddAttribute(sequence++, "class", "ppp__evidence");
+            builder.AddContent(sequence++, EvidenceLine(entry));
+            builder.CloseElement();
+
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+    };
+
+    private string EvidenceLine(ParentProfileEntryDto entry)
+    {
+        var seen = entry.LastObservedAt is { } at
+            ? at.ToLocalTime().ToString("dd.MM.yyyy")
+            : Loc.T("heç vaxt", "never");
+
+        return $"{Loc.T("Müşahidə", "Observations")}: {entry.ObservationCount} · "
+               + $"{Loc.T("seçdi", "chose")}: {entry.PositiveEvidence} · "
+               + $"{Loc.T("keçdi", "skipped")}: {entry.SkipEvidence} · "
+               + $"{Loc.T("istəmədi", "said no")}: {entry.NegativeEvidence} · "
+               + $"{Loc.T("göründü", "seen")}: {entry.ExposureCount} · "
+               + $"{Loc.T("mənbə", "sources")}: {entry.SourceCount} · "
+               + $"{Loc.T("sonuncu", "last")}: {seen}";
+    }
+
+    private RenderFragment RenderSelect<T>(
+        string label,
+        PetBrainSettingSource source,
+        T current,
+        Action<T> onChange,
+        IReadOnlyList<(T Value, string Label)> options) where T : struct, Enum => builder =>
+    {
+        var sequence = 0;
+
+        builder.OpenElement(sequence++, "label");
+        builder.AddAttribute(sequence++, "class", "field ppp__field");
+
+        builder.OpenElement(sequence++, "span");
+        builder.AddAttribute(sequence++, "class", "field__label");
+        builder.AddContent(sequence++, label);
+        builder.CloseElement();
+
+        builder.OpenElement(sequence++, "span");
+        builder.AddAttribute(sequence++, "class", "ppp__source");
+        builder.AddContent(sequence++, SourceLabel(source));
+        builder.CloseElement();
+
+        builder.OpenElement(sequence++, "select");
+        builder.AddAttribute(sequence++, "class", "field__input ppp__select");
+        builder.AddAttribute(sequence++, "value", current.ToString());
+        builder.AddAttribute(sequence++, "onchange",
+            Microsoft.AspNetCore.Components.EventCallback.Factory.Create<Microsoft.AspNetCore.Components.ChangeEventArgs>(
+                this, args =>
+                {
+                    if (Enum.TryParse<T>(args.Value?.ToString(), out var parsed))
+                        onChange(parsed);
+                }));
+
+        foreach (var (value, text) in options)
+        {
+            builder.OpenElement(sequence++, "option");
+            builder.AddAttribute(sequence++, "value", value.ToString());
+            builder.AddContent(sequence++, text);
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    /// <summary>
+    /// Ayarı KİMİN yazdığı. Blokun bütün mənası budur: valideyn sistemin
+    /// təxminini öz seçimindən ayırd edə bilməlidir.
+    /// </summary>
+    private string SourceLabel(PetBrainSettingSource source) => source switch
+    {
+        PetBrainSettingSource.Parent => Loc.T("siz seçdiniz", "you chose"),
+        PetBrainSettingSource.Child => Loc.T("uşaq seçdi", "the child chose"),
+        PetBrainSettingSource.Onboarding => Loc.T("tanışlıqda seçildi", "chosen at first setup"),
+        PetBrainSettingSource.Inferred => Loc.T("sistem təxmin etdi", "the system guessed"),
+        _ => Loc.T("standart", "default")
+    };
+
+    private string BandLabel(PetBrainDifficulty band) => band switch
+    {
+        PetBrainDifficulty.Easy => Loc.T("rahat", "gentle"),
+        PetBrainDifficulty.Hard => Loc.T("çətin", "hard"),
+        _ => Loc.T("orta", "medium")
+    };
+
+    private string TrendLabel(int trend) => trend switch
+    {
+        > 0 => Loc.T("irəli", "improving"),
+        < 0 => Loc.T("çətinləşir", "struggling"),
+        _ => Loc.T("sabit", "steady")
+    };
+
+    private string SlotLabel(PetBrainRecommendationSlot slot) => slot switch
+    {
+        PetBrainRecommendationSlot.Continuity => Loc.T("davam", "continue"),
+        PetBrainRecommendationSlot.NearbyDiscovery => Loc.T("yaxınlıqda", "nearby"),
+        PetBrainRecommendationSlot.SafeExploration => Loc.T("yeni", "new"),
+        _ => Loc.T("əsas", "primary")
+    };
+
+    private string FeedbackLabel(PetBrainRecommendationFeedback feedback) => feedback switch
+    {
+        PetBrainRecommendationFeedback.Selected => Loc.T("oynadı", "played"),
+        PetBrainRecommendationFeedback.ShowAnother => Loc.T("başqa fikir", "another idea"),
+        PetBrainRecommendationFeedback.NotNow => Loc.T("sonra", "later"),
+        PetBrainRecommendationFeedback.Liked => Loc.T("bəyəndi", "liked"),
+        PetBrainRecommendationFeedback.ShowLess => Loc.T("daha az istədi", "wanted less"),
+        _ => Loc.T("göstərildi", "shown")
+    };
+
+    private IReadOnlyList<(PetBrainSessionLength, string)> SessionLengthOptions =>
+    [
+        (PetBrainSessionLength.Short, Loc.T("qısa", "short")),
+        (PetBrainSessionLength.Medium, Loc.T("orta", "medium")),
+        (PetBrainSessionLength.Long, Loc.T("uzun", "long"))
+    ];
+
+    private IReadOnlyList<(PetBrainPace, string)> PaceOptions =>
+    [
+        (PetBrainPace.Calm, Loc.T("sakit", "calm")),
+        (PetBrainPace.Balanced, Loc.T("balanslı", "balanced")),
+        (PetBrainPace.Fast, Loc.T("sürətli", "fast"))
+    ];
+
+    private IReadOnlyList<(PetBrainNoveltyTolerance, string)> NoveltyOptions =>
+    [
+        (PetBrainNoveltyTolerance.Low, Loc.T("tanış qalsın", "keep it familiar")),
+        (PetBrainNoveltyTolerance.Balanced, Loc.T("balanslı", "balanced")),
+        (PetBrainNoveltyTolerance.High, Loc.T("yeni şeylər", "new things"))
+    ];
+
+    private IReadOnlyList<(PetBrainHintStyle, string)> HintStyleOptions =>
+    [
+        (PetBrainHintStyle.Visual, Loc.T("göstərərək", "by showing")),
+        (PetBrainHintStyle.StepByStep, Loc.T("addım-addım", "step by step")),
+        (PetBrainHintStyle.Example, Loc.T("nümunə ilə", "with an example")),
+        (PetBrainHintStyle.Rule, Loc.T("qayda ilə", "with the rule"))
+    ];
+
+    private IReadOnlyList<(PetBrainHintTiming, string)> HintTimingOptions =>
+    [
+        (PetBrainHintTiming.OnRequest, Loc.T("istəyəndə", "when asked")),
+        (PetBrainHintTiming.Delayed, Loc.T("bir neçə cəhddən sonra", "after a few tries")),
+        (PetBrainHintTiming.Immediate, Loc.T("dərhal", "right away"))
+    ];
+
+    private IReadOnlyList<(PetBrainReadingLevel, string)> ReadingLevelOptions =>
+    [
+        (PetBrainReadingLevel.Simple, Loc.T("sadə", "simple")),
+        (PetBrainReadingLevel.Standard, Loc.T("standart", "standard")),
+        (PetBrainReadingLevel.Rich, Loc.T("geniş", "rich"))
+    ];
+
+    private IReadOnlyList<(PetBrainRewardPreference, string)> RewardOptions =>
+    [
+        (PetBrainRewardPreference.PetCosmetic, Loc.T("pet geyimi", "pet outfit")),
+        (PetBrainRewardPreference.RoomDecor, Loc.T("otaq bəzəyi", "room decor")),
+        (PetBrainRewardPreference.Collection, Loc.T("kolleksiya", "collection")),
+        (PetBrainRewardPreference.StoryPage, Loc.T("albom səhifəsi", "album page")),
+        (PetBrainRewardPreference.CreativeTool, Loc.T("yaradıcı alət", "creative tool"))
+    ];
+
+    /// <summary>
+    /// Formanın yerli vəziyyəti.
+    ///
+    /// <para>Sorğu müqaviləsi nullable-dır (yalnız göndərilən sahə dəyişir),
+    /// amma forma üçün hər sahənin dəyəri olmalıdır. Bu sinif ikisi arasında
+    /// dayanır: ekrandan dolur, sorğuya isə tam dəst kimi gedir.</para>
+    /// </summary>
+    private sealed class SettingsForm
+    {
+        public bool PersonalizationEnabledValue { get; set; } = true;
+        public bool AiNarrativeEnabledValue { get; set; } = true;
+        public bool SurpriseEnabledValue { get; set; } = true;
+
+        public PetBrainSessionLength SessionLengthValue { get; set; } = PetBrainSessionLength.Medium;
+        public PetBrainPace PaceValue { get; set; } = PetBrainPace.Balanced;
+        public PetBrainNoveltyTolerance NoveltyValue { get; set; } = PetBrainNoveltyTolerance.Balanced;
+        public PetBrainHintStyle HintStyleValue { get; set; } = PetBrainHintStyle.Visual;
+        public PetBrainHintTiming HintTimingValue { get; set; } = PetBrainHintTiming.OnRequest;
+        public PetBrainReadingLevel ReadingLevelValue { get; set; } = PetBrainReadingLevel.Standard;
+        public PetBrainRewardPreference RewardValue { get; set; } = PetBrainRewardPreference.PetCosmetic;
+
+        public bool ReducedOptionsValue { get; set; }
+        public bool DemonstrationFirstValue { get; set; }
+        public bool ExtraResponseTimeValue { get; set; }
+
+        public bool ReducedMotionValue { get; set; }
+        public bool LargeTextValue { get; set; }
+        public bool HighContrastValue { get; set; }
+        public bool IconWithTextValue { get; set; }
+        public bool NarrationValue { get; set; }
+        public bool SubtitlesValue { get; set; } = true;
+
+        public void Load(PetBrainSettingsDto settings)
+        {
+            PersonalizationEnabledValue = settings.PersonalizationEnabled;
+            AiNarrativeEnabledValue = settings.AiNarrativeEnabled;
+            SurpriseEnabledValue = settings.SurpriseEnabled;
+
+            SessionLengthValue = settings.SessionLength;
+            PaceValue = settings.Pace;
+            NoveltyValue = settings.NoveltyTolerance;
+            HintStyleValue = settings.HintStyle;
+            HintTimingValue = settings.HintTiming;
+            ReadingLevelValue = settings.ReadingLevel;
+            RewardValue = settings.RewardPreference;
+
+            ReducedOptionsValue = settings.ReducedOptions;
+            DemonstrationFirstValue = settings.DemonstrationFirst;
+            ExtraResponseTimeValue = settings.ExtraResponseTime;
+
+            ReducedMotionValue = settings.ReducedMotion;
+            LargeTextValue = settings.LargeText;
+            HighContrastValue = settings.HighContrast;
+            IconWithTextValue = settings.IconWithText;
+            NarrationValue = settings.Narration;
+            SubtitlesValue = settings.Subtitles;
+        }
+
+        public UpdateParentPersonalizationRequest ToRequest() => new()
+        {
+            PersonalizationEnabled = PersonalizationEnabledValue,
+            AiNarrativeEnabled = AiNarrativeEnabledValue,
+            SurpriseEnabled = SurpriseEnabledValue,
+            SessionLength = SessionLengthValue,
+            Pace = PaceValue,
+            NoveltyTolerance = NoveltyValue,
+            HintStyle = HintStyleValue,
+            HintTiming = HintTimingValue,
+            ReadingLevel = ReadingLevelValue,
+            RewardPreference = RewardValue,
+            ReducedOptions = ReducedOptionsValue,
+            DemonstrationFirst = DemonstrationFirstValue,
+            ExtraResponseTime = ExtraResponseTimeValue,
+            ReducedMotion = ReducedMotionValue,
+            LargeText = LargeTextValue,
+            HighContrast = HighContrastValue,
+            IconWithText = IconWithTextValue,
+            Narration = NarrationValue,
+            Subtitles = SubtitlesValue
+        };
+    }
+}

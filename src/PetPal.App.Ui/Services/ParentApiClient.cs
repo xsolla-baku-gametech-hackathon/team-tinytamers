@@ -1,6 +1,7 @@
 using PetPal.Shared.Dtos.Auth;
 using PetPal.Shared.Dtos.Discovery;
 using PetPal.Shared.Dtos.Parent;
+using PetPal.Shared.Dtos.PetBrain;
 
 namespace PetPal.App.Ui.Services;
 
@@ -15,6 +16,36 @@ public class ParentApiClient : ApiClientBase
 
     public Task<ApiResult<ParentDashboardDto>> GetDashboardAsync(Guid childId, CancellationToken ct = default) =>
         GetAsync<ParentDashboardDto>($"api/parent/children/{childId}/dashboard", ct);
+
+    public Task<ApiResult<ParentPersonalizationDto>> GetPersonalizationAsync(
+        Guid childId, CancellationToken ct = default) =>
+        GetAsync<ParentPersonalizationDto>(
+            $"api/parent/pet-brain/children/{childId}/personalization", ct);
+
+    public Task<ApiResult<PetBrainSettingsDto>> UpdatePersonalizationAsync(
+        Guid childId, UpdateParentPersonalizationRequest request, CancellationToken ct = default) =>
+        PutAsync<UpdateParentPersonalizationRequest, PetBrainSettingsDto>(
+            $"api/parent/pet-brain/children/{childId}/personalization", request, ct);
+
+    public Task<ApiResult<bool>> SetContentBlockAsync(
+        Guid childId, ParentBlockContentRequest request, CancellationToken ct = default) =>
+        PostAsync<ParentBlockContentRequest, bool>(
+            $"api/parent/pet-brain/children/{childId}/personalization/blocks", request, ct);
+
+    public Task<ApiResult<PetBrainResetResultDto>> ResetPersonalizationAsync(
+        Guid childId, bool includeMemories, CancellationToken ct = default) =>
+        DeleteAsync<PetBrainResetResultDto>(
+            $"api/parent/pet-brain/children/{childId}/personalization?includeMemories={(includeMemories ? "true" : "false")}", ct);
+
+    public Task<ApiResult<PetBrainProfileExportDto>> ExportPersonalizationAsync(
+        Guid childId, CancellationToken ct = default) =>
+        GetAsync<PetBrainProfileExportDto>(
+            $"api/parent/pet-brain/children/{childId}/personalization/export", ct);
+
+    public Task<ApiResult<List<ParentDecisionEntryDto>>> GetPersonalizationDecisionsAsync(
+        Guid childId, CancellationToken ct = default) =>
+        GetAsync<List<ParentDecisionEntryDto>>(
+            $"api/parent/pet-brain/children/{childId}/personalization/decisions", ct);
 
     /// <summary>Uşağın dilini dəyişir — app-in bütün mətni bu dilə keçir.</summary>
     public Task<ApiResult<ChildSummaryDto>> UpdateLanguageAsync(
