@@ -120,6 +120,16 @@ public class GameApiClient : ApiClientBase
     public Task<ApiResult<PetBrainRunDto>> AbandonPetBrainRunAsync(Guid runId, CancellationToken ct = default) =>
         PostAsync<PetBrainRunDto>($"api/pet-brain/runs/{runId}/abandon", ct);
 
+    /// <summary>
+    /// Tapmacanın hekayə rəsmi.
+    ///
+    /// <para>Ünvan app-in ÖZ, sahiblik yoxlanan endpoint-idir — provayderin
+    /// URL-i klientə heç vaxt çatmır. Bayt <c>data:</c> URI-yə çevrilir, çünki
+    /// <c>&lt;img src&gt;</c> bearer başlığı daşıya bilmir.</para>
+    /// </summary>
+    public Task<ApiResult<string>> GetPetBrainIllustrationAsync(Guid puzzleId, CancellationToken ct = default) =>
+        GetDataUrlAsync($"api/pet-brain/puzzles/{puzzleId}/illustration", ct);
+
     // ---------- Learning ----------
     public Task<ApiResult<LearningSessionDto>> StartSessionAsync(StartSessionRequest request, CancellationToken ct = default) =>
         PostAsync<StartSessionRequest, LearningSessionDto>("api/learn/sessions", request, ct);

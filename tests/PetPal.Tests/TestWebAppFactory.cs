@@ -16,7 +16,30 @@ namespace PetPal.Tests;
 /// </summary>
 public class TestWebAppFactory : WebApplicationFactory<Program>
 {
-    private readonly SqliteConnection _connection = new("DataSource=:memory:");
+    /// <summary>
+    /// Hər fixture üçün AYRICA adlandırılmış in-memory baza.
+    ///
+    /// <para>Vacib olan <c>cache=shared</c>-dır: onsuz bütün DbContext-lər
+    /// EYNİ <see cref="SqliteConnection"/> obyektini bölüşməli olurdu, o isə
+    /// thread-safe deyil. Sorğu-cavab axını təkbaşına işləyəndə bu bilinmirdi,
+    /// amma arxa fon işçisi eyni vaxtda yazanda sorğular təsadüfi 500 alırdı.</para>
+    ///
+    /// <para>İndi hər kontekst öz bağlantısını açır; aşağıdakı bağlantı isə
+    /// yalnız bazanı YAŞADIR — sonuncu bağlantı bağlananda in-memory baza
+    /// silinir.</para>
+    /// </summary>
+    private readonly string _databaseName = $"petpal-{Guid.NewGuid():N}";
+
+    private readonly SqliteConnection _connection;
+
+    public TestWebAppFactory()
+    {
+        _connection = new SqliteConnection(ConnectionString);
+        _connection.Open();
+    }
+
+    private string ConnectionString =>
+        $"DataSource=file:{_databaseName}?mode=memory&cache=shared";
 
     /// <summary>Testlər vaxtı irəli sürə bilsin deyə saat sabitlənir.</summary>
     public FakeTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 8, 4, 9, 0, 0, TimeSpan.Zero));
@@ -68,7 +91,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
             foreach (var descriptor in toRemove)
                 services.Remove(descriptor);
 
-            services.AddDbContext<AppDbContext>(options => options.UseSqlite(_connection));
+            services.AddDbContext<AppDbContext>(options => options.UseSqlite(ConnectionString));
 
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Clock);

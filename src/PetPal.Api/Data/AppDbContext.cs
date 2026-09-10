@@ -40,6 +40,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<PetMemory> PetMemories => Set<PetMemory>();
     public DbSet<ExperienceRun> ExperienceRuns => Set<ExperienceRun>();
     public DbSet<IssuedPuzzle> IssuedPuzzles => Set<IssuedPuzzle>();
+    public DbSet<PuzzleIllustration> PuzzleIllustrations => Set<PuzzleIllustration>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -449,6 +450,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             e.Property(x => x.Seed).HasMaxLength(64).IsRequired();
             e.Property(x => x.ContentSignature).HasMaxLength(64).IsRequired();
 
+            // Səhnə hash-ı tapmacanı rəsm sətri ilə bağlayır. Rəsm PAYLAŞILA
+            // bilər (səhnə təsvirində uşağa aid heç nə yoxdur), ona görə əlaqə
+            // xarici açar deyil, hash-dır.
+            e.Property(x => x.SceneSpecHash).HasMaxLength(64).IsRequired();
+
             // Məzmun və həll JSON mətnidir; həll HEÇ BİR DTO-ya düşmür.
             e.Property(x => x.PublicPayload).HasMaxLength(4000).IsRequired();
             e.Property(x => x.PrivateSolution).HasMaxLength(1000).IsRequired();
@@ -472,6 +478,22 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                 .WithMany(r => r.Puzzles)
                 .HasForeignKey(x => x.ExperienceRunId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<PuzzleIllustration>(e =>
+        {
+            e.Property(x => x.SceneSpecHash).HasMaxLength(64).IsRequired();
+            e.Property(x => x.BlueprintKey).HasMaxLength(40).IsRequired();
+            e.Property(x => x.Provider).HasMaxLength(40).IsRequired();
+            e.Property(x => x.Model).HasMaxLength(80).IsRequired();
+            e.Property(x => x.PromptHash).HasMaxLength(64).IsRequired();
+            e.Property(x => x.AssetKey).HasMaxLength(120).IsRequired();
+            e.Property(x => x.ContentType).HasMaxLength(40).IsRequired();
+            e.Property(x => x.FailureReason).HasMaxLength(60).IsRequired();
+
+            // BİR SƏHNƏ → BİR PULLU SORĞU. Təminat yaddaşda deyil, məhz
+            // buradadır: iki eyni vaxtlı sorğudan ikincisi bazada dayanır.
+            e.HasIndex(x => x.SceneSpecHash).IsUnique();
         });
 
         builder.Entity<TeamMissionMember>(e =>

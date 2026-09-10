@@ -28,6 +28,7 @@ using PetPal.Api.Notifications;
 using PetPal.Api.Realtime;
 using PetPal.Api.Parent;
 using PetPal.Api.PetBrain;
+using PetPal.Api.PetBrain.Media;
 using PetPal.Api.PetBrain.Puzzles;
 using PetPal.Api.Pets;
 using PetPal.Api.Progress;
@@ -386,6 +387,50 @@ else
 
 // Tapmaca generatoru SAFDIR (I/O, saat və şəbəkə yoxdur) — ona görə singleton.
 builder.Services.AddSingleton<IPersonalizedPuzzleGenerator, DeterministicPuzzleGenerator>();
+
+// ---------- Media (rəsm + recap videosu) ----------
+// Standart PROVAYDERSİZDİR: heç bir xarici çağırış getmir, heç nə xərclənmir
+// və hər şey deterministik ehtiyatla tam işləyir. Açar verilməsə də app
+// qalxır — bu, sınaq deyil, məhsul qərarıdır.
+builder.Services.Configure<PetBrainMediaOptions>(
+    builder.Configuration.GetSection(PetBrainMediaOptions.SectionName));
+builder.Services.Configure<RunwayOptions>(builder.Configuration.GetSection(RunwayOptions.SectionName));
+
+var mediaOptions = builder.Configuration
+    .GetSection(PetBrainMediaOptions.SectionName)
+    .Get<PetBrainMediaOptions>() ?? new PetBrainMediaOptions();
+
+builder.Services.AddSingleton<MediaCircuitBreaker>();
+builder.Services.AddSingleton<PetBrainMediaCostPolicy>();
+
+if (mediaOptions.Provider == PetBrainMediaProvider.Runway)
+    builder.Services.AddHttpClient<IRunwayTaskClient, RunwayTaskClient>();
+
+// Rəsm ATMOSFERDİR: düyünlər, qaydalar, toxunuş hədəfləri və cavab
+// deterministik overlay-dədir. Provayder nə seçilirsə seçilsin, tapmaca
+// dəyişmir.
+switch (mediaOptions.Provider)
+{
+    case PetBrainMediaProvider.Runway:
+        builder.Services.AddSingleton<IPuzzleIllustrationProvider, RunwayPuzzleIllustrationProvider>();
+        break;
+
+    // Köhnə OpenAI-uyğun adapter SİLİNMİR, amma yalnız AÇIQ seçiləndə işləyir.
+    // Onun video qatı yoxdur — recap deterministik qalır.
+    case PetBrainMediaProvider.OpenAiCompatibleImage
+        when petBrainOptions.UseAiIllustration && !string.IsNullOrWhiteSpace(petBrainOptions.IllustrationModel):
+        builder.Services.AddHttpClient<IPuzzleIllustrationProvider, AiPuzzleIllustrationProvider>();
+        break;
+
+    default:
+        builder.Services.AddSingleton<IPuzzleIllustrationProvider, DisabledPuzzleIllustrationProvider>();
+        break;
+}
+
+builder.Services.AddSingleton<IPuzzleIllustrationStore, LocalPuzzleIllustrationStore>();
+builder.Services.AddSingleton<PuzzleIllustrationQueue>();
+builder.Services.AddScoped<PuzzleIllustrationCoordinator>();
+builder.Services.AddHostedService<PuzzleIllustrationWorker>();
 
 builder.Services.AddScoped<IBehaviorTracker, BehaviorTracker>();
 builder.Services.AddScoped<IPetBrainService, PetBrainService>();

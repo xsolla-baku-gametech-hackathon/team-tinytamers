@@ -10932,3 +10932,131 @@
     .pbx-node { transition: none; }
 }
 
+/* ---------- Macəranın 10 saniyəlik xülasəsi ----------
+   İki qat, bir hekayə: hazır video, yoxsa deterministik storyboard. Altyazılar
+   HƏR İKİSİNDƏ eynidir və serverdən gəlir — model kiçik uyğunsuzluq versə də
+   uşağın oxuduğu şey onun həqiqətən seçdiyidir. */
+
+/* Klip PORTRETDİR (9:16). Tam enə açılsaydı 594px hündürlük istəyərdi və
+   «Əla!» düyməsi foldun altına düşərdi — render bunu göstərdi. Ona görə klip
+   dar sütunda, altyazılar isə yanındadır: hər ikisi eyni anda görünür. */
+.pbx-recap {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 10px;
+    align-items: start;
+    margin: 12px 0 10px;
+}
+
+.pbx-recap__video,
+.pbx-recap__stage {
+    width: 130px;
+    aspect-ratio: 9 / 16;
+    border-radius: var(--pp-radius-sm);
+    overflow: hidden;
+    background: var(--pp-card-soft);
+}
+
+.pbx-recap__video {
+    display: block;
+    object-fit: cover;
+}
+
+.pbx-recap__stage {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Deterministik fon — səhnəyə uyğun, amma qayda daşımır. */
+.pbx-recap__board {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.pbx-recap__board--mars {
+    background: linear-gradient(180deg, #b6512f 0%, #d4784b 55%, #e8a878 100%);
+}
+
+.pbx-recap__board--dragon {
+    background: linear-gradient(180deg, #4b3d86 0%, #7159b8 55%, #a98ede 100%);
+}
+
+.pbx-recap__shot {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.28);
+    font-size: 17px;
+    line-height: 1;
+    opacity: 0.55;
+    transition: transform 220ms ease, opacity 220ms ease;
+}
+
+.pbx-recap__shot--on {
+    opacity: 1;
+    transform: scale(1.25);
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.pbx-recap__bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 7px 9px;
+    background: rgba(0, 0, 0, 0.16);
+}
+
+.pbx-recap__control {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--pp-card);
+    box-shadow: var(--pp-shadow-sm);
+    font-size: 14px;
+}
+
+/* Altyazılar HAMISI birdən oxunur — uşaq tələsmir. */
+.pbx-recap__captions {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.pbx-recap__caption {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 6px 8px;
+    border-radius: var(--pp-radius-sm);
+    background: var(--pp-card-soft);
+    font-size: 11.5px;
+    font-weight: 800;
+    line-height: 1.3;
+    color: var(--pp-ink-soft);
+}
+
+.pbx-recap__caption--on {
+    background: var(--pp-primary-soft);
+    color: var(--pp-primary-dark);
+}
+
+.pbx-recap__caption-icon { font-size: 15px; line-height: 1; flex: 0 0 auto; }
+
+/* Hərəkət həssaslığı: kadr vurğusu sıçramır — mətn onsuz da tam oxunandır. */
+@media (prefers-reduced-motion: reduce) {
+    .pbx-recap__shot { transition: none; }
+    .pbx-recap__shot--on { transform: none; }
+}
