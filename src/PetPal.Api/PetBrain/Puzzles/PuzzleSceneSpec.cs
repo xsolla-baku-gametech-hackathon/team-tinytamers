@@ -99,6 +99,10 @@ public sealed record PuzzleSceneSpec(
             "Mars dərəsində eniş modulu, günəş stansiyası, rabitə antenası və dost robot.",
             "A Martian canyon with a lander, a solar station, a relay antenna and a friendly robot."),
 
+        PuzzleBlueprintCatalog.MoonCrystalRouteKey => Localized.T(Language,
+            "Ay krateri: ay modulu, işıq gölməçəsi, güzgü sahəsi və sönmüş kristal.",
+            "A Moon crater: the lander, a glow pool, a mirror field and a dimmed crystal."),
+
         PuzzleBlueprintCatalog.LightFragmentsKey => Localized.T(Language,
             "Kristal bağçada mehriban əjdaha — qanadının naxışı hələ solğundur.",
             "A friendly dragon in a crystal garden — the pattern on its wing is still faded."),
@@ -132,6 +136,18 @@ public sealed record PuzzleSceneSpec(
             PetSpecies: petSpecies,
             PetColor: petColor,
             Props: ["lander", "solar-array", "relay-antenna", "rounded-rocks", "friendly-robot"],
+            QuietZones: ["central-travel-corridor", "six-node-anchors"],
+            Language: language),
+
+            PuzzleBlueprintCatalog.MoonCrystalRouteKey => new(
+            blueprint.Key, blueprint.Version, template.Key,
+            StoryBeat: "dimmed-crystal-on-the-moon",
+            Environment: "lunar-crater",
+            Mood: "calm-wonder",
+            Palette: "silver-and-deep-blue",
+            PetSpecies: petSpecies,
+            PetColor: petColor,
+            Props: ["moon-lander", "glow-pool", "mirror-field", "rounded-craters", "large-crystal"],
             QuietZones: ["central-travel-corridor", "six-node-anchors"],
             Language: language),
 

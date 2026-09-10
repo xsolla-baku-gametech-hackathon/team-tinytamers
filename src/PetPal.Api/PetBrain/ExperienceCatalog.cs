@@ -42,6 +42,17 @@ public sealed record ExperienceStage(
 /// </summary>
 public sealed record ExperienceTemplate(
     string Key,
+
+    /// <summary>
+    /// Tərifin versiyası. Mərhələ sayı, variant açarları və ya qiymətləndirmə
+    /// dəyişəndə ARTIRILIR.
+    ///
+    /// <para>Yarımçıq run başladığı versiyanı yadda saxlayır (bax
+    /// <see cref="Entities.ExperienceRun.DefinitionVersion"/>), yəni deploy
+    /// zamanı uşağın açıq macərası qəflətən başqa qaydalarla qiymətləndirilmir.</para>
+    /// </summary>
+    int Version,
+
     PetBrainExperienceType Type,
     string Theme,
     string ActivityType,
@@ -83,6 +94,16 @@ public sealed record ExperienceTemplate(
 }
 
 /// <summary>
+/// Versiyalı tərif axtarışının nəticəsi.
+/// </summary>
+/// <param name="Template">Tapılan tərif; kataloqda ümumiyyətlə yoxdursa <c>null</c>.</param>
+/// <param name="Exact">
+/// Run-ın başladığı versiya ilə cari tərif eynidirmi. <c>false</c> olanda tərif
+/// oxunur, amma çağıran onu «köhnəlmiş» sayır.
+/// </param>
+public sealed record ExperienceLookup(ExperienceTemplate? Template, bool Exact);
+
+/// <summary>
 /// Təsdiqlənmiş təcrübə kataloqu.
 ///
 /// <para>Direktor YALNIZ buradan seçir. Kataloqdakı hər şablon tam oynanandır —
@@ -110,6 +131,7 @@ public static class ExperienceCatalog
         // ================= A: Marsda Robo Xilasetmə =================
         new(
             Key: MarsRoverRescue,
+            Version: 1,
             Type: PetBrainExperienceType.Adventure,
             Theme: TraitKeys.Space,
             ActivityType: "exploration-puzzle",
@@ -181,6 +203,7 @@ public static class ExperienceCatalog
         // ================= B: Rənglərini İtirmiş Əjdaha =================
         new(
             Key: DragonLostColors,
+            Version: 1,
             Type: PetBrainExperienceType.Creative,
             Theme: TraitKeys.Fantasy,
             ActivityType: "creative-design",
@@ -278,6 +301,7 @@ public static class ExperienceCatalog
         // ================= Ayda Kristal (kosmos — Marsın "yaxın qonşusu") =================
         new(
             Key: MoonCrystalRescue,
+            Version: 1,
             Type: PetBrainExperienceType.Adventure,
             Theme: TraitKeys.Space,
             ActivityType: "exploration-puzzle",
@@ -349,6 +373,7 @@ public static class ExperienceCatalog
         // ================= Okeanda İşıq =================
         new(
             Key: OceanGlowQuest,
+            Version: 1,
             Type: PetBrainExperienceType.Adventure,
             Theme: TraitKeys.Ocean,
             ActivityType: "exploration-puzzle",
@@ -420,6 +445,7 @@ public static class ExperienceCatalog
         // ================= Meşə Dostları Karnavalı =================
         new(
             Key: ForestFriendsParade,
+            Version: 1,
             Type: PetBrainExperienceType.Creative,
             Theme: TraitKeys.Animals,
             ActivityType: "creative-design",
@@ -501,6 +527,7 @@ public static class ExperienceCatalog
         // ================= Robot Laboratoriyası =================
         new(
             Key: RobotLabPuzzle,
+            Version: 1,
             Type: PetBrainExperienceType.Adventure,
             Theme: "robots",
             ActivityType: "logic-puzzle",
@@ -576,6 +603,29 @@ public static class ExperienceCatalog
             : Templates.FirstOrDefault(t => string.Equals(t.Key, key, StringComparison.Ordinal));
 
     public static bool IsKnown(string? key) => Find(key) is not null;
+
+    /// <summary>
+    /// Yarımçıq run üçün tərif axtarışı.
+    ///
+    /// <para><paramref name="version"/> <c>0</c> olanda sətir versiyalaşdırmadan
+    /// ƏVVƏL yaranıb — o, cari tərifə bağlanır, çünki köhnə davranış onsuz da
+    /// buradakı ilə eynidir.</para>
+    ///
+    /// <para>Versiya uyğun gəlmirsə (deploy zamanı kataloq dəyişib), tərif
+    /// <b>yenə də</b> qaytarılır, amma <c>Exact</c> <c>false</c> olur. Çağıran
+    /// buna görə TƏHLÜKƏSİZ davranış seçir: yarımçıq run bitirilə bilir, yeni
+    /// tapmaca isə cari qaydalarla verilir. Uşağın açıq macərası heç vaxt
+    /// <c>404</c> ilə itmir.</para>
+    /// </summary>
+    public static ExperienceLookup Resolve(string? key, int version)
+    {
+        var template = Find(key);
+
+        if (template is null)
+            return new ExperienceLookup(null, Exact: false);
+
+        return new ExperienceLookup(template, version is 0 || version == template.Version);
+    }
 
     /// <summary>Bir təcrübənin verdiyi kosmetiklər — açılış qaydası bunlara ayrıca baxır.</summary>
     public static IReadOnlyList<string> RewardCodes { get; } =

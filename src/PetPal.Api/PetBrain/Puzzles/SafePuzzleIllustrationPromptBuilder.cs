@@ -67,6 +67,7 @@ public static class SafePuzzleIllustrationPromptBuilder
     private static string Environment(string key) => key switch
     {
         "martian-canyon" => "a wide Martian canyon under a dusty orange sky",
+        "lunar-crater" => "a wide shallow Moon crater under a black star-filled sky",
         "crystal-garden-at-dusk" => "a quiet crystal garden at dusk with glowing blooms",
         _ => "a calm imaginary landscape"
     };
@@ -74,6 +75,7 @@ public static class SafePuzzleIllustrationPromptBuilder
     private static string StoryBeat(string key) => key switch
     {
         "dust-storm-aftermath" => "just after a gentle dust storm has settled",
+        "dimmed-crystal-on-the-moon" => "the moment the crystal's glow has faded to a faint spark",
         "dimmed-crystal-garden" => "the moment the garden's light has faded",
         _ => "a quiet moment in the story"
     };
@@ -81,6 +83,7 @@ public static class SafePuzzleIllustrationPromptBuilder
     private static string Palette(string key) => key switch
     {
         "warm-orange" => "warm orange and sand tones",
+        "silver-and-deep-blue" => "silver, pale grey and deep blue tones",
         "violet-and-moonlight" => "violet, teal and moonlight tones",
         _ => "soft daylight tones"
     };
@@ -88,6 +91,7 @@ public static class SafePuzzleIllustrationPromptBuilder
     private static string Mood(string key) => key switch
     {
         "hopeful-adventurous" => "hopeful and adventurous mood with no fear or damage",
+        "calm-wonder" => "calm wonder, quiet and safe",
         "gentle-wonder" => "gentle wonder, warm and safe",
         _ => "calm and curious mood"
     };
@@ -99,6 +103,11 @@ public static class SafePuzzleIllustrationPromptBuilder
         "relay-antenna" => "a communication antenna on a central ridge",
         "rounded-rocks" => "smooth rounded rocks",
         "friendly-robot" => "a small friendly stranded robot in the upper-right distance",
+        "moon-lander" => "a compact rounded moon lander in the lower left",
+        "glow-pool" => "a small pool of soft glowing light",
+        "mirror-field" => "a cluster of tilted mirror panels on a central rise",
+        "rounded-craters" => "smooth shallow craters",
+        "large-crystal" => "a tall calm crystal in the upper-right distance",
         "friendly-dragon" => "a small friendly dragon with soft rounded features",
         "crystal-blooms" => "tall crystal blooms",
         "floating-light-motes" => "slow floating motes of light",

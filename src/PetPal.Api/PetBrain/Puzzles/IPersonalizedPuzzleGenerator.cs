@@ -20,6 +20,14 @@ public sealed record PuzzleGenerationContext(
     int Age,
     string Language,
 
+    /// <summary>
+    /// Hansı macərənin içindəyik — <c>moon-crystal-rescue</c>.
+    ///
+    /// <para>Hekayə mətni daşıyan mexanikalar buna görə süzülür: mexanika
+    /// uyğun gəlsə də, mətn yad macərəyə düşməməlidir.</para>
+    /// </summary>
+    string TemplateKey,
+
     /// <summary>Təcrübənin janrı: yaradıcı yol məntiq tapmacası almır.</summary>
     PetBrainExperienceType ExperienceType,
 

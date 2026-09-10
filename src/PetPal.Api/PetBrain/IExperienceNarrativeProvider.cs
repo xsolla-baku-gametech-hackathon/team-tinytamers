@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using PetPal.Shared.Enums;
 
 namespace PetPal.Api.PetBrain;
@@ -10,6 +12,11 @@ namespace PetPal.Api.PetBrain;
 /// çətinlik, pet-in (onsuz da təmizlənmiş) adı və strukturlu yaddaş açarları.</para>
 /// </summary>
 public sealed record NarrativeContext(
+    /// <summary>
+    /// Mətnin SAHİBİ. Modelə GETMİR — yalnız keş açarını uşağa bağlamaq üçündür.
+    /// </summary>
+    Guid ChildId,
+
     string Language,
 
     /// <summary>Dəqiq yaş yox, ZOLAQ — 5-6, 7-8, 9-10.</summary>
@@ -20,7 +27,34 @@ public sealed record NarrativeContext(
     string PetName,
 
     /// <summary>Yaddaşdan yalnız AÇARLAR: "mars-rover-rescue", "space".</summary>
-    IReadOnlyList<string> MemoryKeys);
+    IReadOnlyList<string> MemoryKeys)
+{
+    /// <summary>Sahə ayırıcısı — qonşu sahələr bir-birinə "yapışa" bilməsin.</summary>
+    private const char Separator = (char)0x1F;
+
+    /// <summary>
+    /// Şəxsiləşdirmənin barmaq izi — keş açarının uşağa aid hissəsi.
+    ///
+    /// <para>Prompt uşağa xas iki şey daşıyır: pet-in adı və yaddaş açarları.
+    /// Ona görə keş açarı yalnız şablon/dil/çətinlik/yaş zolağından ibarət ola
+    /// BİLMƏZ — onda bir uşaq üçün yazılmış şəxsi mətn başqa uşağa qaytarılardı.</para>
+    ///
+    /// <para>Açarda xam ad və ya yaddaş cümləsi SAXLANILMIR, yalnız hash. Yaddaş
+    /// açarları sıralanır, yəni eyni kontekst sıradan asılı olmadan eyni barmaq
+    /// izini verir və keş həqiqətən işləyir.</para>
+    /// </summary>
+    public string PersonalizationHash()
+    {
+        var canonical = string.Join(Separator,
+        [
+            ChildId.ToString("N"),
+            PetName,
+            string.Join(',', MemoryKeys.OrderBy(key => key, StringComparer.Ordinal))
+        ]);
+
+        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)))[..16];
+    }
+}
 
 /// <summary>Təqdimat mətni və onun MƏNBƏYİ. Mənbə nümayiş panelində açıq göstərilir.</summary>
 public sealed record ExperienceNarrative(string Title, string Intro, string Source)

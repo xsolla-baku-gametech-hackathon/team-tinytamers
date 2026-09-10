@@ -447,6 +447,7 @@ builder.Services.AddScoped<IRecapSpecFactory, RecapSpecFactory>();
 builder.Services.AddScoped<RecapCoordinator>();
 builder.Services.AddHostedService<RecapWorker>();
 
+builder.Services.AddScoped<TraitDailyLedger>();
 builder.Services.AddScoped<IBehaviorTracker, BehaviorTracker>();
 builder.Services.AddScoped<IPetBrainService, PetBrainService>();
 

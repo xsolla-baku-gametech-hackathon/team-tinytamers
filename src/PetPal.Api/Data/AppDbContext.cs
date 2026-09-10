@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PetPal.Api.Entities;
+using PetPal.Shared.Enums;
 
 namespace PetPal.Api.Data;
 
@@ -36,6 +37,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
     // ---------- Pet Brain (Adaptive Pet Director) ----------
     public DbSet<PlayerTrait> PlayerTraits => Set<PlayerTrait>();
+    public DbSet<TraitDailyGain> TraitDailyGains => Set<TraitDailyGain>();
     public DbSet<BehaviorEvent> BehaviorEvents => Set<BehaviorEvent>();
     public DbSet<PetMemory> PetMemories => Set<PetMemory>();
     public DbSet<ExperienceRun> ExperienceRuns => Set<ExperienceRun>();
@@ -384,6 +386,21 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        builder.Entity<TraitDailyGain>(e =>
+        {
+            e.Property(x => x.TraitKey).HasMaxLength(40).IsRequired();
+
+            // Tavanın ÖZÜ bu indeksdir: bir uşaq + kateqoriya + açar + gün üçün
+            // yalnız BİR sayğac sətri ola bilər, yəni paralel iki sorğu ikinci
+            // sayğac yaradıb limiti ikiqat xərcləyə bilmir.
+            e.HasIndex(x => new { x.ChildProfileId, x.Category, x.TraitKey, x.DayKey }).IsUnique();
+
+            e.HasOne(x => x.ChildProfile)
+                .WithMany()
+                .HasForeignKey(x => x.ChildProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         builder.Entity<BehaviorEvent>(e =>
         {
             e.Property(x => x.Source).HasMaxLength(60).IsRequired();
@@ -438,6 +455,21 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
             // "Bu şablon artıq tamamlanıbmı" sualı hər tövsiyədə verilir.
             e.HasIndex(x => new { x.ChildProfileId, x.TemplateKey, x.Status });
+
+            // Bir uşaqda EYNİ ANDA yalnız bir açıq macəra ola bilər.
+            //
+            // Yaddaşdakı "əvvəlcə yoxla, sonra əlavə et" yoxlaması iki paralel
+            // sorğuda ikisinə də "yoxdur" deyirdi və uşaq iki açıq run alırdı.
+            // Qismən unikal indeks bunu BAZADA bağlayır: yalnız Active (0)
+            // sətirlər indeksə düşür, tamamlanmış və yarımçıq qalanlar isə
+            // istənilən sayda ola bilər.
+            //
+            // Süzgəc həm PostgreSQL, həm də testlərdəki SQLite tərəfindən eyni
+            // sintaksislə oxunur.
+            e.HasIndex(x => x.ChildProfileId)
+                .IsUnique()
+                .HasFilter($"\"Status\" = {(int)PetBrainRunStatus.Active}")
+                .HasDatabaseName("IX_ExperienceRuns_ChildProfileId_Active");
 
             e.HasOne(x => x.ChildProfile)
                 .WithMany(c => c.ExperienceRuns)

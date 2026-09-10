@@ -72,8 +72,7 @@ public sealed class AiExperienceNarrativeProvider : IExperienceNarrativeProvider
         if (!_ai.IsEnabled)
             return await _fallback.DescribeAsync(context, ct);
 
-        var cacheKey = $"petbrain-narrative:{context.Template.Key}:{context.Language}:" +
-                       $"{context.Difficulty}:{context.AgeBand}";
+        var cacheKey = CacheKey(context);
 
         if (_cache.TryGetValue<ExperienceNarrative>(cacheKey, out var cached) && cached is not null)
             return cached;
@@ -99,6 +98,21 @@ public sealed class AiExperienceNarrativeProvider : IExperienceNarrativeProvider
         _cache.Set(cacheKey, narrative, TimeSpan.FromMinutes(Math.Max(1, _ai.CacheMinutes)));
         return narrative;
     }
+
+    /// <summary>
+    /// Keş açarı — mətnin GİRİŞLƏRİNİN tam əksi.
+    ///
+    /// <para>Prompt pet-in adını və yaddaş açarlarını daşıyır, ona görə açar da
+    /// onları daşımalıdır. Əvvəllər açar yalnız şablon, dil, çətinlik və yaş
+    /// zolağından ibarət idi — bu isə bir uşaq üçün yaranan ŞƏXSİ mətni eyni
+    /// zolaqdakı başqa uşağa qaytarırdı.</para>
+    ///
+    /// <para>Uşağa aid hissə açarda AÇIQ deyil: xam ad və yaddaş yerinə qısa
+    /// hash yazılır (bax <see cref="NarrativeContext.PersonalizationHash"/>).</para>
+    /// </summary>
+    internal static string CacheKey(NarrativeContext context) =>
+        $"petbrain-narrative:{context.Template.Key}:{context.Template.Version}:{context.Language}:" +
+        $"{context.Difficulty}:{context.AgeBand}:{context.PersonalizationHash()}";
 
     /// <summary>
     /// Cavabı sxemə görə yoxlayır. Bir şey də uyğun gəlməsə <c>null</c> —

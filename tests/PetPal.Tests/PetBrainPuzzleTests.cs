@@ -29,6 +29,7 @@ public class PetBrainPuzzleTests
         StageIndex: 2,
         Age: 9,
         Language: "az",
+        TemplateKey: ExperienceCatalog.MarsRoverRescue,
         ExperienceType: PetBrainExperienceType.Adventure,
         Theme: TraitKeys.Space,
         Interests: new Dictionary<string, int>
@@ -69,6 +70,7 @@ public class PetBrainPuzzleTests
         StageIndex: 2,
         Age: 8,
         Language: "az",
+        TemplateKey: ExperienceCatalog.DragonLostColors,
         ExperienceType: PetBrainExperienceType.Creative,
         Theme: TraitKeys.Fantasy,
         Interests: new Dictionary<string, int>
@@ -585,14 +587,22 @@ public class PetBrainPuzzleTests
         }
     }
 
-    /// <summary>Kataloqdakı hər mexanika ayrı davranış verir — dördü də fərqlidir.</summary>
+    /// <summary>
+    /// Kataloqda ən azı dörd AYRI qarşılıqlı təsir var və hər şablonun açarı
+    /// təkdir.
+    ///
+    /// <para>Bir mexanika bir neçə şablonu daşıya bilər (marşrut mexanikası həm
+    /// Mars, həm Ay hekayəsini oynadır) — ona görə təkrarsızlıq MEXANİKADA yox,
+    /// AÇARDA tələb olunur.</para>
+    /// </summary>
     [Fact]
     public void Kataloq_DordFerqliMexanikaSaxlayir()
     {
         var mechanics = PuzzleBlueprintCatalog.Blueprints.Select(b => b.Mechanic).ToList();
+        var keys = PuzzleBlueprintCatalog.Blueprints.Select(b => b.Key).ToList();
 
-        Assert.True(mechanics.Count >= 3, "Ən azı üç mexanika olmalıdır.");
-        Assert.Equal(mechanics.Count, mechanics.Distinct().Count());
+        Assert.True(mechanics.Distinct().Count() >= 4, "Ən azı dörd mexanika olmalıdır.");
+        Assert.Equal(keys.Count, keys.Distinct(StringComparer.Ordinal).Count());
 
         // Yaradıcı janr üçün ən azı bir təzyiqsiz mexanika var.
         Assert.Contains(PuzzleBlueprintCatalog.Blueprints,

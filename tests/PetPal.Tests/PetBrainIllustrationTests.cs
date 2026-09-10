@@ -232,6 +232,7 @@ public class PetBrainIllustrationTests
         StageIndex: 2,
         Age: 9,
         Language: "az",
+        TemplateKey: ExperienceCatalog.MarsRoverRescue,
         ExperienceType: PetBrainExperienceType.Adventure,
         Theme: TraitKeys.Space,
         Interests: new Dictionary<string, int>

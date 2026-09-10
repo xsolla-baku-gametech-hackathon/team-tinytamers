@@ -66,7 +66,14 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
     /// </summary>
     public static IReadOnlyList<PuzzleBlueprint> Rank(PuzzleGenerationContext context) =>
         [.. PuzzleBlueprintCatalog.Blueprints
-            .Where(b => b.ExperienceType == context.ExperienceType && context.Age >= b.MinAge)
+            .Where(b => b.ExperienceType == context.ExperienceType
+                        && context.Age >= b.MinAge
+
+                        // Hekayə mətni daşıyan mexanika YALNIZ öz macərasında
+                        // işlədilir. Bu süzgəc olmasaydı, «həlledici» profilli
+                        // uşaq Ay macərasında Marsın Robosunu xilas etməyə
+                        // çağırılardı — mexanika uyğun, hekayə yad.
+                        && b.SupportsExperience(context.TemplateKey))
             .OrderByDescending(b => Score(b, context))
             .ThenBy(b => b.Key, StringComparer.Ordinal)];
 
@@ -140,7 +147,10 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
 
         var puzzle = blueprint.Mechanic switch
         {
-            PetBrainPuzzleMechanic.OrderedRoute => BuildOrderedRoute(context, tier, random),
+            // Marşrutun QAYDASI birdir, HEKAYƏSİ isə şablonun paketindən gəlir —
+            // yəni Ay macərası heç vaxt Marsın mətnini almır.
+            PetBrainPuzzleMechanic.OrderedRoute when RouteStoryPacks.For(blueprint.Key) is { } pack
+                => BuildOrderedRoute(context, tier, random, pack),
             PetBrainPuzzleMechanic.SequenceOrder => BuildSequenceOrder(context, tier, random),
             PetBrainPuzzleMechanic.RouteLogic => BuildRouteLogic(context, tier, random),
             PetBrainPuzzleMechanic.LightFragments => BuildLightFragments(context, tier, random),
@@ -205,7 +215,7 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
     /// hekayəni oxuyanda anlayır — təsadüfi tapmaq mümkün deyil.</para>
     /// </summary>
     private static (PetBrainPuzzleDto, PuzzleSolution)? BuildOrderedRoute(
-        PuzzleGenerationContext context, PetBrainDifficulty tier, PuzzleRandom random)
+        PuzzleGenerationContext context, PetBrainDifficulty tier, PuzzleRandom random, RouteStoryPack pack)
     {
         var language = context.Language;
 
@@ -232,9 +242,9 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
         // tələnin haradan ayrıldığı. Hər ikisi HƏNDƏSƏNİ dəyişir, qaydanı yox.
         var approach = random.Next(0, 2) == 0
             ? Node("ridge", PetBrainNodeKind.Path, 29, 65,
-                Localized.T(language, "Silsilə", "Ridge"), "⛰️")
+                Localized.T(language, pack.RidgeAz, pack.RidgeEn), pack.RidgeIcon)
             : Node("dune", PetBrainNodeKind.Path, 26, 58,
-                Localized.T(language, "Qum təpəsi", "Dune"), "🏜️");
+                Localized.T(language, pack.DuneAz, pack.DuneEn), pack.DuneIcon);
 
         // Tələ ya elə eniş modulundan ayrılır (uşaq dərhal seçim qarşısında
         // qalır), ya da yolun ortasında görünür (əvvəlcə düz getdiyini
@@ -244,16 +254,16 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
         List<PetBrainNodeDto> nodes =
         [
             Node("lander", PetBrainNodeKind.Start, 12, 82,
-                Localized.T(language, "Eniş modulu", "Lander"), "🛰️"),
+                Localized.T(language, pack.StartAz, pack.StartEn), pack.StartIcon),
             approach,
             Node("solar", PetBrainNodeKind.Recharge, 47, 77,
-                Localized.T(language, "Günəş stansiyası", "Solar station"), "🔆", recharge),
+                Localized.T(language, pack.RechargeAz, pack.RechargeEn), pack.RechargeIcon, recharge),
             Node("antenna", PetBrainNodeKind.Required, 61, 50,
-                Localized.T(language, "Rabitə antenası", "Relay antenna"), "📡"),
+                Localized.T(language, pack.RequiredAz, pack.RequiredEn), pack.RequiredIcon),
             Node("cave", PetBrainNodeKind.Decoy, 31, 38,
-                Localized.T(language, "Mağara", "Cave"), "🕳️"),
+                Localized.T(language, pack.DecoyAz, pack.DecoyEn), pack.DecoyIcon),
             Node("robo", PetBrainNodeKind.Goal, 82, 25,
-                Localized.T(language, "Robo", "Robo"), "🤖")
+                Localized.T(language, pack.GoalAz, pack.GoalEn), pack.GoalIcon)
         ];
 
         List<PetBrainEdgeDto> edges =
@@ -272,7 +282,7 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
         if (tier == PetBrainDifficulty.Hard)
         {
             nodes.Insert(4, Node("shelf", PetBrainNodeKind.Path, 46, 58,
-                Localized.T(language, "Qaya rəfi", "Rock shelf"), "🪨"));
+                Localized.T(language, pack.ShelfAz, pack.ShelfEn), pack.ShelfIcon));
 
             edges.Add(Edge("solar", "shelf"));
             edges.Add(Edge("shelf", "antenna"));
@@ -289,13 +299,9 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
         var dto = new PetBrainPuzzleDto
         {
             Mechanic = PetBrainPuzzleMechanic.OrderedRoute,
-            Title = Localized.T(language, "Robo ilə əlaqəni bərpa et", "Restore contact with Robo"),
-            StoryPrompt = Localized.T(language,
-                "Toz fırtınası Robonun rabitəsini kəsdi. Təmir dronunu göndər.",
-                "A dust storm cut Robo's link. Send the repair drone."),
-            Instruction = Localized.T(language,
-                "Dronu əvvəl enerji stansiyasına, sonra antenaya, sonda Roboya çatdır.",
-                "Take the drone to the solar station, then the antenna, then Robo."),
+            Title = pack.Title(language),
+            StoryPrompt = pack.Story(language),
+            Instruction = pack.Instruction(language),
             Nodes = nodes,
             Edges = edges,
 
@@ -304,10 +310,11 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
             Scene = new PetBrainSceneDto
             {
                 IllustrationStatus = PetBrainIllustrationStatus.Fallback,
+
+                // Overlay HƏNDƏSƏSİ hər iki marşrut paketində eynidir — komponent
+                // qraf lövhəsini eyni cür çəkir, dəyişən yalnız hekayədir.
                 OverlayLayout = PuzzleBlueprintCatalog.MarsSignalRouteKey,
-                AltText = Localized.T(language,
-                    "Mars səthinin xəritəsi: eniş modulu, günəş stansiyası, rabitə antenası və Robo.",
-                    "A map of the Mars surface: the lander, the solar station, the relay antenna and Robo.")
+                AltText = pack.AltText(language)
             },
             InitialEnergy = initialEnergy,
             MaximumEnergy = maximumEnergy,
@@ -324,9 +331,7 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
                 Max = nodes.Count
             },
             HintAvailable = true,
-            Hint = Localized.T(language,
-                "Antena bərpa olunmayana qədər Robo siqnalı eşitmir.",
-                "Robo cannot hear the signal until the antenna is working again."),
+            Hint = pack.Hint(language),
             AssistHighlight = tier == PetBrainDifficulty.Easy || context.Assisted
         };
 
@@ -615,8 +620,13 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
     {
         var creative = context.ExperienceType == PetBrainExperienceType.Creative;
 
-        var blueprint = PuzzleBlueprintCatalog.Find(
-            creative ? PuzzleBlueprintCatalog.LightFragmentsKey : PuzzleBlueprintCatalog.MarsSignalRouteKey)!;
+        // Ehtiyat variant da UYĞUNLUQ süzgəcindən keçir: «heç nə alınmadı» hal
+        // uşağa yad hekayə göstərmək üçün əsas deyil. Sıralama boş qalırsa
+        // (kataloqda bu macəra üçün ümumiyyətlə şablon yoxdur) mövzudan asılı
+        // olmayan mexanikaya düşürük.
+        var blueprint = Rank(context).FirstOrDefault()
+            ?? PuzzleBlueprintCatalog.Find(
+                creative ? PuzzleBlueprintCatalog.LightFragmentsKey : PuzzleBlueprintCatalog.SequenceOrderKey)!;
 
         var seedHex = PuzzleSeed.Hex(
             context.ChildId, context.RunId, blueprint.Key, blueprint.Version, target, attempt: 99);
@@ -625,9 +635,24 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
 
         // Ehtiyat variant ASAN pillədədir: tələ yolu yoxdur, enerji boldur.
         // Uşaq üçün nəticə eynidir — hekayə davam edir.
-        var built = creative
-            ? BuildLightFragments(context, PetBrainDifficulty.Easy, random)
-            : BuildOrderedRoute(context, PetBrainDifficulty.Easy, random);
+        var built = blueprint.Mechanic switch
+        {
+            PetBrainPuzzleMechanic.OrderedRoute when RouteStoryPacks.For(blueprint.Key) is { } pack
+                => BuildOrderedRoute(context, PetBrainDifficulty.Easy, random, pack),
+            PetBrainPuzzleMechanic.LightFragments
+                => BuildLightFragments(context, PetBrainDifficulty.Easy, random),
+            PetBrainPuzzleMechanic.RouteLogic
+                => BuildRouteLogic(context, PetBrainDifficulty.Easy, random),
+            _ => BuildSequenceOrder(context, PetBrainDifficulty.Easy, random)
+        };
+
+        // Son sığınacaq: ardıcıllıq mexanikası heç vaxt uğursuz olmur, çünki
+        // onun aralığı sabitdir və mövzudan asılı deyil.
+        if (built is null)
+        {
+            blueprint = PuzzleBlueprintCatalog.Find(PuzzleBlueprintCatalog.SequenceOrderKey)!;
+            built = BuildSequenceOrder(context, PetBrainDifficulty.Easy, random);
+        }
 
         var (dto, solution) = built!.Value;
 

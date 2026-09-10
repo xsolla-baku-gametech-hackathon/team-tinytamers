@@ -28,6 +28,7 @@ namespace PetPal.Tests;
 public class PetBrainNarrativeFallbackTests
 {
     private static NarrativeContext Context(string language = "az") => new(
+        ChildId: Guid.Parse("11111111-1111-1111-1111-111111111111"),
         Language: language,
         AgeBand: "9-10",
         Template: ExperienceCatalog.Find(ExperienceCatalog.MarsRoverRescue)!,

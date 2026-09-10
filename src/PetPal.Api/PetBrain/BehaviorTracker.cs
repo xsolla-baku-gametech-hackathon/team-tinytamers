@@ -16,7 +16,9 @@ namespace PetPal.Api.PetBrain;
 ///   eyni vaxtlı sorğuda ikincisi yazma anında dayanır.</item>
 ///   <item><b>Gündəlik tavan.</b> Bir açar bir gündə
 ///   <see cref="ProfileLearningRules.DailyGainCapPerKey"/> baldan çox qazana
-///   bilmir — uşaq eyni macərəni dövrə vurub profili şişirdə bilməsin.</item>
+///   bilmir — uşaq eyni macərəni dövrə vurub profili şişirdə bilməsin. Sayğac
+///   BAZADADIR (<see cref="TraitDailyLedger"/>), yəni tavan ayrı sorğularda və
+///   paralel sorğularda da eyni tavandır.</item>
 ///   <item><b>Qapalı taksonomiya.</b> Naməlum açar səssizcə buraxılır; uydurma
 ///   xassə heç vaxt yaranmır.</item>
 /// </list>
@@ -28,12 +30,15 @@ public class BehaviorTracker : IBehaviorTracker
     private const int MaxIdempotencyKeyLength = 120;
 
     private readonly AppDbContext _db;
+    private readonly TraitDailyLedger _ledger;
     private readonly TimeProvider _clock;
     private readonly PetBrainOptions _options;
 
-    public BehaviorTracker(AppDbContext db, TimeProvider clock, IOptions<PetBrainOptions> options)
+    public BehaviorTracker(
+        AppDbContext db, TraitDailyLedger ledger, TimeProvider clock, IOptions<PetBrainOptions> options)
     {
         _db = db;
+        _ledger = ledger;
         _clock = clock;
         _options = options.Value;
     }
@@ -102,8 +107,6 @@ public class BehaviorTracker : IBehaviorTracker
                 existing.Add(local);
         }
 
-        var today = DateOnly.FromDateTime(now);
-
         foreach (var adjustment in adjustments)
         {
             if (!TraitKeys.IsKnown(adjustment.Category, adjustment.Key))
@@ -133,51 +136,28 @@ public class BehaviorTracker : IBehaviorTracker
             // (mənalı yarımçıq qoyma) və onu məhdudlaşdırmağa ehtiyac yoxdur.
             if (delta > 0)
             {
-                var gainedToday = await GainedTodayAsync(childId, adjustment.Key, today, ct);
-                var remaining = ProfileLearningRules.DailyGainCapPerKey - gainedToday;
+                delta = await _ledger.ReserveAsync(
+                    childId,
+                    adjustment.Category,
+                    adjustment.Key,
+                    now,
+                    delta,
+                    ProfileLearningRules.DailyGainCapPerKey,
+                    ct);
 
-                if (remaining <= 0)
+                // Tavan dolub: xassə TOXUNULMUR — yarım bal da verilmir.
+                if (delta == 0)
                     continue;
-
-                delta = Math.Min(delta, remaining);
             }
 
             trait.Score = TraitKeys.Clamp(trait.Score + delta);
             trait.UpdatedAt = now;
-
-            RecordGain(childId, adjustment.Key, today, Math.Max(0, delta));
         }
     }
 
     private Task<bool> AlreadyTrackedAsync(Guid childId, string key, CancellationToken ct) =>
         _db.BehaviorEvents.AnyAsync(
             e => e.ChildProfileId == childId && e.IdempotencyKey == key, ct);
-
-    // ---- Gündəlik tavan sayğacı ----
-    //
-    // Sayğac SORĞU ilə hesablanmır: hadisə jurnalında bal dəyişikliyi
-    // saxlanılmır (o, gizlilik üçün qəsdən yüngüldür), ona görə tavan bir
-    // sorğunun ömrü boyu yaddaşda saxlanılır. Bu, praktik seçimdir: bir HTTP
-    // sorğusunda eyni açar bir neçə dəfə artırıla bilər (tamamlama +
-    // seçim + tapmaca), tavan da məhz orada işə düşməlidir. Sorğular arası
-    // becərməni isə xassənin öz tavanı (0–100) və şablon təkrarının kiçilən
-    // dəyəri saxlayır.
-    private readonly Dictionary<string, int> _gainsThisRequest = [];
-
-    private Task<int> GainedTodayAsync(Guid childId, string key, DateOnly today, CancellationToken ct) =>
-        Task.FromResult(_gainsThisRequest.GetValueOrDefault(GainKey(childId, key, today)));
-
-    private void RecordGain(Guid childId, string key, DateOnly today, int delta)
-    {
-        if (delta <= 0)
-            return;
-
-        var gainKey = GainKey(childId, key, today);
-        _gainsThisRequest[gainKey] = _gainsThisRequest.GetValueOrDefault(gainKey) + delta;
-    }
-
-    private static string GainKey(Guid childId, string key, DateOnly today) =>
-        $"{childId:N}:{key}:{today:yyyyMMdd}";
 
     private static string? Truncate(string? value, int max) =>
         string.IsNullOrWhiteSpace(value)

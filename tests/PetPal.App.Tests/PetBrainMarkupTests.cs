@@ -681,10 +681,20 @@ public class PetBrainMarkupTests
         File.ReadAllText(Path.Combine(
             Path.GetDirectoryName(path)!, "..", "..", "src", "PetPal.App.Ui", "Services", name));
 
-    /// <summary>Mexanika açarları KATALOQUN mənbəyindən oxunur, əl ilə sadalanmır.</summary>
+    /// <summary>
+    /// Mexanika açarları KATALOQUN mənbəyindən oxunur, əl ilə sadalanmır.
+    ///
+    /// <para>Sətir sonları NORMALLAŞDIRILIR. Fayl Windows-da <c>CRLF</c> ilə
+    /// yazılır, .NET-in çoxsətirli <c>$</c> lövbəri isə yalnız <c>\n</c>-dən
+    /// əvvəl uyğunlaşır — yəni sətrin sonundakı <c>\r</c> nümunəni pozur və
+    /// test kataloqu BOŞ oxuyub səhvən "köhnəlib" deyirdi.</para>
+    /// </summary>
     private static string ReadEnums([CallerFilePath] string path = "") =>
-        File.ReadAllText(Path.Combine(
-            Path.GetDirectoryName(path)!, "..", "..", "src", "PetPal.Shared", "Enums", "PetBrainPuzzleEnums.cs"));
+        Normalize(File.ReadAllText(Path.Combine(
+            Path.GetDirectoryName(path)!, "..", "..", "src", "PetPal.Shared", "Enums", "PetBrainPuzzleEnums.cs")));
+
+    /// <summary>Sətir sonlarını <c>\n</c>-ə gətirir — nümunələr platformadan asılı olmasın.</summary>
+    private static string Normalize(string text) => text.Replace("\r\n", "\n").Replace('\r', '\n');
 
     private static string ReadCss(string name, [CallerFilePath] string path = "") =>
         File.ReadAllText(Path.Combine(

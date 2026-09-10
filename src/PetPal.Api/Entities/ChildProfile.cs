@@ -1,3 +1,5 @@
+using PetPal.Shared.Enums;
+
 namespace PetPal.Api.Entities;
 
 /// <summary>Uşaq profili — bütün oyun/öyrənmə vəziyyəti bu obyektin ətrafında qurulur.</summary>
@@ -89,6 +91,24 @@ public class ChildProfile
     public ICollection<DuelEntry> DuelEntries { get; set; } = new List<DuelEntry>();
 
     // ---------- Pet Brain ----------
+
+    /// <summary>
+    /// Pet-in SAXLANAN yoldaşlıq xarakteri.
+    ///
+    /// <para>Əvvəllər xarakter hər sorğuda xassələrdən yenidən çıxarılırdı və
+    /// əvvəlki etiket ötürülmədiyi üçün <see cref="PetBrain.CompanionPersonality"/>
+    /// histerezisi FAKTİKİ İŞLƏMİRDİ: iki yaxın bal arasında pet «fikrini
+    /// dəyişən» görünürdü. İndi keçid yalnız aydın fərqlə baş verir, çünki
+    /// müqayisə ediləcək əvvəlki etiket buradadır.</para>
+    ///
+    /// <para>Bu sahə həqiqətin MƏNBƏYİ deyil — xassələr elədir. O, yalnız
+    /// keçidin yaddaşıdır və mükafata, tapmacaya, çətinliyə toxunmur.</para>
+    /// </summary>
+    public PetBrainPersonality Personality { get; set; } = PetBrainPersonality.Balanced;
+
+    /// <summary>Xarakter sonuncu dəfə nə vaxt dəyişdi — nümayiş və audit üçün.</summary>
+    public DateTime? PersonalityChangedAt { get; set; }
+
     public ICollection<PlayerTrait> Traits { get; set; } = new List<PlayerTrait>();
     public ICollection<BehaviorEvent> BehaviorEvents { get; set; } = new List<BehaviorEvent>();
     public ICollection<PetMemory> Memories { get; set; } = new List<PetMemory>();

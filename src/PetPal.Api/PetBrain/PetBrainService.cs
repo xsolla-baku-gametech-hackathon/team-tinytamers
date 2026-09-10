@@ -114,7 +114,7 @@ public class PetBrainService : IPetBrainService
 
         var interests = ScoresOf(child, PetBrainTraitCategory.Interest);
         var playStyles = ScoresOf(child, PetBrainTraitCategory.PlayStyle);
-        var personality = CompanionPersonality.Derive(interests, playStyles);
+        var personality = StablePersonality(child, interests, playStyles, now);
 
         var state = new PetBrainStateDto
         {
@@ -245,6 +245,10 @@ public class PetBrainService : IPetBrainService
         {
             ChildProfileId = childId,
             TemplateKey = template.Key,
+
+            // Tərifin versiyası run-a YAZILIR: sonrakı deploy kataloqu
+            // dəyişdirsə də, bu macəra başladığı qaydalarla oxunur.
+            DefinitionVersion = template.Version,
             ExperienceType = template.Type,
             Theme = template.Theme,
             Difficulty = difficulty,
@@ -275,7 +279,42 @@ public class PetBrainService : IPetBrainService
             $"run-start:{run.Id:N}",
             ct);
 
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // Bazadakı qismən unikal indeks ikinci paralel sorğunu burada
+            // dayandırır. Bu, uşağın səhvi deyil — iki toxunuş, zəif şəbəkə və
+            // ya iki cihaz eyni anda "başla" göndərə bilər. Ona görə xəta yox,
+            // BİRİNCİ sorğunun yaratdığı macəra qaytarılır: uşaq həmişə bir və
+            // eyni macərada olur.
+            //
+            // Uduzan sorğunun BÜTÜN yeni sətirləri atılır — macəra, hadisə
+            // jurnalı və hadisənin yaratdığı xassə sətirləri. Yalnız run-u
+            // ayırmaq kifayət etmirdi: qalan sətirlər izləyicidə <c>Added</c>
+            // qalır və növbəti yazmada (tapmacanın saxlanması) yenidən cəhd
+            // edilirdi — orada isə qalibin artıq yazdığı eyni açar unikal
+            // indeksi ikinci dəfə pozurdu və uşaq 500 alırdı.
+            foreach (var entry in _db.ChangeTracker.Entries()
+                         .Where(e => e.State == EntityState.Added)
+                         .ToList())
+                entry.State = EntityState.Detached;
+
+            var winner = await ActiveRunAsync(childId, ct);
+
+            if (winner is null)
+                return ServiceResult<PetBrainRunDto>.Conflict(
+                    Localized.T(language,
+                        "Macəra başlamadı — bir daha yoxla.",
+                        "The adventure did not start — please try again."));
+
+            _logger.LogInformation(
+                "PetBrain: paralel başlatma bloklandı, mövcud macəra qaytarıldı ({RunId}).", winner.Id);
+
+            return ServiceResult<PetBrainRunDto>.Ok(await ToDtoAsync(winner, child, ct));
+        }
 
         return ServiceResult<PetBrainRunDto>.Ok(await ToDtoAsync(run, child, ct));
     }
@@ -299,7 +338,7 @@ public class PetBrainService : IPetBrainService
         // olsaydı, video heç vaxt ekrana çıxmazdı — yenilənmə isə xülasəni
         // tamamilə itirərdi.
         if (run!.Status == PetBrainRunStatus.Completed &&
-            ExperienceCatalog.Find(run.TemplateKey) is { } completed)
+            TemplateOf(run) is { } completed)
             return ServiceResult<PetBrainRunDto>.Ok(
                 await BuildCompletedDtoAsync(run, child!, completed, ct));
 
@@ -324,7 +363,7 @@ public class PetBrainService : IPetBrainService
             return ServiceResult<PetBrainRunDto>.Conflict(
                 Localized.T(language, "Bu macəra artıq bitib.", "This adventure is already finished."));
 
-        var template = ExperienceCatalog.Find(run.TemplateKey);
+        var template = TemplateOf(run);
         if (template is null)
             return ServiceResult<PetBrainRunDto>.NotFound(
                 Localized.T(language, "Belə macəra yoxdur.", "There is no such adventure."));
@@ -527,13 +566,13 @@ public class PetBrainService : IPetBrainService
 
         var language = child!.LanguageCode;
 
-        var template = ExperienceCatalog.Find(run!.TemplateKey);
+        var template = TemplateOf(run!);
         if (template is null)
             return ServiceResult<PetBrainRunDto>.NotFound(
                 Localized.T(language, "Belə macəra yoxdur.", "There is no such adventure."));
 
         // Artıq tamamlanıbsa eyni yekun qaytarılır — təkrar basmaq xəta deyil.
-        if (run.Status == PetBrainRunStatus.Completed)
+        if (run!.Status == PetBrainRunStatus.Completed)
             return ServiceResult<PetBrainRunDto>.Ok(await BuildCompletedDtoAsync(run, child, template, ct));
 
         if (run.Status == PetBrainRunStatus.Abandoned)
@@ -732,7 +771,7 @@ public class PetBrainService : IPetBrainService
         if (run!.Status != PetBrainRunStatus.Active)
             return ServiceResult<PetBrainRunDto>.Ok(await ToDtoAsync(run, child, ct));
 
-        var template = ExperienceCatalog.Find(run.TemplateKey);
+        var template = TemplateOf(run);
         var now = _clock.GetUtcNow().UtcDateTime;
 
         run.Status = PetBrainRunStatus.Abandoned;
@@ -893,7 +932,11 @@ public class PetBrainService : IPetBrainService
             var language = child.LanguageCode;
             var interests = ScoresOf(child, PetBrainTraitCategory.Interest);
             var playStyles = ScoresOf(child, PetBrainTraitCategory.PlayStyle);
-            var personality = CompanionPersonality.Derive(interests, playStyles);
+
+            // Valideyn görünüşü uşağın GÖRDÜYÜ etiketi göstərməlidir, ona görə
+            // saxlanan xarakter başlanğıc nöqtəsidir. Burada yazma yoxdur:
+            // xarakteri yalnız uşağın öz ekranı dəyişdirir.
+            var personality = CompanionPersonality.Derive(interests, playStyles, child.Personality);
 
             var history = await RecentRunsAsync(child.Id, ct);
             var difficulty = DifficultyFor(child, LastPerformance(history));
@@ -949,6 +992,25 @@ public class PetBrainService : IPetBrainService
                 Localized.T(child.LanguageCode, "Macəra tapılmadı.", "Adventure not found.")));
 
         return (run, child, null);
+    }
+
+    /// <summary>
+    /// Run-un tərifi — BAŞLADIĞI versiya nəzərə alınmaqla.
+    ///
+    /// <para>Kataloq deploy ilə dəyişə bilər. Versiya uyğun gəlmirsə tərif yenə
+    /// oxunur (uşağın yarımçıq macərası itməməlidir), amma bu, jurnala düşür:
+    /// yarımçıq run-un başqa qaydalarla bitməsi görünməz qalmamalıdır.</para>
+    /// </summary>
+    private ExperienceTemplate? TemplateOf(ExperienceRun run)
+    {
+        var lookup = ExperienceCatalog.Resolve(run.TemplateKey, run.DefinitionVersion);
+
+        if (lookup.Template is not null && !lookup.Exact)
+            _logger.LogWarning(
+                "PetBrain: run {RunId} {Version} versiyası ilə başlayıb, kataloqda isə {Current} var.",
+                run.Id, run.DefinitionVersion, lookup.Template.Version);
+
+        return lookup.Template;
     }
 
     private Task<ExperienceRun?> ActiveRunAsync(Guid childId, CancellationToken ct) =>
@@ -1024,6 +1086,35 @@ public class PetBrainService : IPetBrainService
             PetIsHatched: child.Pet?.HatchedAt is not null);
     }
 
+    /// <summary>
+    /// Xarakteri SAXLANAN etiketin üstündə hesablayır və dəyişəni yazır.
+    ///
+    /// <para>Histerezis (<see cref="CompanionPersonality.SwitchMargin"/>) yalnız
+    /// əvvəlki etiket məlum olanda işləyir. Əvvəllər servis onu ötürmürdü, yəni
+    /// hər sorğu <c>Balanced</c>-dan başlayırdı və qoruyucu faktiki olaraq
+    /// söndürülmüşdü — iki yaxın bal arasında pet hər açılışda "fikrini
+    /// dəyişirdi".</para>
+    ///
+    /// <para>Yazma burada <c>SaveChanges</c> çağırmır: çağıranın onsuz da
+    /// sonda bir yazması var.</para>
+    /// </summary>
+    private static PetBrainPersonality StablePersonality(
+        ChildProfile child,
+        IReadOnlyDictionary<string, int> interests,
+        IReadOnlyDictionary<string, int> playStyles,
+        DateTime now)
+    {
+        var personality = CompanionPersonality.Derive(interests, playStyles, child.Personality);
+
+        if (personality == child.Personality)
+            return personality;
+
+        child.Personality = personality;
+        child.PersonalityChangedAt = now;
+
+        return personality;
+    }
+
     private static Dictionary<string, int> ScoresOf(ChildProfile child, PetBrainTraitCategory category) =>
         child.Traits
             .Where(t => t.Category == category)
@@ -1089,7 +1180,32 @@ public class PetBrainService : IPetBrainService
             Remember(PetBrainMemoryKind.PreferenceObserved, template.Theme, string.Empty,
                 MemoryPolicy.PreferenceImportance, [template.Theme]);
 
+        Prune();
+
         return created;
+
+        // Saxlama limiti YAZI YOLUNDA tətbiq olunur.
+        //
+        // Qayda əvvəldən yazılmışdı, amma heç yerdən çağırılmırdı: yaddaş
+        // sonsuz böyüyür, seçim isə həmişə eyni bir neçə "vacib" xatirəni
+        // qaytarırdı — yəni pet zamanla yalnız ilk günlərini xatırlayan olurdu.
+        void Prune()
+        {
+            var stale = MemoryPolicy.Prune(child.Memories);
+            if (stale.Count == 0)
+                return;
+
+            foreach (var memory in stale)
+            {
+                // Bu run-da yaranan xatirə silinmir: uşaq onu yekun ekranında
+                // GÖRÜR, deməli onun dərhal itməsi yalan olardı.
+                if (created.Contains(memory))
+                    continue;
+
+                child.Memories.Remove(memory);
+                _db.PetMemories.Remove(memory);
+            }
+        }
 
         void Remember(PetBrainMemoryKind kind, string factKey, string valueKey, int importance, List<string> tags)
         {
@@ -1197,7 +1313,7 @@ public class PetBrainService : IPetBrainService
         bool puzzleMissed = false)
     {
         var language = child.LanguageCode;
-        var template = ExperienceCatalog.Find(run.TemplateKey);
+        var template = TemplateOf(run);
 
         var dto = new PetBrainRunDto
         {
@@ -1399,8 +1515,15 @@ public class PetBrainService : IPetBrainService
             // Başqa sorğu qabaqladı: öz namizədimizi ataraq mövcud tapmacanı oxuyuruq.
             _db.Entry(issued).State = EntityState.Detached;
 
-            return await _db.IssuedPuzzles
-                .FirstAsync(p => p.ExperienceRunId == run.Id && p.StageIndex == stageIndex, ct);
+            var winner = await _db.IssuedPuzzles
+                .FirstOrDefaultAsync(p => p.ExperienceRunId == run.Id && p.StageIndex == stageIndex, ct);
+
+            // Sətir yoxdursa, xəta bu tapmacadan DEYİL, izləyicidəki başqa bir
+            // yazılmamış sətirdən gəlib. Onu udmaq səhvi gizlədərdi.
+            if (winner is null)
+                throw;
+
+            return winner;
         }
 
         return issued;
@@ -1432,6 +1555,7 @@ public class PetBrainService : IPetBrainService
             StageIndex: stageIndex,
             Age: child.Age,
             Language: child.LanguageCode,
+            TemplateKey: template.Key,
             ExperienceType: template.Type,
             Theme: template.Theme,
             Interests: ScoresOf(child, PetBrainTraitCategory.Interest),
@@ -1538,7 +1662,18 @@ public class PetBrainService : IPetBrainService
     /// </summary>
     private static bool IsReadable(IssuedPuzzle issued)
     {
-        if (!PuzzleBlueprintCatalog.IsKnown(issued.BlueprintKey))
+        var blueprint = PuzzleBlueprintCatalog.Find(issued.BlueprintKey);
+
+        if (blueprint is null)
+            return false;
+
+        // Versiya uyğunsuzluğu = qaydalar dəyişib.
+        //
+        // Saxlanan tapmacanı YENİ qaydalarla qiymətləndirmək ən pis variantdır:
+        // uşaq köhnə lövhəyə baxır, server isə başqa şərtlə yoxlayır — doğru
+        // cavab səhv sayıla bilər. Ona görə sətir oxunmaz sayılır və mərhələ
+        // üçün cari qaydalarla YENİ tapmaca verilir.
+        if (blueprint.Version != issued.BlueprintVersion)
             return false;
 
         try
@@ -1575,6 +1710,7 @@ public class PetBrainService : IPetBrainService
         var template = decision.Template;
 
         var narrative = await _narrative.DescribeAsync(new NarrativeContext(
+            ChildId: child.Id,
             Language: language,
             AgeBand: AgeBand(child.Age),
             Template: template,

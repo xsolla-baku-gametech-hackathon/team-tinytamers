@@ -19,6 +19,18 @@ public class ExperienceRun
     /// <summary>Kataloqdakı şablonun açarı — klientdən gələn ad yox, serverin təsdiqlədiyi.</summary>
     public string TemplateKey { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Run BAŞLAYANDA qüvvədə olan tərif versiyası.
+    ///
+    /// <para>Deploy kataloqu dəyişdirə bilər. Bu sahə olmasaydı, uşağın açıq
+    /// macərası yenilənmədən sonra başqa mərhələ sayı və başqa variant açarları
+    /// ilə davam edərdi — yəni yarımçıq run səssizcə pozulardı.</para>
+    ///
+    /// <para><c>0</c> = versiyalaşdırmadan ƏVVƏLki sətir; kataloqun cari
+    /// versiyası ilə oxunur (bax <see cref="PetBrain.ExperienceCatalog.Resolve"/>).</para>
+    /// </summary>
+    public int DefinitionVersion { get; set; }
+
     public PetBrainExperienceType ExperienceType { get; set; }
 
     /// <summary>Təsdiqlənmiş mövzu taksonomiyasından.</summary>

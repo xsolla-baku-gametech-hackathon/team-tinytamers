@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using PetPal.Api.Data;
 
 namespace PetPal.Tests;
@@ -77,6 +78,17 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
         // Ekran vaxtı mühafizəsi appsettings-də hələlik söndürülüb, amma qaydalar
         // yerindədir və test olunmağa davam etməlidir — burada açıq saxlanılır.
         builder.UseSetting("ScreenTime:Enforced", "true");
+
+        // Test host-un öz log provayderləri İZOLƏ edilir.
+        //
+        // Windows-da host standart olaraq EventLog provayderini də qurur; ona
+        // yazmaq üçün icazə olmayanda çıxan xəta test nəticələrinin arasına
+        // düşür və HƏQİQİ uğursuzluğu gizlədir. Testin loglara ehtiyacı yoxdur.
+        builder.ConfigureLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddDebug();
+        });
 
         builder.ConfigureTestServices(services =>
         {

@@ -35,15 +35,27 @@ public class DailyGoalService : IDailyGoalService
         if (goal is not null)
             return goal;
 
-        goal = new DailyGoal
-        {
-            ChildProfileId = child.Id,
-            Date = today,
-            Target = child.DailyGoalTarget
-        };
+        // Sətir dəyişiklik izləyicisi ilə ƏLAVƏ EDİLƏ BİLMƏZ.
+        //
+        // Əlavə etmək yazma anını çağıranın `SaveChangesAsync`-inə qədər
+        // gecikdirir; iki paralel sorğu isə aradan həmin pəncərədə keçir və hər
+        // ikisi eyni (uşaq, gün) sətrini yazmağa çalışır. İkincisi unikal
+        // indeksdə dayanır və çağıranın BÜTÜN yazması — macəra, hadisə, mükafat —
+        // idarə olunmayan xəta ilə çökür. Uşaq üçün bu, "başla" düyməsinə iki
+        // dəfə toxunmaqla eyni idi.
+        //
+        // Ona görə sətir öz atomik addımı ilə yaradılır: uduzan tərəf səssizcə
+        // mövcud sətri oxuyur. `ON CONFLICT DO NOTHING` həm PostgreSQL, həm də
+        // testlərdəki SQLite tərəfindən dəstəklənir.
+        await _db.Database.ExecuteSqlAsync(
+            $"""
+             INSERT INTO "DailyGoals" ("Id", "ChildProfileId", "Date", "Target", "Completed", "CorrectCount", "AnsweredCount", "MinutesSpent", "RewardGranted")
+             VALUES ({Guid.NewGuid()}, {child.Id}, {today}, {child.DailyGoalTarget}, 0, 0, 0, 0, {false})
+             ON CONFLICT ("ChildProfileId", "Date") DO NOTHING
+             """, ct);
 
-        _db.DailyGoals.Add(goal);
-        return goal;
+        return await _db.DailyGoals
+            .FirstAsync(g => g.ChildProfileId == child.Id && g.Date == today, ct);
     }
 
     public async Task<bool> SettleIfReachedAsync(ChildProfile child, DailyGoal goal, CancellationToken ct = default)

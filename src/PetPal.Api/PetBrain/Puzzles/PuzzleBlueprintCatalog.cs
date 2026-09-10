@@ -31,8 +31,26 @@ public sealed record PuzzleBlueprint(
     int MinAge,
 
     /// <summary>Doğru/səhv təzyiqi yoxdur: hər etibarlı seçim qəbul edilir.</summary>
-    bool LowPressure)
+    bool LowPressure,
+
+    /// <summary>
+    /// Şablon HEKAYƏSİNƏ bağlı mexanikalar üçün icazə verilən təcrübə açarları.
+    ///
+    /// <para>Boş siyahı = mövzudan asılı olmayan mexanika: onun mətni
+    /// <see cref="PuzzleBlueprintCatalog.VocabularyFor"/> lüğətindən qurulur və
+    /// hər macərəyə uyğun gəlir.</para>
+    ///
+    /// <para>Dolu siyahı = mexanikanın mətni HEKAYƏNİN İÇİNDƏNDİR (Marsdakı
+    /// Robo, Aydakı kristal). Belə tapmaca yad macərəyə düşsəydi, uşaq Ay
+    /// macərasında Robonu xilas etməyə çağırılardı — süzgəc məhz bunu bağlayır.</para>
+    /// </summary>
+    IReadOnlyList<string> SupportedExperienceKeys)
 {
+    /// <summary>Bu mexanika verilən macərada işlədilə bilərmi.</summary>
+    public bool SupportsExperience(string experienceKey) =>
+        SupportedExperienceKeys.Count == 0
+        || SupportedExperienceKeys.Contains(experienceKey, StringComparer.Ordinal);
+
     /// <summary>Bu mexanika üçün icazə verilən ən böyük element sayı.</summary>
     public int MaxItems => Mechanic switch
     {
@@ -64,17 +82,30 @@ public static class PuzzleBlueprintCatalog
     /// </summary>
     public const string MarsSignalRouteKey = "mars-signal-route";
 
+    /// <summary>
+    /// Ay macərasının öz marşrut tapmacası — eyni qaydalar, AYIN hekayəsi.
+    ///
+    /// <para>Marşrut mexanikası bir dənə olanda Ay macərası Mars mətnini alırdı:
+    /// uşağa «Robo ilə əlaqəni bərpa et» deyilirdi, halbuki hekayədə Robo
+    /// ümumiyyətlə yox idi. İndi mexanika eynidir, hekayə paketi isə ayrıdır.</para>
+    /// </summary>
+    public const string MoonCrystalRouteKey = "moon-crystal-route";
+
     public const string SequenceOrderKey = "sequence-order";
     public const string RouteLogicKey = "route-logic";
     public const string LightFragmentsKey = "light-fragments";
 
     /// <summary>
-    /// Dörd mexanika — dördü də AYRI qarşılıqlı təsirdir.
+    /// Beş şablon, dörd mexanika — hər biri AYRI qarşılıqlı təsirdir.
     ///
     /// <para><b>Keyfiyyət həddi:</b> tapmaca hekayənin problemini BİRBAŞA həll
     /// etməlidir. «İki rəqəm seç, cəmi 5 olsun» tipli ayrıq arifmetik kart
     /// QƏSDƏN yoxdur — o, macərəyə yapışdırılmış viktorina olardı, nə Robonu
     /// xilas edərdi, nə də uşağın seçimini mənalandırardı.</para>
+    ///
+    /// <para><b>Uyğunluq:</b> hekayə mətni daşıyan şablonlar
+    /// <c>SupportedExperienceKeys</c> ilə öz macərasına bağlanır; mövzudan asılı
+    /// olmayanlar isə boş siyahı ilə hər macərəyə açıq qalır.</para>
     /// </summary>
     public static IReadOnlyList<PuzzleBlueprint> Blueprints { get; } =
     [
@@ -84,21 +115,32 @@ public static class PuzzleBlueprintCatalog
             PetBrainExperienceType.Adventure, PetBrainAnswerKind.OrderedNodeIds,
             PlayStyles: [TraitKeys.ProblemSolver, TraitKeys.Explorer],
             Interests: [TraitKeys.Space, TraitKeys.Science, TraitKeys.Puzzles],
-            MinAge: 6, LowPressure: false),
+            MinAge: 6, LowPressure: false,
+            SupportedExperienceKeys: [ExperienceCatalog.MarsRoverRescue]),
+
+        // Ayda kristalı gücləndir: eyni marşrut qaydaları, Ayın öz hekayəsi.
+        new(MoonCrystalRouteKey, Version: 1, PetBrainPuzzleMechanic.OrderedRoute,
+            PetBrainExperienceType.Adventure, PetBrainAnswerKind.OrderedNodeIds,
+            PlayStyles: [TraitKeys.ProblemSolver, TraitKeys.Explorer],
+            Interests: [TraitKeys.Space, TraitKeys.Science, TraitKeys.Puzzles],
+            MinAge: 6, LowPressure: false,
+            SupportedExperienceKeys: [ExperienceCatalog.MoonCrystalRescue]),
 
         // Kəşfiyyatçı üçün sadə variant: şərtə uyğun YEGANƏ yolu seç.
         new(RouteLogicKey, Version: 1, PetBrainPuzzleMechanic.RouteLogic,
             PetBrainExperienceType.Adventure, PetBrainAnswerKind.SelectIds,
             PlayStyles: [TraitKeys.Explorer],
             Interests: [TraitKeys.Ocean, TraitKeys.Nature],
-            MinAge: 5, LowPressure: false),
+            MinAge: 5, LowPressure: false,
+            SupportedExperienceKeys: []),
 
         // Şən/qayğıkeş üçün: addımları hekayə sırasına düz. Cavab SIRALIDIR.
         new(SequenceOrderKey, Version: 1, PetBrainPuzzleMechanic.SequenceOrder,
             PetBrainExperienceType.Adventure, PetBrainAnswerKind.OrderIds,
             PlayStyles: [TraitKeys.Playful, TraitKeys.Caring],
             Interests: [TraitKeys.Stories, TraitKeys.Animals],
-            MinAge: 5, LowPressure: false),
+            MinAge: 5, LowPressure: false,
+            SupportedExperienceKeys: []),
 
         // Yaradıcı yol: qanadın naxışını işıq parçalarından bərpa et.
         // Bir neçə palitra eyni dərəcədə doğrudur — cəza dili yoxdur.
@@ -106,8 +148,13 @@ public static class PuzzleBlueprintCatalog
             PetBrainExperienceType.Creative, PetBrainAnswerKind.SelectIds,
             PlayStyles: [TraitKeys.Creative],
             Interests: [TraitKeys.Fantasy, TraitKeys.Stories, TraitKeys.Animals],
-            MinAge: 5, LowPressure: true)
+            MinAge: 5, LowPressure: true,
+            SupportedExperienceKeys: [])
     ];
+
+    /// <summary>Hekayəsi olan marşrut şablonları — mətn paketi ayrıca seçilir.</summary>
+    public static bool IsRouteStory(string? key) =>
+        key is MarsSignalRouteKey or MoonCrystalRouteKey;
 
     public static PuzzleBlueprint? Find(string? key) =>
         string.IsNullOrWhiteSpace(key)
