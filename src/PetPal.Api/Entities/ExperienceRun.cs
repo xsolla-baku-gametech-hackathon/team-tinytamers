@@ -43,6 +43,37 @@ public class ExperienceRun
     /// <summary>Növbəti gözlənilən mərhələnin indeksi. Klient bunu təyin edə bilmir.</summary>
     public int CurrentStage { get; set; }
 
+    /// <summary>
+    /// Qrafda dayandığımız düyün. Xətti şablonlarda boşdur.
+    ///
+    /// <para>Xətti <see cref="CurrentStage"/> ilə birlikdə saxlanılır: köhnə
+    /// run-lar mərhələ indeksi ilə, qraf run-ları isə düyün açarı ilə davam
+    /// edir və adapter ikisini eyni ekrana çevirir.</para>
+    /// </summary>
+    public string CurrentNodeId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Hekayənin BAYRAQLARI — seçimlərin sonrakı düyünlərə daşınan nəticəsi.
+    ///
+    /// <para>Bayraq açarları QAPALIDIR (tərifdəki effektlərdən gəlir); klient
+    /// nə bayraq qoya, nə də silə bilir.</para>
+    /// </summary>
+    public List<string> StoryFlags { get; set; } = new();
+
+    /// <summary>
+    /// Macərənin hansı sonluqla bitdiyi. Bitməyibsə boşdur.
+    /// </summary>
+    public string EndingKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Bu run-ı doğuran tövsiyə qərarı — ölçmə üçün.
+    ///
+    /// <para>Qərar sətri PII saxlamır (bax <see cref="RecommendationDecision"/>),
+    /// burada isə yalnız onun id-si durur: "göstərildi → başlandı" çevrilməsi
+    /// məhz bu bağ ilə hesablanır.</para>
+    /// </summary>
+    public Guid? DecisionId { get; set; }
+
     /// <summary>Seçilmiş variantların açarları, mərhələ sırası ilə.</summary>
     public List<string> Choices { get; set; } = new();
 
@@ -57,6 +88,15 @@ public class ExperienceRun
     /// saxlanılır — bax <see cref="IssuedPuzzle"/>.
     /// </summary>
     public ICollection<IssuedPuzzle> Puzzles { get; set; } = new List<IssuedPuzzle>();
+
+    /// <summary>
+    /// Atılan addımların REAL qeydi — xülasə və yaddaş buradan qurulur.
+    ///
+    /// <para><see cref="Choices"/> düz siyahısı budaqlanan hekayədə yetərli
+    /// deyil: orada "hansı seçim hansı mərhələyə aiddir" sualının cavabı
+    /// yoxdur, çünki iki uşaq eyni sayda addım atmır.</para>
+    /// </summary>
+    public ICollection<RunStageOutcome> StageOutcomes { get; set; } = new List<RunStageOutcome>();
 
     /// <summary>
     /// Əlavə dəstək rejimi: tapmacada variant sayı azdır və ipucu əvvəldən

@@ -74,7 +74,12 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
                         // uşaq Ay macərasında Marsın Robosunu xilas etməyə
                         // çağırılardı — mexanika uyğun, hekayə yad.
                         && b.SupportsExperience(context.TemplateKey))
-            .OrderByDescending(b => Score(b, context))
+
+            // Hekayənin istədiyi mexanika ƏVVƏLƏ keçir — amma yalnız yuxarıdakı
+            // süzgəcdən keçibsə: düyün uyğunsuz şablon istəsə, o, sadəcə
+            // nəzərə alınmır.
+            .OrderByDescending(b => string.Equals(b.Key, context.PreferredBlueprintKey, StringComparison.Ordinal))
+            .ThenByDescending(b => Score(b, context))
             .ThenBy(b => b.Key, StringComparer.Ordinal)];
 
     private static double Score(PuzzleBlueprint blueprint, PuzzleGenerationContext context)

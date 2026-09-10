@@ -48,6 +48,25 @@ public sealed class RecapSpecFactory : IRecapSpecFactory
             .Select(p => new { p.SceneSpecHash, p.Mechanic })
             .FirstOrDefaultAsync(ct);
 
+        // Budaqlanan macərada xülasə REAL nəticə sətirlərindən qurulur; xətti
+        // macərada isə köhnə (indeks əsaslı) yol saxlanılır, çünki miqrasiya
+        // olunmamış şablonlar da işləməyə davam etməlidir.
+        var outcomes = await _db.RunStageOutcomes
+            .AsNoTracking()
+            .Where(o => o.ExperienceRunId == runId)
+            .OrderBy(o => o.StageOrdinal)
+            .ToListAsync(ct);
+
+        if (outcomes.Count > 0)
+            return AdventureRecapSpec.ForGraph(
+                run,
+                template,
+                child.Pet,
+                child.LanguageCode,
+                puzzle?.SceneSpecHash ?? string.Empty,
+                puzzle is null ? "none" : puzzle.Mechanic.ToString(),
+                outcomes);
+
         return AdventureRecapSpec.For(
             run,
             template,

@@ -11,6 +11,7 @@ using PetPal.Api.Data;
 using PetPal.Api.Entities;
 using PetPal.Api.PetBrain;
 using PetPal.Api.PetBrain.Puzzles;
+using PetPal.Api.PetBrain.Story;
 using PetPal.Shared.Dtos.PetBrain;
 using PetPal.Shared.Enums;
 
@@ -405,7 +406,11 @@ public class PetBrainVersioningTests : IClassFixture<TestWebAppFactory>
         var run = await db.ExperienceRuns.AsNoTracking().FirstAsync(r => r.Id == dto.RunId);
         var template = ExperienceCatalog.Find(run.TemplateKey)!;
 
-        Assert.Equal(template.Version, run.DefinitionVersion);
+        // Budaqlanan macərada həqiqətin mənbəyi QRAFIN versiyasıdır: run onunla
+        // oynanır və onunla bitirilməlidir.
+        var expected = StoryCatalog.Find(run.TemplateKey)?.Version ?? template.Version;
+
+        Assert.Equal(expected, run.DefinitionVersion);
     }
 
     /// <summary>

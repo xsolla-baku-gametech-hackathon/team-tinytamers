@@ -5,8 +5,10 @@ using PetPal.Api.Common;
 using PetPal.Api.Data;
 using PetPal.Api.Entities;
 using PetPal.Api.Learning;
+using PetPal.Api.PetBrain.Mind;
 using PetPal.Api.PetBrain.Puzzles;
 using PetPal.Api.PetBrain.Recap;
+using PetPal.Api.PetBrain.Story;
 using PetPal.Api.Pets;
 using PetPal.Api.Progress;
 using PetPal.Shared.Dtos.PetBrain;
@@ -43,8 +45,12 @@ public class PetBrainService : IPetBrainService
     private readonly IExperienceNarrativeProvider _narrative;
     private readonly IPersonalizedPuzzleGenerator _puzzles;
     private readonly IDailyGoalService _dailyGoals;
+    private readonly PetMindContextBuilder _mind;
+    private readonly DeclinedRecommendations _declined;
+    private readonly PetBrainTelemetry _telemetry;
     private readonly TimeProvider _clock;
     private readonly PetBrainOptions _options;
+    private readonly PetBrainV2Options _v2;
     private readonly ScreenTimeOptions _screenTime;
     private readonly PuzzleIllustrationCoordinator _illustrations;
     private readonly PuzzleIllustrationQueue _sceneQueue;
@@ -60,8 +66,12 @@ public class PetBrainService : IPetBrainService
         IExperienceNarrativeProvider narrative,
         IPersonalizedPuzzleGenerator puzzles,
         IDailyGoalService dailyGoals,
+        PetMindContextBuilder mind,
+        DeclinedRecommendations declined,
+        PetBrainTelemetry telemetry,
         TimeProvider clock,
         IOptions<PetBrainOptions> options,
+        IOptions<PetBrainV2Options> v2,
         IOptions<ScreenTimeOptions> screenTime,
         PuzzleIllustrationCoordinator illustrations,
         PuzzleIllustrationQueue sceneQueue,
@@ -76,8 +86,12 @@ public class PetBrainService : IPetBrainService
         _narrative = narrative;
         _puzzles = puzzles;
         _dailyGoals = dailyGoals;
+        _mind = mind;
+        _declined = declined;
+        _telemetry = telemetry;
         _clock = clock;
         _options = options.Value;
+        _v2 = v2.Value;
         _screenTime = screenTime.Value;
         _illustrations = illustrations;
         _sceneQueue = sceneQueue;
@@ -105,7 +119,8 @@ public class PetBrainService : IPetBrainService
 
         PetProgression.Refresh(pet, now);
 
-        var greeting = PetBrainGreeting.Build(pet, child.DisplayName, language, child.Memories, now);
+        var greeting = PetBrainGreeting.Build(
+            pet, child.DisplayName, language, child.Memories, now, child.Personality);
 
         // Salamlamada işlənən xatirə qeyd olunur — pet hər açılışda eyni cümləni
         // təkrarlamamalıdır (bax MemoryPolicy.PickForGreeting).
@@ -116,6 +131,8 @@ public class PetBrainService : IPetBrainService
         var playStyles = ScoresOf(child, PetBrainTraitCategory.PlayStyle);
         var personality = StablePersonality(child, interests, playStyles, now);
 
+        var bondTier = BondTiers.Of(pet.Bond);
+
         var state = new PetBrainStateDto
         {
             Enabled = true,
@@ -123,6 +140,11 @@ public class PetBrainService : IPetBrainService
             PetName = pet.Name,
             Greeting = greeting.Text,
             Bond = BondRules.Clamp(pet.Bond),
+            BondTier = bondTier,
+            BondTierLabel = BondTiers.Label(bondTier, language),
+            BondNextThreshold = BondTiers.NextThreshold(bondTier) ?? 0,
+            BondEmote = PersonalityVoice.Emote(personality, bondTier),
+            BondUnlockLine = BondTiers.UnlockLine(bondTier, language, pet.Name),
             Personality = personality,
             PersonalityLabel = CompanionPersonality.Label(personality, language),
             Interests = TopTraits(interests, TraitKeys.Interests, language),
@@ -132,46 +154,203 @@ public class PetBrainService : IPetBrainService
             DemoMode = _options.DemoMode
         };
 
-        // Ekran vaxtı YENİ run-a maneədir; başlanmış run isə bitirilə bilir.
-        var goal = await _dailyGoals.GetOrCreateTodayAsync(child, ct);
-        var screenTimeState = ScreenTimeGuard.Evaluate(child, goal, now, _screenTime.Enforced);
+        // Ortaq kontekst: ana ekran, söhbət, qulluq və bu ekran EYNİ həqiqətə
+        // baxmalıdır — bax PetMindContextBuilder.
+        var mind = await _mind.BuildAsync(child, ct);
 
-        state.ScreenTimeBlocked = screenTimeState != ScreenTimeState.Allowed;
-        state.ScreenTimeMessage = ScreenTimeGuard.MessageFor(screenTimeState, language, child);
+        state.ScreenTimeBlocked = mind.ActivityBlocked;
+        state.ScreenTimeMessage = ScreenTimeGuard.MessageFor(
+            ScreenTimeGuard.Evaluate(child, await _dailyGoals.GetOrCreateTodayAsync(child, ct), now,
+                _screenTime.Enforced),
+            language, child);
 
         var activeRun = await ActiveRunAsync(childId, ct);
         if (activeRun is not null)
             state.ActiveRun = await ToDtoAsync(activeRun, child, ct);
 
-        var history = await RecentRunsAsync(childId, ct);
-        var lastPerformance = LastPerformance(history);
-        var difficulty = DifficultyFor(child, lastPerformance);
-
-        var context = await BuildContextAsync(child, interests, playStyles, difficulty, ct);
-        var decision = AdaptivePetDirector.Decide(context);
+        var decision = DecideFor(mind);
 
         if (decision is not null)
         {
-            state.Recommendation = await ToDtoAsync(decision, child, ct);
+            var record = await OpenDecisionAsync(child, mind, decision, now, ordinal: 0, ct);
+            state.Recommendation = await ToDtoAsync(decision, child, record, mind, ct);
 
             // "Tövsiyə göründü" hadisəsi gün ərzində BİR DƏFƏ sayılır — ekranı
-            // yeniləmək profili şişirtməməlidir.
+            // yeniləmək profili şişirtməməlidir. Göstərilmə HEÇ BİR xassəni
+            // artırmır: siyahı qəsdən boşdur.
             await _tracker.TrackAsync(
                 childId,
                 PetBrainEventType.RecommendationViewed,
                 new PetBrainEventData(decision.Template.Key, decision.Template.Theme, []),
                 $"rec-view:{decision.Template.Key}:{now:yyyyMMdd}",
                 ct);
+
+            _telemetry.Recommendation(
+                PetBrainRecommendationFeedback.Shown, decision.Template.Key, _v2.PolicyVersion);
         }
 
         if (_options.DemoMode)
-            state.Debug = await BuildDebugAsync(childId, decision, difficulty, lastPerformance, language,
+            state.Debug = await BuildDebugAsync(childId, decision, mind.Difficulty,
+                LastPerformance(await RecentRunsAsync(childId, ct)), language,
                 state.Recommendation?.NarrativeSource ?? ExperienceNarrative.TemplateSource, ct);
 
         await _db.SaveChangesAsync(ct);
 
         return ServiceResult<PetBrainStateDto>.Ok(state);
     }
+
+    // ==================== Tövsiyə qərarı ====================
+
+    /// <summary>
+    /// Direktoru ortaq kontekstlə işlədir və bu sessiyada RƏDD EDİLMİŞ
+    /// şablonları kənara qoyur.
+    ///
+    /// <para>Rədd qəti "bəyənmədim" demək deyil — sadəcə "indi yox". Ona görə
+    /// süzgəc yalnız cari sessiyaya aiddir və bal cədvəlinə toxunmur.</para>
+    ///
+    /// <para>Bütün namizədlər rədd edilibsə süzgəc BURAXILIR: uşağa "sənə heç
+    /// nə təklif etmirəm" ekranı göstərmək ən pis nəticədir.</para>
+    /// </summary>
+    private static PetBrainRecommendation? DecideFor(PetMindContext mind)
+    {
+        var ranked = AdaptivePetDirector.Rank(mind.ToDirectorContext());
+
+        if (ranked.Count == 0)
+            return null;
+
+        var fresh = ranked
+            .Where(c => !mind.DeclinedTemplates.Contains(c.Template.Key))
+            .ToList();
+
+        var winner = (fresh.Count > 0 ? fresh : ranked)[0];
+
+        return new PetBrainRecommendation(
+            Template: winner.Template,
+            Difficulty: mind.Difficulty,
+            Reasons: AdaptivePetDirector.ReasonsFor(winner, mind.ToDirectorContext()),
+            Candidates: ranked,
+            AlreadyCompleted: mind.CompletedTemplates.Contains(winner.Template.Key));
+    }
+
+    /// <summary>
+    /// Qərarı AÇIR: serverin nə təklif etdiyini yazır və uşağa yalnız onun
+    /// id-sini verir.
+    ///
+    /// <para>Sətir PII saxlamır — nə ad, nə söhbət, nə yaddaş cümləsi. Kontekst
+    /// yalnız hash kimi qalır, yəni "eyni vəziyyət eyni qərarı verdi" sualı
+    /// sonradan cavablana bilir, məzmun isə sızmır.</para>
+    /// </summary>
+    private async Task<RecommendationDecision> OpenDecisionAsync(
+        ChildProfile child,
+        PetMindContext mind,
+        PetBrainRecommendation decision,
+        DateTime now,
+        int ordinal,
+        CancellationToken ct)
+    {
+        var winner = decision.Candidates.First(c => c.Template.Key == decision.Template.Key);
+
+        var record = new RecommendationDecision
+        {
+            ChildProfileId = child.Id,
+            PolicyVersion = _v2.PolicyVersion,
+            CreatedAt = now,
+            ContextHash = ContextHash(mind),
+            CandidateKeys = [.. decision.Candidates.Take(6).Select(c => c.Template.Key)],
+            SelectedTemplateKey = decision.Template.Key,
+            FitScore = winner.FitScore,
+            NoveltyScore = winner.NoveltyScore,
+            SurpriseScore = winner.SurpriseScore,
+            Difficulty = decision.Difficulty,
+            Feedback = PetBrainRecommendationFeedback.Shown,
+            Ordinal = ordinal
+        };
+
+        _db.RecommendationDecisions.Add(record);
+        await _db.SaveChangesAsync(ct);
+
+        return record;
+    }
+
+    /// <summary>Kontekstin barmaq izi — yalnız zolaq və açarlardan.</summary>
+    private static string ContextHash(PetMindContext mind) =>
+        StableHash.Of(string.Join('|',
+            mind.AgeBand,
+            mind.Language,
+            mind.Personality,
+            mind.BondTier,
+            mind.Mood,
+            mind.Difficulty,
+            mind.DailyGoal,
+            mind.Weather,
+            mind.ScreenTime,
+            mind.SessionBucket,
+            string.Join(',', mind.Interests.OrderBy(p => p.Key, StringComparer.Ordinal)
+                .Select(p => $"{p.Key}:{p.Value}")),
+            string.Join(',', mind.PlayStyles.OrderBy(p => p.Key, StringComparer.Ordinal)
+                .Select(p => $"{p.Key}:{p.Value}")))).ToString("x16");
+
+    /// <summary>
+    /// "Başqa fikir" və "sonra".
+    ///
+    /// <para>Hər ikisi serverin verdiyi qərara bağlanır: klient nə şablon, nə də
+    /// bal göndərə bilmir. Yad və ya köhnəlmiş qərar rədd olunur.</para>
+    /// </summary>
+    public async Task<ServiceResult<PetBrainStateDto>> SubmitFeedbackAsync(
+        Guid childId, PetBrainFeedbackRequest request, CancellationToken ct = default)
+    {
+        if (!_options.Enabled)
+            return Disabled<PetBrainStateDto>();
+
+        var child = await LoadChildAsync(childId, ct);
+        if (child?.Pet is null)
+            return ServiceResult<PetBrainStateDto>.NotFound(
+                Localized.T("Uşaq profili tapılmadı.", "Child profile not found."));
+
+        var language = child.LanguageCode;
+
+        if (request.Feedback is not (PetBrainRecommendationFeedback.ShowAnother
+            or PetBrainRecommendationFeedback.NotNow))
+            return ServiceResult<PetBrainStateDto>.Fail(
+                Localized.T(language, "Bu cavab qəbul edilmir.", "That answer is not accepted."));
+
+        // Sahiblik sorğunun İÇİNDƏDİR: yad uşağın qərarı ümumiyyətlə tapılmır.
+        var record = await _db.RecommendationDecisions
+            .FirstOrDefaultAsync(d => d.Id == request.DecisionId && d.ChildProfileId == childId, ct);
+
+        if (record is null)
+            return ServiceResult<PetBrainStateDto>.NotFound(
+                Localized.T(language, "Bu təklif artıq keçərli deyil.", "That suggestion is no longer valid."));
+
+        if (record.Feedback != PetBrainRecommendationFeedback.Shown)
+            return ServiceResult<PetBrainStateDto>.Conflict(
+                Localized.T(language, "Bu təklifə artıq cavab verilib.", "You already answered this suggestion."));
+
+        var now = _clock.GetUtcNow().UtcDateTime;
+
+        record.Feedback = request.Feedback;
+        record.FeedbackAt = now;
+
+        // Hər iki cavab şablonu bu SESSİYA üçün kənara qoyur. Nə biri, nə
+        // digəri maraq balını AZALTMIR: bir dəfə "sonra" demək bir mövzunu
+        // sevməmək deyil.
+        _declined.Record(childId, record.SelectedTemplateKey, now);
+
+        await _db.SaveChangesAsync(ct);
+
+        _telemetry.Recommendation(request.Feedback, record.SelectedTemplateKey, _v2.PolicyVersion);
+
+        return await GetStateAsync(childId, ct);
+    }
+
+    /// <summary>Bu sessiyada neçə dəfə "başqa fikir" deyilib.</summary>
+    private async Task<int> ShowAnotherCountAsync(Guid childId, DateTime now, CancellationToken ct) =>
+        await _db.RecommendationDecisions
+            .AsNoTracking()
+            .CountAsync(d => d.ChildProfileId == childId
+                             && d.Feedback == PetBrainRecommendationFeedback.ShowAnother
+                             && d.FeedbackAt != null
+                             && d.FeedbackAt > now - DeclinedRecommendations.Window, ct);
 
     // ==================== Run başlatmaq ====================
 
@@ -216,19 +395,36 @@ public class PetBrainService : IPetBrainService
         if (existing is not null)
             return ServiceResult<PetBrainRunDto>.Ok(await ToDtoAsync(existing, child, ct));
 
-        var interests = ScoresOf(child, PetBrainTraitCategory.Interest);
-        var playStyles = ScoresOf(child, PetBrainTraitCategory.PlayStyle);
+        var mind = await _mind.BuildAsync(child, ct);
+        var difficulty = mind.Difficulty;
 
-        var history = await RecentRunsAsync(childId, ct);
-        var lastPerformance = LastPerformance(history);
-        var difficulty = DifficultyFor(child, lastPerformance);
-
-        var context = await BuildContextAsync(child, interests, playStyles, difficulty, ct);
-        var decision = AdaptivePetDirector.Decide(context);
+        var decision = DecideFor(mind);
 
         if (decision is null)
             return ServiceResult<PetBrainRunDto>.Fail(
                 Localized.T(language, "Hazırda uyğun macəra yoxdur.", "No suitable adventure right now."));
+
+        // Qərar id-si verilibsə, o, uşağın ÖZ və HƏLƏ AÇIQ qərarı olmalıdır.
+        //
+        // Bu, təkcə səliqə deyil: klient sərbəst şablon və ya yad qərar
+        // göndərə bilməməlidir. Qərar tapılanda serverin cari sıralaması
+        // əvəzinə MƏHZ göstərilmiş kart başladılır — uşaq gördüyü kartı alır.
+        RecommendationDecision? opened = null;
+
+        if (request.DecisionId is { } decisionId)
+        {
+            opened = await _db.RecommendationDecisions
+                .FirstOrDefaultAsync(d => d.Id == decisionId && d.ChildProfileId == childId, ct);
+
+            if (opened is null || opened.Feedback != PetBrainRecommendationFeedback.Shown)
+                return ServiceResult<PetBrainRunDto>.Conflict(
+                    Localized.T(language,
+                        "Bu macəra artıq növbədə deyil — ekranı yenilə.",
+                        "That adventure is no longer the current one — refresh the screen."));
+
+            if (ExperienceCatalog.Find(opened.SelectedTemplateKey) is { } offered)
+                decision = decision with { Template = offered };
+        }
 
         // Klient kataloqdan istədiyini seçə bilmir: göndərilən açar serverin
         // hazırkı qərarı ilə üst-üstə düşməlidir.
@@ -240,6 +436,7 @@ public class PetBrainService : IPetBrainService
                     "That adventure is no longer the current one — refresh the screen."));
 
         var template = decision.Template;
+        var graph = GraphFor(template.Key);
 
         var run = new ExperienceRun
         {
@@ -248,7 +445,10 @@ public class PetBrainService : IPetBrainService
 
             // Tərifin versiyası run-a YAZILIR: sonrakı deploy kataloqu
             // dəyişdirsə də, bu macəra başladığı qaydalarla oxunur.
-            DefinitionVersion = template.Version,
+            DefinitionVersion = graph?.Version ?? template.Version,
+            CurrentNodeId = graph?.StartNodeId ?? string.Empty,
+            StoryFlags = [.. graph is null ? [] : StoryRuntime.FlagsOf(graph.Start)],
+            DecisionId = opened?.Id,
             ExperienceType = template.Type,
             Theme = template.Theme,
             Difficulty = difficulty,
@@ -260,10 +460,21 @@ public class PetBrainService : IPetBrainService
             // Tapmacanın toxumu BURADA saxlanılmır: o, run-ın öz id-sindən və
             // şablon açarından SHA-256 ilə çıxarılır (bax PuzzleSeed) və
             // verilmiş tapmaca ilə birlikdə IssuedPuzzles cədvəlinə düşür.
-            Assisted = lastPerformance is not null && ExperienceDifficulty.NeedsAssist(lastPerformance)
+            Assisted = NeedsAssist(mind)
         };
 
         _db.ExperienceRuns.Add(run);
+
+        // Qərar "seçildi" olaraq bağlanır: göstərilmə ilə seçilmə artıq eyni
+        // şey deyil və ölçmə ikisini ayırd edir.
+        if (opened is not null)
+        {
+            opened.Feedback = PetBrainRecommendationFeedback.Selected;
+            opened.FeedbackAt = now;
+        }
+
+        // Yeni macəra başlayanda sessiyanın "sonra" siyahısı təmizlənir.
+        _declined.Clear(childId);
 
         await _tracker.TrackAsync(
             childId,
@@ -313,10 +524,58 @@ public class PetBrainService : IPetBrainService
             _logger.LogInformation(
                 "PetBrain: paralel başlatma bloklandı, mövcud macəra qaytarıldı ({RunId}).", winner.Id);
 
+            _telemetry.Conflict("start-run");
+
             return ServiceResult<PetBrainRunDto>.Ok(await ToDtoAsync(winner, child, ct));
         }
 
+        _telemetry.Recommendation(
+            PetBrainRecommendationFeedback.Selected, template.Key, _v2.PolicyVersion);
+        _telemetry.RunStarted(template.Key, run.DefinitionVersion, difficulty, graph is not null);
+
         return ServiceResult<PetBrainRunDto>.Ok(await ToDtoAsync(run, child, ct));
+    }
+
+    /// <summary>
+    /// Bu macərada dəstək rejimi lazımdırmı — son TAMAMLANMIŞ nəticəyə görə.
+    /// </summary>
+    private static bool NeedsAssist(PetMindContext mind)
+    {
+        var last = mind.RecentOutcomes.FirstOrDefault(o => o.CountsForDifficulty);
+
+        return last is not null && ExperienceDifficulty.NeedsAssist(
+            new RunPerformance(mind.Difficulty, last.ScorePercent, last.HintsUsed, last.Mistakes));
+    }
+
+    /// <summary>
+    /// Bu şablonun budaqlanan tərifi — özəllik açarı bağlıdırsa <c>null</c>.
+    /// </summary>
+    private ExperienceDefinition? GraphFor(string templateKey) =>
+        _v2 is { Enabled: true, StoryGraphEnabled: true }
+            ? StoryCatalog.Find(templateKey)
+            : null;
+
+    /// <summary>
+    /// YARIMÇIQ run-ın tərifi.
+    ///
+    /// <para>Burada özəllik açarına BAXILMIR və bu, qəsdəndir: qraf run-u
+    /// başlayandan sonra açar bağlansa, run yenə də başladığı modellə
+    /// bitirilməlidir. Əks halda uşağın açıq macərası deploy zamanı ekranda
+    /// boş qalardı.</para>
+    /// </summary>
+    private ExperienceDefinition? GraphOf(ExperienceRun run)
+    {
+        if (string.IsNullOrEmpty(run.CurrentNodeId) && string.IsNullOrEmpty(run.EndingKey))
+            return null;
+
+        var (definition, exact) = StoryCatalog.Resolve(run.TemplateKey, run.DefinitionVersion);
+
+        if (definition is not null && !exact)
+            _logger.LogWarning(
+                "PetBrain: qraf run {RunId} {Version} versiyası ilə başlayıb, kataloqda {Current} var.",
+                run.Id, run.DefinitionVersion, definition.Version);
+
+        return definition;
     }
 
     // ==================== Run oxumaq ====================
@@ -367,6 +626,11 @@ public class PetBrainService : IPetBrainService
         if (template is null)
             return ServiceResult<PetBrainRunDto>.NotFound(
                 Localized.T(language, "Belə macəra yoxdur.", "There is no such adventure."));
+
+        // Budaqlanan macəra AYRI yolla gedir: orada "mərhələ indeksi" deyil,
+        // düyün açarı və hekayə bayraqları qərar verir.
+        if (GraphOf(run) is { } graph)
+            return await SubmitGraphStepAsync(run, child, template, graph, request, ct);
 
         if (run.CurrentStage >= template.StageCount)
             return ServiceResult<PetBrainRunDto>.Conflict(
@@ -421,6 +685,325 @@ public class PetBrainService : IPetBrainService
             PetBrainStageKind.Choice => await SubmitChoiceStageAsync(run, child, template, stage, request.OptionKey!, ct),
             _ => await AdvanceIntroAsync(run, child, template, ct)
         };
+    }
+
+    // ==================== Budaqlanan hekayə ====================
+
+    /// <summary>
+    /// Qrafda BİR addım.
+    ///
+    /// <para>Ardıcıllıq həmişə eynidir: ekran uyğunluğu → giriş yığılır →
+    /// nəticə sətri yazılır → növbəti düyün hesablanır → düyünün effektləri
+    /// tətbiq olunur. Nəticə sətrinin (run, düyün) cütü unikaldır, ona görə
+    /// təkrar göndərilən sorğu addımı İKİNCİ DƏFƏ tətbiq edə bilmir.</para>
+    /// </summary>
+    private async Task<ServiceResult<PetBrainRunDto>> SubmitGraphStepAsync(
+        ExperienceRun run,
+        ChildProfile child,
+        ExperienceTemplate template,
+        ExperienceDefinition graph,
+        PetBrainChoiceRequest request,
+        CancellationToken ct)
+    {
+        var language = child.LanguageCode;
+        var now = _clock.GetUtcNow().UtcDateTime;
+
+        var node = graph.Find(run.CurrentNodeId);
+
+        // Düyün tapılmırsa tərif dəyişib. Uşağın macərasını 500 ilə itirmək
+        // əvəzinə onu başlanğıc düyünə TƏHLÜKƏSİZ qaytarırıq.
+        if (node is null)
+        {
+            _logger.LogWarning(
+                "PetBrain: run {RunId} üçün «{Node}» düyünü tapılmadı — başlanğıca qaytarılır.",
+                run.Id, run.CurrentNodeId);
+
+            _telemetry.Fallback("missing-node");
+
+            run.CurrentNodeId = graph.StartNodeId;
+            await _db.SaveChangesAsync(ct);
+
+            return ServiceResult<PetBrainRunDto>.Ok(await ToDtoAsync(run, child, ct));
+        }
+
+        // Ekran uyğunluğu: klientin gördüyü düyün serverinki ilə üst-üstə
+        // düşməlidir. Açar göndərilməyibsə köhnə mərhələ indeksi qəbul edilir.
+        if (!string.IsNullOrWhiteSpace(request.NodeId))
+        {
+            if (!string.Equals(request.NodeId, node.Id, StringComparison.Ordinal))
+                return ServiceResult<PetBrainRunDto>.Conflict(
+                    Localized.T(language, "Bu addım artıq keçilib.", "That step has already been played."));
+        }
+        else if (request.StageIndex != run.CurrentStage)
+        {
+            return ServiceResult<PetBrainRunDto>.Conflict(
+                Localized.T(language, "Bu addım artıq keçilib.", "That step has already been played."));
+        }
+
+        // ---- İpucu: addım İRƏLİLƏMİR ----
+        if (request.RequestHint)
+        {
+            if (node.Kind != PetBrainStageKind.Puzzle)
+                return ServiceResult<PetBrainRunDto>.Fail(
+                    Localized.T(language, "Bu addımda ipucu yoxdur.", "There is no hint on this step."));
+
+            run.HintsUsed++;
+
+            var hinted = await EnsurePuzzleAsync(run, template, child, run.CurrentStage, ct, node.PuzzleFamily);
+            hinted.HintsUsed++;
+
+            await _tracker.TrackAsync(
+                child.Id,
+                PetBrainEventType.HintRequested,
+                new PetBrainEventData(template.Key, $"node:{node.Id}", []),
+                $"hint:{run.Id:N}:{node.Id}:{run.HintsUsed}",
+                ct);
+
+            await _db.SaveChangesAsync(ct);
+
+            _telemetry.Puzzle("hint", hinted.BlueprintKey, run.Difficulty);
+
+            return ServiceResult<PetBrainRunDto>.Ok(await ToDtoAsync(run, child, ct, showHint: true));
+        }
+
+        var input = await ReadInputAsync(run, child, template, node, request, now, ct);
+
+        if (input.Error is not null)
+            return input.Error;
+
+        // Tapmaca həll olunmayıbsa addım İRƏLİLƏMİR — macəra bitmir, uşaq
+        // yenidən cəhd edir.
+        if (input.Retry)
+            return ServiceResult<PetBrainRunDto>.Ok(
+                await ToDtoAsync(run, child, ct, puzzleMissed: true));
+
+        var next = StoryRuntime.Next(graph, node, input.Story!);
+
+        if (next is null)
+        {
+            // Validator bunu buraxmır; yenə də uşaq boş ekranla qalmamalıdır.
+            _logger.LogError(
+                "PetBrain: «{Node}» düyünündən keçid tapılmadı ({Template}).", node.Id, template.Key);
+
+            _telemetry.Fallback("no-transition");
+
+            return ServiceResult<PetBrainRunDto>.Fail(
+                Localized.T(language, "Hekayə burada dayandı.", "The story paused here."));
+        }
+
+        await RecordOutcomeAsync(run, child, node, input, now, ct);
+
+        run.CurrentNodeId = next.Id;
+        run.CurrentStage++;
+
+        // Effektlər düyünə DAXİL OLARKƏN tətbiq olunur və ideal-potentdir:
+        // bayraq dəsti çoxluqdur, təkrar giriş onu ikiqat qoymur.
+        foreach (var flag in StoryRuntime.FlagsOf(next))
+        {
+            if (!run.StoryFlags.Contains(flag, StringComparer.Ordinal))
+                run.StoryFlags.Add(flag);
+        }
+
+        if (next.IsEnding)
+            run.EndingKey = next.EndingKey;
+
+        _telemetry.NodeCompleted(template.Key, node.Kind, input.Story!.OptionKey);
+
+        await _db.SaveChangesAsync(ct);
+
+        return ServiceResult<PetBrainRunDto>.Ok(await ToDtoAsync(run, child, ct));
+    }
+
+    /// <summary>Bir addımın nəticəsi — həll olunmuş giriş və ya səhv/təkrar siqnalı.</summary>
+    private sealed record GraphInput(
+        StoryInput? Story,
+        PetBrainStageResult Result,
+        IReadOnlyList<string> SelectedKeys,
+        int Attempts,
+        int Hints,
+        string BlueprintKey,
+        bool Retry,
+        ServiceResult<PetBrainRunDto>? Error);
+
+    /// <summary>
+    /// Uşağın cavabını YOXLAYIR və qrafın anlayacağı girişə çevirir.
+    ///
+    /// <para>Tapmacanın doğruluğu YALNIZ burada, saxlanmış həllə qarşı
+    /// müəyyən edilir — klientin gövdəsində belə sahə ümumiyyətlə yoxdur.</para>
+    /// </summary>
+    private async Task<GraphInput> ReadInputAsync(
+        ExperienceRun run,
+        ChildProfile child,
+        ExperienceTemplate template,
+        ExperienceNode node,
+        PetBrainChoiceRequest request,
+        DateTime now,
+        CancellationToken ct)
+    {
+        var language = child.LanguageCode;
+        var flags = run.StoryFlags.ToHashSet(StringComparer.Ordinal);
+
+        GraphInput Fail(string az, string en) => new(
+            null, PetBrainStageResult.None, [], 0, 0, string.Empty, false,
+            ServiceResult<PetBrainRunDto>.Fail(Localized.T(language, az, en)));
+
+        switch (node.Kind)
+        {
+            case PetBrainStageKind.Choice:
+            {
+                if (string.IsNullOrWhiteSpace(request.OptionKey))
+                    return Fail("Bir variant seçilməlidir.", "Please choose an option.");
+
+                var option = node.Options.FirstOrDefault(o =>
+                    string.Equals(o.Key, request.OptionKey, StringComparison.Ordinal));
+
+                if (option is null)
+                    return Fail("Belə variant yoxdur.", "There is no such option.");
+
+                run.Choices.Add(option.Key);
+
+                await _tracker.TrackAsync(
+                    child.Id,
+                    PetBrainEventType.StageChoiceMade,
+                    new PetBrainEventData(template.Key, option.Key, ProfileLearningRules.ForChoice(option)),
+                    $"choice:{run.Id:N}:{node.Id}",
+                    ct);
+
+                return new GraphInput(
+                    new StoryInput(option.Key, PetBrainStageResult.None, flags),
+                    PetBrainStageResult.None, [option.Key], 0, 0, string.Empty, false, null);
+            }
+
+            case PetBrainStageKind.Puzzle:
+            {
+                var issued = await EnsurePuzzleAsync(
+                    run, template, child, run.CurrentStage, ct, node.PuzzleFamily);
+
+                var blueprint = PuzzleBlueprintCatalog.Find(issued.BlueprintKey);
+
+                if (blueprint is null)
+                    return Fail("Bu tapmaca artıq keçərli deyil.", "This puzzle is no longer valid.");
+
+                if (issued.Status != PetBrainPuzzleStatus.Issued)
+                    return new GraphInput(
+                        new StoryInput(string.Empty, PetBrainStageResult.Solved, flags),
+                        PetBrainStageResult.Solved, [], issued.Attempts, issued.HintsUsed,
+                        issued.BlueprintKey, false, null);
+
+                var evaluated = PuzzleAnswerEvaluator.Evaluate(
+                    blueprint, ReadPublic(issued), ReadSolution(issued), request.SelectedIds);
+
+                // Formaya uyğun olmayan cavab NƏ səhv sayılır, NƏ də cəhd —
+                // bu, uşağın səhvi deyil, sorğunun səhvidir.
+                if (evaluated.Rejected)
+                    return Fail("Bu cavab uyğun deyil.", "That answer does not fit.");
+
+                issued.Attempts++;
+
+                if (!evaluated.IsCorrect)
+                {
+                    run.Mistakes++;
+
+                    await _tracker.TrackAsync(
+                        child.Id,
+                        PetBrainEventType.PuzzleFailed,
+                        // Səhv cavab HEÇ BİR marağı azaltmır.
+                        new PetBrainEventData(template.Key, $"node:{node.Id}", []),
+                        $"puzzle-miss:{run.Id:N}:{node.Id}:{run.Mistakes}",
+                        ct);
+
+                    await _db.SaveChangesAsync(ct);
+
+                    _telemetry.Puzzle("miss", issued.BlueprintKey, run.Difficulty);
+
+                    return new GraphInput(
+                        null, PetBrainStageResult.None, [], issued.Attempts, issued.HintsUsed,
+                        issued.BlueprintKey, true, null);
+                }
+
+                issued.Status = PetBrainPuzzleStatus.Solved;
+                issued.SolvedAt = now;
+
+                var result = blueprint.LowPressure
+                    ? PetBrainStageResult.Accepted
+                    : PetBrainStageResult.Solved;
+
+                // İlk cəhdə, ipucusuz həll AYRI hekayə düyününə apara bilər:
+                // hekayə uşağın necə çatdığını da danışmalıdır.
+                if (result == PetBrainStageResult.Solved && issued.Attempts == 1 && issued.HintsUsed == 0)
+                    flags.Add(MoonCrystalHunt.CleanSolveFlag);
+
+                var selected = blueprint.LowPressure && request.SelectedIds is not null
+                    ? [.. request.SelectedIds]
+                    : new List<string>();
+
+                if (selected.Count > 0)
+                    run.Choices.AddRange(selected);
+                else
+                    run.Choices.Add("solved");
+
+                await _tracker.TrackAsync(
+                    child.Id,
+                    PetBrainEventType.PuzzleSolved,
+                    new PetBrainEventData(
+                        template.Key, $"node:{node.Id}:{issued.BlueprintKey}",
+                        ProfileLearningRules.ForPuzzleSolved()),
+                    $"puzzle-solved:{run.Id:N}:{node.Id}",
+                    ct);
+
+                _telemetry.Puzzle("solved", issued.BlueprintKey, run.Difficulty);
+
+                return new GraphInput(
+                    new StoryInput(string.Empty, result, flags),
+                    result, selected, issued.Attempts, issued.HintsUsed, issued.BlueprintKey, false, null);
+            }
+
+            default:
+            {
+                // Giriş və nəticə ekranları: uşaq yalnız "davam" deyir.
+                run.Choices.Add("continue");
+
+                return new GraphInput(
+                    new StoryInput(string.Empty, PetBrainStageResult.None, flags),
+                    PetBrainStageResult.None, [], 0, 0, string.Empty, false, null);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Addımın REAL qeydi.
+    ///
+    /// <para>(run, düyün) cütü unikaldır: təkrar göndərilən sorğu ikinci sətir
+    /// yaratmır və nəticə iki dəfə sayılmır.</para>
+    /// </summary>
+    private async Task RecordOutcomeAsync(
+        ExperienceRun run,
+        ChildProfile child,
+        ExperienceNode node,
+        GraphInput input,
+        DateTime now,
+        CancellationToken ct)
+    {
+        var existing = await _db.RunStageOutcomes
+            .FirstOrDefaultAsync(o => o.ExperienceRunId == run.Id && o.NodeId == node.Id, ct);
+
+        if (existing is not null)
+            return;
+
+        _db.RunStageOutcomes.Add(new RunStageOutcome
+        {
+            ExperienceRunId = run.Id,
+            ChildProfileId = child.Id,
+            NodeId = node.Id,
+            StageOrdinal = run.CurrentStage,
+            Kind = node.Kind,
+            SelectedOptionKeys = [.. input.SelectedKeys],
+            Result = input.Result,
+            Attempts = input.Attempts,
+            HintsUsed = input.Hints,
+            EffectKeys = [.. StoryRuntime.FlagsOf(node)],
+            CompletedAt = now
+        });
     }
 
     private async Task<ServiceResult<PetBrainRunDto>> AdvanceIntroAsync(
@@ -580,7 +1163,14 @@ public class PetBrainService : IPetBrainService
                 Localized.T(language, "Bu macəra yarımçıq qalıb.", "This adventure was left unfinished."));
 
         // Yarımçıq run tamamlana bilməz.
-        if (run.CurrentStage < template.StageCount)
+        //
+        // Budaqlanan macərada "bütün mərhələlər keçildi" şərti mənasızdır —
+        // yollar müxtəlif uzunluqdadır. Orada şərt SONLUQ düyününə çatmaqdır.
+        var finished = GraphOf(run) is { } graph
+            ? graph.Find(run.CurrentNodeId) is { IsEnding: true }
+            : run.CurrentStage >= template.StageCount;
+
+        if (!finished)
             return ServiceResult<PetBrainRunDto>.Conflict(
                 Localized.T(language, "Macəra hələ bitməyib.", "The adventure is not finished yet."));
 
@@ -693,6 +1283,8 @@ public class PetBrainService : IPetBrainService
         // xatirə və kosmetik artıq verilib. Video gec gəlsə də (və ya heç
         // gəlməsə də) uşağın mükafatı toxunulmazdır.
         dto.Summary.Recap = await EnsureRecapAsync(run, ct);
+
+        _telemetry.RunCompleted(template.Key, run.EndingKey, run.CurrentStage);
 
         return ServiceResult<PetBrainRunDto>.Ok(dto);
     }
@@ -809,32 +1401,21 @@ public class PetBrainService : IPetBrainService
         if (!_options.Enabled)
             return null;
 
-        var snapshot = await _db.ChildProfiles
-            .AsNoTracking()
-            .Where(c => c.Id == childId)
-            .Select(c => new
-            {
-                c.Age,
-                c.LanguageCode,
-                IsHatched = c.Pet != null && c.Pet.HatchedAt != null
-            })
-            .FirstOrDefaultAsync(ct);
+        var child = await LoadChildAsync(childId, ct);
 
         // Yumurta macəraya çıxmır — çip də göstərilmir.
-        if (snapshot is null || !snapshot.IsHatched)
+        if (child?.Pet is null || child.Pet.HatchedAt is null)
             return null;
 
-        var language = snapshot.LanguageCode;
+        var language = child.LanguageCode;
+
+        // Ana ekran, söhbət və Pet Brain EYNİ kontekstdən oxuyur: pet bir
+        // ekranda "yorğunam", digərində "macərəya çıxaq" deməməlidir.
+        var mind = await _mind.BuildAsync(child, ct);
 
         // Yarımçıq macəra varsa direktoru işlətməyə ehtiyac yoxdur.
-        var activeTemplateKey = await _db.ExperienceRuns
-            .AsNoTracking()
-            .Where(r => r.ChildProfileId == childId && r.Status == PetBrainRunStatus.Active)
-            .OrderByDescending(r => r.StartedAt)
-            .Select(r => r.TemplateKey)
-            .FirstOrDefaultAsync(ct);
-
-        if (activeTemplateKey is not null && ExperienceCatalog.Find(activeTemplateKey) is { } activeTemplate)
+        if (mind.UnfinishedTemplateKey is { } unfinished
+            && ExperienceCatalog.Find(unfinished) is { } activeTemplate)
             return new PetBrainHomeChipDto
             {
                 HasActiveRun = true,
@@ -843,43 +1424,7 @@ public class PetBrainService : IPetBrainService
                 Reason = Localized.T(language, "Yarımçıq qalıb — davam et", "Unfinished — pick it up")
             };
 
-        var traits = await _db.PlayerTraits
-            .AsNoTracking()
-            .Where(t => t.ChildProfileId == childId)
-            .Select(t => new { t.Category, t.Key, t.Score })
-            .ToListAsync(ct);
-
-        var interests = traits
-            .Where(t => t.Category == PetBrainTraitCategory.Interest)
-            .ToDictionary(t => t.Key, t => TraitKeys.Clamp(t.Score), StringComparer.Ordinal);
-
-        var playStyles = traits
-            .Where(t => t.Category == PetBrainTraitCategory.PlayStyle)
-            .ToDictionary(t => t.Key, t => TraitKeys.Clamp(t.Score), StringComparer.Ordinal);
-
-        var history = await RecentRunsAsync(childId, ct);
-        var last = LastPerformance(history);
-
-        var difficulty = last is not null
-            ? ExperienceDifficulty.Next(last, snapshot.Age)
-            : ExperienceDifficulty.Initial(snapshot.Age, AdaptiveEngine.TargetDifficulty(
-                await AverageMasteryAsync(childId, ct)));
-
-        var context = new PetBrainDirectorContext(
-            ChildId: childId,
-            Age: snapshot.Age,
-            Language: language,
-            Interests: interests,
-            PlayStyles: playStyles,
-            RecentRuns: [.. history.Select(r => new RunHistoryEntry(r.TemplateKey, r.Theme, r.Status))],
-            CompletedTemplates: history
-                .Where(r => r.Status == PetBrainRunStatus.Completed)
-                .Select(r => r.TemplateKey)
-                .ToHashSet(StringComparer.Ordinal),
-            Difficulty: difficulty,
-            PetIsHatched: true);
-
-        var decision = AdaptivePetDirector.Decide(context);
+        var decision = DecideFor(mind);
 
         if (decision is null)
             return null;
@@ -889,20 +1434,13 @@ public class PetBrainService : IPetBrainService
             HasActiveRun = false,
             Title = decision.Template.Title(language),
             Icon = decision.Template.Icon,
-            Reason = decision.Reasons.FirstOrDefault() ?? string.Empty
+
+            // Səbəb XARAKTERİN səsi ilə gəlir: ana ekranda da pet özü kimi
+            // danışmalıdır, ümumi bir cümlə ilə yox.
+            Reason = mind.NeedsCare
+                ? Localized.T(language, "Əvvəlcə mənə bir baxaq?", "Shall we take care of me first?")
+                : decision.Reasons.FirstOrDefault() ?? string.Empty
         };
-    }
-
-    /// <summary>Başlanğıc çətinlik üçün — tam bacarıq sətirlərini yükləməyə ehtiyac yoxdur.</summary>
-    private async Task<int> AverageMasteryAsync(Guid childId, CancellationToken ct)
-    {
-        var ratings = await _db.SkillMasteries
-            .AsNoTracking()
-            .Where(m => m.ChildProfileId == childId)
-            .Select(m => m.Rating)
-            .ToListAsync(ct);
-
-        return ratings.Count == 0 ? AdaptiveEngine.StartingRating : (int)ratings.Average();
     }
 
     // ==================== Valideyn müqayisəsi ====================
@@ -1028,10 +1566,20 @@ public class PetBrainService : IPetBrainService
             .Take(RecentRunWindow)
             .ToListAsync(ct);
 
-    /// <summary>Çətinlik yalnız SON TAMAMLANMIŞ run-dan asılıdır — bir pillə qaydası özü yaranır.</summary>
+    /// <summary>
+    /// Çətinlik yalnız SON TAMAMLANMIŞ run-dan asılıdır — bir pillə qaydası
+    /// özü yaranır.
+    ///
+    /// <para><b>Yaradıcı macəralar sayılmır.</b> Orada doğru/səhv yoxdur, ona
+    /// görə nəticə həmişə 100-dür — və bu, "mükəmməl performans" kimi oxunub
+    /// çətinliyi haqsız yerə qaldırırdı. Yaradıcı işin tamamlanması dəyərlidir,
+    /// amma o, məharət ölçüsü DEYİL.</para>
+    /// </summary>
     private static RunPerformance? LastPerformance(IEnumerable<ExperienceRun> history)
     {
-        var last = history.FirstOrDefault(r => r.Status == PetBrainRunStatus.Completed);
+        var last = history.FirstOrDefault(r =>
+            r.Status == PetBrainRunStatus.Completed
+            && r.ExperienceType != PetBrainExperienceType.Creative);
 
         return last is null
             ? null
@@ -1159,11 +1707,22 @@ public class PetBrainService : IPetBrainService
             isFirstAdventureEver ? MemoryPolicy.FirstAdventureImportance : MemoryPolicy.CompletionImportance,
             [template.Theme, template.Type.ToString().ToLowerInvariant()]);
 
-        // 2) Ən mənalı seçim — sonuncu, çünki o, macəranın nəticəsini müəyyən edir.
-        var lastChoice = run.Choices.LastOrDefault(c => c is not ("continue" or "solved"));
+        // 2) Ən mənalı seçim.
+        //
+        // Budaqlanan macərada bu, REAL nəticə sətirlərindən oxunur: orada
+        // hansı seçimin hansı addımda edildiyi dəqiq bilinir. Düz `Choices`
+        // siyahısında isə "continue" və "solved" açarları seçimlərlə qarışır
+        // və sonuncu element həmişə mənalı seçim olmur.
+        var lastChoice = await LastMeaningfulChoiceAsync(run, ct);
+
         if (lastChoice is not null)
             Remember(PetBrainMemoryKind.ChoiceMade, template.Key, lastChoice,
                 MemoryPolicy.ChoiceImportance, [template.Theme]);
+
+        // 2b) Budaqlanan macəranın SONLUĞU — "hansı yolu seçdik" faktı.
+        if (!string.IsNullOrEmpty(run.EndingKey))
+            Remember(PetBrainMemoryKind.ChoiceMade, template.Key, run.EndingKey,
+                MemoryPolicy.ChoiceImportance + 5, [template.Theme, "ending"]);
 
         // 3) Kosmetik.
         if (!string.IsNullOrEmpty(unlockedCode))
@@ -1235,6 +1794,27 @@ public class PetBrainService : IPetBrainService
             _db.PetMemories.Add(memory);
             created.Add(memory);
         }
+    }
+
+    /// <summary>
+    /// Uşağın bu macərada etdiyi SON mənalı seçim.
+    ///
+    /// <para>Budaqlanan run-da nəticə sətirlərindən; xətti run-da isə köhnə
+    /// siyahıdan — miqrasiya olunmamış şablonlar da işləməyə davam etməlidir.</para>
+    /// </summary>
+    private async Task<string?> LastMeaningfulChoiceAsync(ExperienceRun run, CancellationToken ct)
+    {
+        var recorded = await _db.RunStageOutcomes
+            .AsNoTracking()
+            .Where(o => o.ExperienceRunId == run.Id && o.Kind == PetBrainStageKind.Choice)
+            .OrderByDescending(o => o.StageOrdinal)
+            .Select(o => o.SelectedOptionKeys)
+            .FirstOrDefaultAsync(ct);
+
+        if (recorded is { Count: > 0 })
+            return recorded[0];
+
+        return run.Choices.LastOrDefault(c => c is not ("continue" or "solved"));
     }
 
     private PetBrainSummaryDto BuildSummary(
@@ -1329,11 +1909,22 @@ public class PetBrainService : IPetBrainService
             StageCount = template?.StageCount ?? 0,
             Choices = [.. run.Choices],
             HintsUsed = run.HintsUsed,
-            Mistakes = run.Mistakes
+            Mistakes = run.Mistakes,
+            StepsTaken = run.CurrentStage,
+            EndingKey = run.EndingKey
         };
 
-        if (template is null || run.Status != PetBrainRunStatus.Active || run.CurrentStage >= template.StageCount)
+        if (template is null)
             return dto;
+
+        // Budaqlanan macəra AYRI qurulur: mərhələ siyahısı yox, düyün və yol.
+        if (GraphOf(run) is { } graph)
+            return await ToGraphDtoAsync(dto, run, child, template, graph, ct, showHint, puzzleMissed);
+
+        if (run.Status != PetBrainRunStatus.Active || run.CurrentStage >= template.StageCount)
+            return dto;
+
+        dto.EstimatedSteps = template.StageCount;
 
         var stage = template.Stages[run.CurrentStage];
 
@@ -1379,6 +1970,197 @@ public class PetBrainService : IPetBrainService
                 "So close! Look again — I am right here with you.");
 
         return dto;
+    }
+
+    /// <summary>
+    /// Budaqlanan macəranın ekranı.
+    ///
+    /// <para>Xətti versiyadan üç fərqi var: cari düyün açar ilə göstərilir
+    /// (klient onu geri qaytarır), səhnə variantı seçimlərə görə dəyişir və
+    /// yol göstəricisi REAL qeydlərdən qurulur — indeks təxminindən yox.</para>
+    /// </summary>
+    private async Task<PetBrainRunDto> ToGraphDtoAsync(
+        PetBrainRunDto dto,
+        ExperienceRun run,
+        ChildProfile child,
+        ExperienceTemplate template,
+        ExperienceDefinition graph,
+        CancellationToken ct,
+        bool showHint,
+        bool puzzleMissed)
+    {
+        var language = child.LanguageCode;
+
+        dto.EstimatedSteps = StoryRuntime.EstimatedTotalSteps(graph);
+        dto.StageCount = dto.EstimatedSteps;
+        dto.Path = await PathAsync(run, graph, language, ct);
+
+        if (run.Status != PetBrainRunStatus.Active)
+            return dto;
+
+        var node = graph.Find(run.CurrentNodeId);
+
+        if (node is null)
+            return dto;
+
+        dto.Stage = new PetBrainStageDto
+        {
+            Index = run.CurrentStage,
+            NodeId = node.Id,
+            SceneVariant = StoryRuntime.SceneVariantOf(node),
+            Kind = node.Kind,
+            Prompt = node.Prompt(language),
+            PetLine = node.PetLine(language),
+            MemoryCallback = MemoryCallbackFor(node, child, language)
+        };
+
+        if (node.Kind != PetBrainStageKind.Puzzle)
+        {
+            dto.Stage.Options = [.. node.Options.Select(o => ToOptionDto(o, language))];
+            dto.UpcomingScene = await UpcomingGraphSceneAsync(run, template, child, graph, node, ct);
+
+            return dto;
+        }
+
+        var issued = await EnsurePuzzleAsync(run, template, child, run.CurrentStage, ct, node.PuzzleFamily);
+        var puzzle = ReadPublic(issued);
+
+        puzzle.Attempts = issued.Attempts;
+
+        await ApplySceneAsync(puzzle, issued, template, child, ct);
+
+        if (!showHint && issued.HintsUsed == 0 && !issued.Assisted)
+            puzzle.Hint = string.Empty;
+
+        dto.Stage.Puzzle = puzzle;
+        dto.Stage.SupportsHint = puzzle.HintAvailable;
+        dto.Stage.Hint = puzzle.Hint;
+        dto.Stage.Prompt = puzzle.Instruction;
+
+        // Ruhlandırma XARAKTERƏ uyğundur — cəza dili heç bir variantda yoxdur.
+        if (puzzleMissed)
+            dto.Stage.PetLine = PersonalityVoice.Encouragement(child.Personality, language);
+
+        return dto;
+    }
+
+    /// <summary>
+    /// Uşağın keçdiyi yol — REAL nəticə sətirlərindən.
+    ///
+    /// <para>Düz <c>Choices</c> siyahısından qurmaq budaqlanan hekayədə səhv
+    /// olardı: orada "continue" və "solved" açarları seçimlərlə qarışır və
+    /// hansı elementin hansı addıma aid olduğu bilinmir.</para>
+    /// </summary>
+    private async Task<List<PetBrainPathStepDto>> PathAsync(
+        ExperienceRun run, ExperienceDefinition graph, string language, CancellationToken ct)
+    {
+        var outcomes = await _db.RunStageOutcomes
+            .AsNoTracking()
+            .Where(o => o.ExperienceRunId == run.Id)
+            .OrderBy(o => o.StageOrdinal)
+            .ToListAsync(ct);
+
+        List<PetBrainPathStepDto> path = [];
+
+        foreach (var outcome in outcomes)
+        {
+            var node = graph.Find(outcome.NodeId);
+
+            if (node is null)
+                continue;
+
+            var option = outcome.SelectedOptionKeys.Count > 0
+                ? node.Options.FirstOrDefault(o =>
+                    string.Equals(o.Key, outcome.SelectedOptionKeys[0], StringComparison.Ordinal))
+                : null;
+
+            path.Add(new PetBrainPathStepDto
+            {
+                Ordinal = path.Count + 1,
+                Icon = option?.Icon ?? IconFor(node.Kind),
+                Label = option?.Label(language) ?? node.Prompt(language),
+                WasChoice = option is not null
+            });
+        }
+
+        // Sonluğun öz nəticə sətri yoxdur (ondan sonra addım atılmır), amma
+        // uşaq yolunun sonunu GÖRMƏLİDİR.
+        if (graph.Find(run.CurrentNodeId) is { IsEnding: true } ending)
+            path.Add(new PetBrainPathStepDto
+            {
+                Ordinal = path.Count + 1,
+                Icon = IconFor(PetBrainStageKind.Ending),
+                Label = ending.Prompt(language),
+                WasChoice = false
+            });
+
+        return path;
+    }
+
+    private static string IconFor(PetBrainStageKind kind) => kind switch
+    {
+        PetBrainStageKind.Puzzle => "🧩",
+        PetBrainStageKind.Consequence => "✨",
+        PetBrainStageKind.Ending => "🏁",
+        _ => "•"
+    };
+
+    /// <summary>
+    /// Düyünün istədiyi yaddaş çağırışı — YALNIZ təsdiqlənmiş fakt.
+    ///
+    /// <para>Pet burada sərbəst cümlə qurmur: xatirə strukturludur və mətn
+    /// <see cref="MemoryPolicy.Render"/> ilə uşağın dilində yazılır. Uyğun
+    /// xatirə yoxdursa cümlə də yoxdur — pet uydurmur.</para>
+    /// </summary>
+    private string MemoryCallbackFor(ExperienceNode node, ChildProfile child, string language)
+    {
+        if (string.IsNullOrEmpty(node.MemoryCallbackKey) || child.Pet is null)
+            return string.Empty;
+
+        var memory = child.Memories
+            .Where(m => m.Kind is PetBrainMemoryKind.ChoiceMade or PetBrainMemoryKind.PreferenceObserved)
+            .OrderByDescending(m => m.Importance)
+            .ThenByDescending(m => m.CreatedAt)
+            .FirstOrDefault();
+
+        if (memory is null)
+            return string.Empty;
+
+        _telemetry.MemoryCallback("shown", memory.Kind);
+
+        return MemoryPolicy.Render(memory, language, child.Pet.Name);
+    }
+
+    /// <summary>
+    /// Qrafda QARŞIDAKI tapmacanın səhnəsi.
+    ///
+    /// <para>Yalnız növbəti düyün BİRMƏNALI olanda hazırlanır: budaqda hansı
+    /// tapmacanın gələcəyi hələ məlum deyil, boş yerə pullu rəsm sorğusu
+    /// göndərmək isə yolverilməzdir.</para>
+    /// </summary>
+    private async Task<PetBrainUpcomingSceneDto?> UpcomingGraphSceneAsync(
+        ExperienceRun run,
+        ExperienceTemplate template,
+        ChildProfile child,
+        ExperienceDefinition graph,
+        ExperienceNode node,
+        CancellationToken ct)
+    {
+        if (StoryRuntime.UpcomingPuzzle(graph, node) is not { } upcoming)
+            return null;
+
+        var (next, depth) = upcoming;
+
+        var issued = await EnsurePuzzleAsync(
+            run, template, child, run.CurrentStage + depth, ct, next.PuzzleFamily);
+
+        var scene = await SceneOfAsync(issued, template, child, ct);
+
+        return new PetBrainUpcomingSceneDto
+        {
+            PuzzleId = issued.Id,
+            IllustrationStatus = scene?.Status ?? PetBrainIllustrationStatus.Fallback
+        };
     }
 
     // ==================== Tapmaca ====================
@@ -1435,7 +2217,8 @@ public class PetBrainService : IPetBrainService
         ExperienceTemplate template,
         ChildProfile child,
         int stageIndex,
-        CancellationToken ct)
+        CancellationToken ct,
+        string preferredFamily = "")
     {
         var existing = await _db.IssuedPuzzles
             .FirstOrDefaultAsync(p => p.ExperienceRunId == run.Id && p.StageIndex == stageIndex, ct);
@@ -1461,7 +2244,7 @@ public class PetBrainService : IPetBrainService
             await _db.SaveChangesAsync(ct);
         }
 
-        var context = await BuildPuzzleContextAsync(run, template, child, stageIndex, ct);
+        var context = await BuildPuzzleContextAsync(run, template, child, stageIndex, preferredFamily, ct);
         var generated = _puzzles.Generate(context);
 
         var now = _clock.GetUtcNow().UtcDateTime;
@@ -1534,6 +2317,7 @@ public class PetBrainService : IPetBrainService
         ExperienceTemplate template,
         ChildProfile child,
         int stageIndex,
+        string preferredFamily,
         CancellationToken ct)
     {
         // Son tapmacaların barmaq izləri — eyni sual dalbadal təkrarlanmasın.
@@ -1563,7 +2347,8 @@ public class PetBrainService : IPetBrainService
             Difficulty: run.Difficulty,
             MasteryTargetDifficulty: AdaptiveEngine.TargetDifficulty(averageRating),
             Assisted: run.Assisted,
-            RecentSignatures: recent.ToHashSet(StringComparer.Ordinal));
+            RecentSignatures: recent.ToHashSet(StringComparer.Ordinal),
+            PreferredBlueprintKey: preferredFamily);
     }
 
     /// <summary>
@@ -1702,6 +2487,25 @@ public class PetBrainService : IPetBrainService
         Icon = option.Icon,
         Detail = option.Detail(language)
     };
+
+    private async Task<PetBrainRecommendationDto> ToDtoAsync(
+        PetBrainRecommendation decision,
+        ChildProfile child,
+        RecommendationDecision record,
+        PetMindContext mind,
+        CancellationToken ct)
+    {
+        var dto = await ToDtoAsync(decision, child, ct);
+
+        dto.DecisionId = record.Id;
+        dto.PetLine = PersonalityVoice.RecommendationLine(
+            mind.Personality, child.LanguageCode, dto.Title);
+
+        var used = await ShowAnotherCountAsync(child.Id, record.CreatedAt, ct);
+        dto.CanShowAnother = used < _v2.MaxShowAnotherPerSession;
+
+        return dto;
+    }
 
     private async Task<PetBrainRecommendationDto> ToDtoAsync(
         PetBrainRecommendation decision, ChildProfile child, CancellationToken ct)

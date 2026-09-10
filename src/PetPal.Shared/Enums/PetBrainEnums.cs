@@ -69,7 +69,31 @@ public enum PetBrainStageKind
     Choice = 1,
 
     /// <summary>Serverin verdiyi tapmaca; cavab serverdə yoxlanılır.</summary>
-    Puzzle = 2
+    Puzzle = 2,
+
+    /// <summary>
+    /// Seçimin NƏTİCƏSİ — uşaq nə etdiyini dərhal görür.
+    ///
+    /// <para>Seçim mərhələsindən ayrıdır: orada uşaq qərar verir, burada isə
+    /// hekayə qərara cavab verir. İkisini birləşdirmək seçimi bəzək edərdi.</para>
+    /// </summary>
+    Consequence = 3,
+
+    /// <summary>Macəranın sonluğu — uşaq yolunu bütöv görür.</summary>
+    Ending = 4
+}
+
+/// <summary>Bir addımın nəticəsi — xülasə real qeydlərdən qurulsun deyə.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum PetBrainStageResult
+{
+    /// <summary>Doğru/səhv anlayışı olmayan addım (giriş, seçim, nəticə).</summary>
+    None = 0,
+
+    Solved = 1,
+
+    /// <summary>Təzyiqsiz yolda hər etibarlı cavab qəbul edilir.</summary>
+    Accepted = 2
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]

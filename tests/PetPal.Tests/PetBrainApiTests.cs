@@ -109,7 +109,7 @@ public class PetBrainApiTests : IClassFixture<PetBrainDemoFactory>
         Assert.Equal(ExperienceCatalog.DragonLostColors, miaState.Recommendation!.TemplateKey);
 
         // Aylin macərəni bitirir; Mia-nın yaddaşı və profili TOXUNULMAZ qalır.
-        var run = await PlayToEndAsync(aylin);
+        var run = await PetBrainPlaythrough.PlayToEndAsync(aylin);
         await CompleteAsync(aylin, run.RunId);
 
         var miaAfter = await GetStateAsync(mia);
@@ -222,7 +222,7 @@ public class PetBrainApiTests : IClassFixture<PetBrainDemoFactory>
         var puzzle = run.Stage!.Puzzle!;
         var stageIndex = run.Stage.Index;
 
-        var correct = Solve(puzzle);
+        var correct = PetBrainPlaythrough.Solve(puzzle);
         var wrong = WrongAnswerFor(puzzle, correct);
 
         var afterWrong = await AnswerPuzzleAsync(client, run, wrong);
@@ -346,7 +346,7 @@ public class PetBrainApiTests : IClassFixture<PetBrainDemoFactory>
         var puzzle = run.Stage!.Puzzle!;
         var stageIndex = run.Stage.Index;
 
-        var wrong = WrongAnswerFor(puzzle, Solve(puzzle));
+        var wrong = WrongAnswerFor(puzzle, PetBrainPlaythrough.Solve(puzzle));
 
         var forged = JsonSerializer.Serialize(new
         {
@@ -435,7 +435,7 @@ public class PetBrainApiTests : IClassFixture<PetBrainDemoFactory>
 
         var petBefore = await GetPetAsync(client);
 
-        var run = await PlayToEndAsync(client);
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
         var completed = await CompleteAsync(client, run.RunId);
 
         Assert.Equal(PetBrainRunStatus.Completed, completed.Status);
@@ -460,7 +460,7 @@ public class PetBrainApiTests : IClassFixture<PetBrainDemoFactory>
         var client = await NewChildAsync("dragon-reward@petpal.test", "Mia");
         await SeedFantasyProfileAsync(client.ChildId);
 
-        var run = await PlayToEndAsync(client);
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
         var completed = await CompleteAsync(client, run.RunId);
 
         Assert.Equal(ExperienceCatalog.DragonLostColors, completed.TemplateKey);
@@ -487,7 +487,7 @@ public class PetBrainApiTests : IClassFixture<PetBrainDemoFactory>
         var client = await NewChildAsync("idempotent@petpal.test");
         await SeedSpaceProfileAsync(client.ChildId);
 
-        var run = await PlayToEndAsync(client);
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
 
         var first = await CompleteAsync(client, run.RunId);
         var petAfterFirst = await GetPetAsync(client);
@@ -514,7 +514,7 @@ public class PetBrainApiTests : IClassFixture<PetBrainDemoFactory>
         var client = await NewChildAsync("replay@petpal.test");
         await SeedSpaceProfileAsync(client.ChildId);
 
-        var first = await PlayToEndAsync(client);
+        var first = await PetBrainPlaythrough.PlayToEndAsync(client);
         await CompleteAsync(client, first.RunId);
 
         // Mars artıq oynanıb, ona görə növbəti tövsiyə başqa macəra olur.
@@ -522,7 +522,7 @@ public class PetBrainApiTests : IClassFixture<PetBrainDemoFactory>
         // kosmetikin təkrar açılmaması isə pet-in öz siyahısından asılıdır.
         await ResetToMoonHistoryAsync(client.ChildId);
 
-        var second = await PlayToEndAsync(client);
+        var second = await PetBrainPlaythrough.PlayToEndAsync(client);
         var completed = await CompleteAsync(client, second.RunId);
 
         Assert.Equal(ExperienceCatalog.MarsRoverRescue, completed.TemplateKey);
@@ -536,7 +536,7 @@ public class PetBrainApiTests : IClassFixture<PetBrainDemoFactory>
         var client = await NewChildAsync("persist@petpal.test");
         await SeedSpaceProfileAsync(client.ChildId);
 
-        var run = await PlayToEndAsync(client);
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
         await CompleteAsync(client, run.RunId);
 
         var state = await GetStateAsync(client);
@@ -626,7 +626,7 @@ public class PetBrainApiTests : IClassFixture<PetBrainDemoFactory>
         await SeedSpaceProfileAsync(client.ChildId);
 
         // Əvvəlcə macəra BAŞLAYIR (hələ blok yoxdur).
-        var run = await PlayToEndAsync(client);
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
 
         // İndi gündəlik limit dolur.
         await FillDailyLimitAsync(client.ChildId);
@@ -658,7 +658,7 @@ public class PetBrainApiTests : IClassFixture<PetBrainDemoFactory>
 
         var before = await GetStateAsync(client);
 
-        var run = await PlayToEndAsync(client);
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
         await CompleteAsync(client, run.RunId);
 
         var after = await GetStateAsync(client);
@@ -694,7 +694,7 @@ public class PetBrainApiTests : IClassFixture<PetBrainDemoFactory>
         var marsBefore = before.Debug!.Candidates
             .Single(c => c.TemplateKey == ExperienceCatalog.MarsRoverRescue);
 
-        var run = await PlayToEndAsync(client);
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
         await CompleteAsync(client, run.RunId);
 
         var after = await GetStateAsync(client);
@@ -842,133 +842,8 @@ public class PetBrainApiTests : IClassFixture<PetBrainDemoFactory>
     /// <para>Tapmacada doğru cavab KLİENTƏ GÖNDƏRİLMİR, ona görə test də onu
     /// bilmir və variantları sıra ilə yoxlayır — real uşağın etdiyi kimi.</para>
     /// </summary>
-    private static async Task<PetBrainRunDto> PlayToEndAsync(ApiTestClient client)
-    {
-        var run = await StartRunAsync(client);
-
-        var guard = 0;
-        while (run.Stage is not null && guard++ < 40)
-        {
-            run = run.Stage.Kind switch
-            {
-                PetBrainStageKind.Intro => await ChooseAsync(client, run, "continue"),
-                PetBrainStageKind.Choice => await ChooseAsync(client, run, run.Stage.Options[0].Key),
-                _ => await AnswerPuzzleAsync(client, run, Solve(run.Stage.Puzzle!))
-            };
-        }
-
-        Assert.True(run.CurrentStage >= run.StageCount, "Macəra sona çatmadı.");
-        return run;
-    }
-
-    /// <summary>
-    /// Tapmacanı GÖRÜNƏN məlumatdan həll edir — məhz uşağın etdiyi kimi.
-    ///
-    /// <para>Test doğru cavabı serverdən ALMIR (o, heç vaxt göndərilmir):
-    /// qaydanı DTO-dakı açıq dəyərlərdən tətbiq edir. Bu, həm də bir invariantı
-    /// yoxlayır — tapmaca yalnız göstərilən məlumatla həll oluna bilməlidir.</para>
-    /// </summary>
-    private static List<string> Solve(PetBrainPuzzleDto puzzle)
-    {
-        switch (puzzle.Mechanic)
-        {
-            case PetBrainPuzzleMechanic.OrderedRoute:
-                return SolveRoute(puzzle)
-                    ?? throw new InvalidOperationException("Görünən məlumatla marşrut tapılmadı.");
-
-            case PetBrainPuzzleMechanic.SequenceOrder:
-                return [.. puzzle.Items.OrderBy(i => i.Value).Select(i => i.Id)];
-
-            case PetBrainPuzzleMechanic.RouteLogic:
-                var open = puzzle.Items.Where(i => i.Icon != "⛔").ToList();
-                return [open.OrderBy(i => i.Value).First().Id];
-
-            default:
-                // Yaradıcı yolda səhv seçim yoxdur — ilk uyğun say kifayətdir.
-                return [.. puzzle.Items.Take(puzzle.AnswerSchema.Min).Select(i => i.Id)];
-        }
-    }
-
-    /// <summary>
-    /// Marşrutu YALNIZ DTO-dakı görünən məlumatdan tapır: düyünün rolu, enerji
-    /// artımı, qonşuluq və büdcə.
-    ///
-    /// <para>Qaydalar burada QƏSDƏN yenidən yazılıb — <c>RouteRules</c> çağırsaydıq,
-    /// test məhz yoxlamalı olduğu şeyi (serverin qaydası ilə ekranda görünən
-    /// məlumatın üst-üstə düşməsini) yoxlamazdı, sadəcə özünü təkrarlayardı.</para>
-    /// </summary>
-    private static List<string>? SolveRoute(PetBrainPuzzleDto puzzle)
-    {
-        var start = puzzle.Nodes.FirstOrDefault(n => n.Kind == PetBrainNodeKind.Start);
-        if (start is null)
-            return null;
-
-        var cost = puzzle.MoveCost ?? 1;
-        var maximum = puzzle.MaximumEnergy ?? 0;
-
-        List<string>? found = null;
-
-        Walk([start.Id], puzzle.InitialEnergy ?? 0);
-        return found;
-
-        void Walk(List<string> path, int energy)
-        {
-            if (found is not null || path.Count > puzzle.AnswerSchema.Max)
-                return;
-
-            var here = puzzle.Nodes.First(n => n.Id == path[^1]);
-
-            if (here.Kind == PetBrainNodeKind.Recharge)
-                energy = Math.Min(maximum, energy + (here.EnergyDelta ?? 0));
-
-            if (here.Kind == PetBrainNodeKind.Goal)
-            {
-                // Hədəfə çatmaq azdır: MƏCBURİ düyünlərdən keçmək şərtdir.
-                if (puzzle.RequiredBeforeGoal.All(r => path.Contains(r)))
-                    found = [.. path];
-
-                return;
-            }
-
-            var neighbours = puzzle.Edges
-                .Where(e => e.From == here.Id || e.To == here.Id)
-                .Select(e => e.From == here.Id ? e.To : e.From)
-                .OrderBy(id => id, StringComparer.Ordinal);
-
-            foreach (var next in neighbours)
-            {
-                if (path.Contains(next) || energy - cost < 0)
-                    continue;
-
-                if (puzzle.Nodes.First(n => n.Id == next).Kind == PetBrainNodeKind.Blocked)
-                    continue;
-
-                path.Add(next);
-                Walk(path, energy - cost);
-                path.RemoveAt(path.Count - 1);
-            }
-        }
-    }
-
-    /// <summary>Macərəni ilk TAPMACA mərhələsinə qədər oynayır.</summary>
-    private static async Task<PetBrainRunDto> ReachPuzzleAsync(ApiTestClient client)
-    {
-        var run = await StartRunAsync(client);
-
-        var guard = 0;
-        while (run.Stage is not null && run.Stage.Kind != PetBrainStageKind.Puzzle && guard++ < 10)
-        {
-            run = run.Stage.Kind == PetBrainStageKind.Intro
-                ? await ChooseAsync(client, run, "continue")
-                : await ChooseAsync(client, run, run.Stage.Options[0].Key);
-        }
-
-        Assert.NotNull(run.Stage);
-        Assert.Equal(PetBrainStageKind.Puzzle, run.Stage!.Kind);
-        Assert.NotNull(run.Stage.Puzzle);
-
-        return run;
-    }
+    private static Task<PetBrainRunDto> ReachPuzzleAsync(ApiTestClient client) =>
+        PetBrainPlaythrough.ReachPuzzleAsync(client);
 
     /// <summary>Formaca DÜZGÜN, amma məzmunca SƏHV cavab.</summary>
     private static List<string> WrongAnswerFor(PetBrainPuzzleDto puzzle, IReadOnlyList<string> correct)

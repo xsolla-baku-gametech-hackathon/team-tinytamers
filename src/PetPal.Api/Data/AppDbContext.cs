@@ -41,6 +41,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<BehaviorEvent> BehaviorEvents => Set<BehaviorEvent>();
     public DbSet<PetMemory> PetMemories => Set<PetMemory>();
     public DbSet<ExperienceRun> ExperienceRuns => Set<ExperienceRun>();
+    public DbSet<RunStageOutcome> RunStageOutcomes => Set<RunStageOutcome>();
+    public DbSet<RecommendationDecision> RecommendationDecisions => Set<RecommendationDecision>();
     public DbSet<IssuedPuzzle> IssuedPuzzles => Set<IssuedPuzzle>();
     public DbSet<PuzzleIllustration> PuzzleIllustrations => Set<PuzzleIllustration>();
     public DbSet<AdventureRecap> AdventureRecaps => Set<AdventureRecap>();
@@ -447,7 +449,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         {
             e.Property(x => x.TemplateKey).HasMaxLength(60).IsRequired();
             e.Property(x => x.Theme).HasMaxLength(40).IsRequired();
+            e.Property(x => x.CurrentNodeId).HasMaxLength(40).IsRequired();
+            e.Property(x => x.EndingKey).HasMaxLength(40).IsRequired();
             e.Property(x => x.Choices)
+                .HasConversion(StringListConverter.Converter)
+                .Metadata.SetValueComparer(StringListConverter.Comparer);
+            e.Property(x => x.StoryFlags)
                 .HasConversion(StringListConverter.Converter)
                 .Metadata.SetValueComparer(StringListConverter.Comparer);
 
@@ -473,6 +480,46 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
             e.HasOne(x => x.ChildProfile)
                 .WithMany(c => c.ExperienceRuns)
+                .HasForeignKey(x => x.ChildProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<RunStageOutcome>(e =>
+        {
+            e.Property(x => x.NodeId).HasMaxLength(40).IsRequired();
+            e.Property(x => x.SelectedOptionKeys)
+                .HasConversion(StringListConverter.Converter)
+                .Metadata.SetValueComparer(StringListConverter.Comparer);
+            e.Property(x => x.EffectKeys)
+                .HasConversion(StringListConverter.Converter)
+                .Metadata.SetValueComparer(StringListConverter.Comparer);
+
+            // Bir düyün BİR DƏFƏ həll olunur. Təkrar göndərilən sorğu (zəif
+            // şəbəkə, iki toxunuş) nəticəni ikinci dəfə tətbiq edə bilmir.
+            e.HasIndex(x => new { x.ExperienceRunId, x.NodeId }).IsUnique();
+
+            e.HasIndex(x => new { x.ExperienceRunId, x.StageOrdinal });
+
+            e.HasOne(x => x.ExperienceRun)
+                .WithMany(r => r.StageOutcomes)
+                .HasForeignKey(x => x.ExperienceRunId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<RecommendationDecision>(e =>
+        {
+            e.Property(x => x.ContextHash).HasMaxLength(32).IsRequired();
+            e.Property(x => x.SelectedTemplateKey).HasMaxLength(60).IsRequired();
+            e.Property(x => x.CandidateKeys)
+                .HasConversion(StringListConverter.Converter)
+                .Metadata.SetValueComparer(StringListConverter.Comparer);
+
+            // "Göstərildi → başlandı" çevrilməsi və "başqa fikir" nisbəti bu ox
+            // üzərində hesablanır.
+            e.HasIndex(x => new { x.ChildProfileId, x.CreatedAt });
+
+            e.HasOne(x => x.ChildProfile)
+                .WithMany()
                 .HasForeignKey(x => x.ChildProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
         });

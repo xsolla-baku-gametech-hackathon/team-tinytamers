@@ -25,6 +25,20 @@ public class PetBrainStateDto
     /// <summary>Bağ (0–100) — xoşbəxtlikdən fərqli, YAVAŞ artan uzunmüddətli dəyər.</summary>
     public int Bond { get; set; }
 
+    /// <summary>Bağın pilləsi — bar əvəzinə görünən bir mərtəbə.</summary>
+    public PetBrainBondTier BondTier { get; set; }
+
+    public string BondTierLabel { get; set; } = string.Empty;
+
+    /// <summary>Növbəti pilləyə çatmaq üçün lazım olan bal; sonuncuda <c>0</c>.</summary>
+    public int BondNextThreshold { get; set; }
+
+    /// <summary>Bu pillənin açdığı emote — UI onu pet-in yanında göstərir.</summary>
+    public string BondEmote { get; set; } = string.Empty;
+
+    /// <summary>Pilləni izah edən bir cümlə (vəd, tələb deyil).</summary>
+    public string BondUnlockLine { get; set; } = string.Empty;
+
     public PetBrainPersonality Personality { get; set; }
 
     /// <summary>Xarakterin uşağın dilində adı.</summary>
@@ -86,6 +100,16 @@ public class PetBrainMemoryDto
 /// </summary>
 public class PetBrainRecommendationDto
 {
+    /// <summary>
+    /// Bu qərarın id-si. Uşağın cavabı (<c>başla</c>, <c>başqa fikir</c>,
+    /// <c>sonra</c>) məhz buna bağlanır.
+    ///
+    /// <para>Klient nə şablon, nə bal dəyişikliyi göndərə bilir — yalnız
+    /// serverin verdiyi bu id-ni geri qaytarır. Yad və ya köhnəlmiş id rədd
+    /// olunur.</para>
+    /// </summary>
+    public Guid DecisionId { get; set; }
+
     public string TemplateKey { get; set; } = string.Empty;
     public PetBrainExperienceType ExperienceType { get; set; }
 
@@ -114,6 +138,15 @@ public class PetBrainRecommendationDto
 
     /// <summary>Mətn şablondan, yoxsa modeldən gəldi — nümayiş panelində dürüstlük üçün.</summary>
     public string NarrativeSource { get; set; } = "template";
+
+    /// <summary>Pet-in xarakterinə uyğun bir cümlə — nişan deyil, səs.</summary>
+    public string PetLine { get; set; } = string.Empty;
+
+    /// <summary>
+    /// "Başqa fikir" hələ mümkündürmü. Sonsuz yeniləmə YOXDUR: kart dəyişimi
+    /// sessiya başına məhduddur və limit dolanda düymə gizlənir.
+    /// </summary>
+    public bool CanShowAnother { get; set; } = true;
 }
 
 /// <summary>Başlanmış təcrübənin cari vəziyyəti — yenilənmədən sonra bərpa üçün kifayətdir.</summary>
@@ -136,6 +169,27 @@ public class PetBrainRunDto
     public int CurrentStage { get; set; }
     public int StageCount { get; set; }
 
+    /// <summary>
+    /// Budaqlanan macərada uşağın atdığı addım sayı.
+    ///
+    /// <para>Budaqlarda "5 mərhələdən 3-cü" ifadəsi yanlışdır — yollar müxtəlif
+    /// uzunluqdadır. Ona görə ekran keçilmiş addımları və TƏXMİNİ uzunluğu
+    /// göstərir, faiz vəd etmir.</para>
+    /// </summary>
+    public int StepsTaken { get; set; }
+
+    /// <summary>Ən uzun yolun addım sayı — irəliləmə göstəricisinin miqyası.</summary>
+    public int EstimatedSteps { get; set; }
+
+    /// <summary>Macəra bitibsə hansı sonluqla; əks halda boş.</summary>
+    public string EndingKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Uşağın seçdiyi yol — ekrandakı sadə cığır göstəricisi üçün.
+    /// Hər element bir addımın işarəsi və etiketidir.
+    /// </summary>
+    public List<PetBrainPathStepDto> Path { get; set; } = new();
+
     /// <summary>Cari mərhələ; run bitibsə boş qalır.</summary>
     public PetBrainStageDto? Stage { get; set; }
 
@@ -155,9 +209,48 @@ public class PetBrainRunDto
     public PetBrainSummaryDto? Summary { get; set; }
 }
 
+/// <summary>
+/// Yolun bir addımı — uşağa öz cığırını göstərmək üçün.
+///
+/// <para>Rəng TƏK daşıyıcı deyil: hər addımın işarəsi və mətn etiketi var,
+/// ona görə göstərici rəng görməyən uşaq üçün də oxunur.</para>
+/// </summary>
+public class PetBrainPathStepDto
+{
+    /// <summary>Neçənci addım (1-dən).</summary>
+    public int Ordinal { get; set; }
+
+    public string Icon { get; set; } = string.Empty;
+
+    /// <summary>Uşağın dilində qısa etiket — "Şimal krateri".</summary>
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>Bu addım uşağın SEÇİMİ idimi (yoxsa hekayənin öz addımı).</summary>
+    public bool WasChoice { get; set; }
+}
+
 public class PetBrainStageDto
 {
     public int Index { get; set; }
+
+    /// <summary>
+    /// Budaqlanan macərada cari düyünün açarı; xətti macərada boşdur.
+    ///
+    /// <para>Klient onu geri qaytarır və server uyğunluğu yoxlayır — yəni iki
+    /// dəfə basmaq və ya köhnə ekrandan cavab göndərmək mümkün deyil. Açar
+    /// SEÇMƏK üçün deyil, TƏSDİQLƏMƏK üçündür: klient başqa düyünə keçə bilmir.</para>
+    /// </summary>
+    public string NodeId { get; set; } = string.Empty;
+
+    /// <summary>Səhnənin variantı — uşağın seçimləri onu dəyişir.</summary>
+    public string SceneVariant { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Pet-in əvvəlki macəradan xatırladığı bir detal; yoxdursa boş.
+    /// UI onu "Mən bunu xatırlayıram" nişanı ilə göstərir.
+    /// </summary>
+    public string MemoryCallback { get; set; } = string.Empty;
+
     public PetBrainStageKind Kind { get; set; }
 
     /// <summary>Ekranın ən böyük yazısı — mərhələ boyu qalır.</summary>
@@ -268,6 +361,30 @@ public class StartPetBrainRunRequest
 {
     [StringLength(60)]
     public string? TemplateKey { get; set; }
+
+    /// <summary>
+    /// Başladılan tövsiyənin qərar id-si.
+    ///
+    /// <para>Verilibsə, o, uşağın ÖZ və HƏLƏ AÇIQ qərarı olmalıdır: başqa
+    /// uşağın və ya köhnəlmiş qərarın id-si rədd olunur. Verilməsə server öz
+    /// cari tövsiyəsini başladır.</para>
+    /// </summary>
+    public Guid? DecisionId { get; set; }
+}
+
+/// <summary>
+/// Tövsiyəyə cavab: "başqa fikir" və ya "sonra".
+///
+/// <para>Klient burada NƏ şablon, NƏ də bal dəyişikliyi göndərmir — yalnız
+/// serverin verdiyi qərar id-sini və cavabın növünü. Beləliklə uşaq klienti
+/// profili birbaşa idarə edə bilmir.</para>
+/// </summary>
+public class PetBrainFeedbackRequest
+{
+    public Guid DecisionId { get; set; }
+
+    /// <summary>Yalnız <c>ShowAnother</c> və <c>NotNow</c> qəbul edilir.</summary>
+    public PetBrainRecommendationFeedback Feedback { get; set; }
 }
 
 /// <summary>Mərhələ cavabı. Klient nə mərhələ nömrəsini, nə də doğruluğu təyin edə bilmir.</summary>
@@ -279,6 +396,16 @@ public class PetBrainChoiceRequest
     /// </summary>
     [Range(0, 31)]
     public int StageIndex { get; set; }
+
+    /// <summary>
+    /// Budaqlanan macərada uşağın baxdığı düyünün açarı.
+    ///
+    /// <para>Mərhələ indeksi ilə eyni işi görür: klientin gördüyü ekran
+    /// serverin gözlədiyi ekranla üst-üstə düşməlidir. Klient bununla başqa
+    /// düyünə KEÇƏ bilmir — açar yalnız təsdiq üçündür.</para>
+    /// </summary>
+    [StringLength(40)]
+    public string? NodeId { get; set; }
 
     /// <summary>Seçim mərhələsində seçilən variantın açarı.</summary>
     [StringLength(40)]

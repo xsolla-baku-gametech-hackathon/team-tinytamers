@@ -13,6 +13,16 @@ public interface IPetBrainService
     Task<ServiceResult<PetBrainStateDto>> GetStateAsync(Guid childId, CancellationToken ct = default);
 
     /// <summary>
+    /// «Başqa fikir» və «sonra».
+    ///
+    /// <para>Cavab serverin verdiyi <c>DecisionId</c>-yə bağlanır: klient nə
+    /// şablon, nə də xassə dəyişikliyi göndərə bilir. Heç bir cavab marağı
+    /// AZALTMIR — hər ikisi yalnız cari sessiyada kartı kənara qoyur.</para>
+    /// </summary>
+    Task<ServiceResult<PetBrainStateDto>> SubmitFeedbackAsync(
+        Guid childId, PetBrainFeedbackRequest request, CancellationToken ct = default);
+
+    /// <summary>
     /// Tövsiyə olunan təcrübəni başladır. Ekran vaxtı bloku YENİ run-a maneədir.
     /// </summary>
     Task<ServiceResult<PetBrainRunDto>> StartRunAsync(

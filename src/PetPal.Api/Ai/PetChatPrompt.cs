@@ -1,5 +1,8 @@
 using System.Text;
 using PetPal.Api.Common;
+using PetPal.Api.PetBrain;
+using PetPal.Api.PetBrain.Mind;
+using PetPal.Shared.Enums;
 
 namespace PetPal.Api.Ai;
 
@@ -24,12 +27,34 @@ namespace PetPal.Api.Ai;
 /// </summary>
 public static class PetChatPrompt
 {
-    public static string SystemPrompt(PetVoiceContext context)
+    /// <summary>
+    /// Yaddaş cümləsinin ən böyük uzunluğu.
+    ///
+    /// <para>Cümlə uşağın mətnindən DEYİL, strukturlu açarlardan qurulur (bax
+    /// <see cref="PetBrain.MemoryPolicy.Render"/>), yəni prompt injection səthi
+    /// açmır. Uzunluq həddi yenə də qoyulur: gözlənilməz uzun mətn promptun
+    /// qaydalarını sıxışdırmamalıdır.</para>
+    /// </summary>
+    private const int MaxMemoryLength = 160;
+
+    public static string SystemPrompt(PetVoiceContext context) =>
+        SystemPrompt(context, PetBrainPersonality.Balanced, string.Empty);
+
+    /// <param name="personality">
+    /// Pet-in SAXLANAN xarakteri — yalnız TON təlimatına çevrilir; nə mükafata,
+    /// nə də təhlükəsizlik qaydasına toxunur.
+    /// </param>
+    /// <param name="memoryLine">
+    /// Serverin qurduğu, təsdiqlənmiş bir xatirə cümləsi. Boş buraxıla bilər.
+    /// </param>
+    public static string SystemPrompt(
+        PetVoiceContext context, PetBrainPersonality personality, string memoryLine)
     {
         var az = Localized.Normalize(context.Language) == Localized.Azerbaijani;
         var builder = new StringBuilder();
         var petName = PetVoicePrompt.SanitizeName(context.PetName);
         var childName = PetVoicePrompt.SanitizeName(context.ChildName);
+        var memory = Memory(memoryLine);
 
         if (az)
         {
@@ -43,7 +68,12 @@ public static class PetChatPrompt
             builder.AppendLine($"- Səviyyə: {context.Level}");
             builder.AppendLine($"- Ardıcıl günlər: {context.StreakDays}");
             builder.AppendLine($"- Bugünkü hədəf: {context.GoalCompleted}/{context.GoalTarget}");
+
+            if (memory is not null)
+                builder.AppendLine($"- Birlikdə yaşadığınız an: {memory}");
+
             builder.AppendLine();
+            builder.AppendLine(PersonalityVoice.ChatToneRule(personality, az));
             builder.Append("""
                            Qaydalar:
                            - Yalnız Azərbaycan dilində cavab ver.
@@ -71,7 +101,12 @@ public static class PetChatPrompt
             builder.AppendLine($"- Level: {context.Level}");
             builder.AppendLine($"- Streak days: {context.StreakDays}");
             builder.AppendLine($"- Today's goal: {context.GoalCompleted}/{context.GoalTarget}");
+
+            if (memory is not null)
+                builder.AppendLine($"- A moment you shared: {memory}");
+
             builder.AppendLine();
+            builder.AppendLine(PersonalityVoice.ChatToneRule(personality, az));
             builder.Append("""
                            Rules:
                            - Reply in English only.
@@ -98,9 +133,20 @@ public static class PetChatPrompt
     public static List<OpenAiChat.Message> Build(
         PetVoiceContext context,
         IEnumerable<(bool FromChild, string Text)> history,
+        string message) =>
+        Build(context, PetBrainPersonality.Balanced, string.Empty, history, message);
+
+    public static List<OpenAiChat.Message> Build(
+        PetVoiceContext context,
+        PetBrainPersonality personality,
+        string memoryLine,
+        IEnumerable<(bool FromChild, string Text)> history,
         string message)
     {
-        var messages = new List<OpenAiChat.Message> { OpenAiChat.Message.System(SystemPrompt(context)) };
+        var messages = new List<OpenAiChat.Message>
+        {
+            OpenAiChat.Message.System(SystemPrompt(context, personality, memoryLine))
+        };
 
         foreach (var (fromChild, text) in history)
         {
@@ -114,5 +160,21 @@ public static class PetChatPrompt
 
         messages.Add(OpenAiChat.Message.User(message));
         return messages;
+    }
+
+    /// <summary>
+    /// Xatirə cümləsini prompta uyğun formaya salır.
+    ///
+    /// <para>İdarəedici simvol, sətir sonu və həddindən uzun mətn kənarda
+    /// qalır: prompt bir sətirdir və onun quruluşu pozulmamalıdır.</para>
+    /// </summary>
+    private static string? Memory(string? line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+            return null;
+
+        var text = new string([.. line.Where(c => !char.IsControl(c))]).Trim();
+
+        return text.Length is 0 or > MaxMemoryLength ? null : text;
     }
 }

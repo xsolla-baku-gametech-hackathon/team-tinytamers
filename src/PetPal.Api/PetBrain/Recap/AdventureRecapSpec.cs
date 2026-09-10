@@ -105,6 +105,39 @@ public sealed record AdventureRecapSpec(
     /// olmayan açar recap-a düşə bilmir. Uydurulmuş seçim də əlavə edilmir:
     /// şablonda olmayan an sadəcə BURAXILIR.</para>
     /// </summary>
+    /// <summary>
+    /// Budaqlanan macəranın xülasəsi — beat-lər REAL nəticə sətirlərindən.
+    ///
+    /// <para>Xətti versiyada beat-lər <c>Choices</c> siyahısını şablonun
+    /// mərhələləri ilə indeks-indeks tutuşdururdu. Budaqlanan hekayədə bu
+    /// mümkün deyil: iki uşaq eyni sayda addım atmır və eyni indeksdə eyni
+    /// mərhələ olmur. Burada isə hər sətir hansı düyünə aid olduğunu özü
+    /// deyir.</para>
+    /// </summary>
+    public static AdventureRecapSpec ForGraph(
+        ExperienceRun run,
+        ExperienceTemplate template,
+        Pet pet,
+        string language,
+        string sceneSpecHash,
+        string puzzleMechanic,
+        IReadOnlyList<RunStageOutcome> outcomes)
+    {
+        List<RecapBeat> beats = [];
+
+        foreach (var outcome in outcomes
+                     .Where(o => o.Kind == PetBrainStageKind.Choice && o.SelectedOptionKeys.Count > 0)
+                     .OrderBy(o => o.StageOrdinal))
+            beats.Add(new RecapBeat(
+                BeatKeyFor(template.Key, beats.Count), outcome.SelectedOptionKeys[0]));
+
+        // Sonluq da bir beat-dir: uşağın hekayəsi məhz orada tamamlanır.
+        if (!string.IsNullOrEmpty(run.EndingKey))
+            beats.Add(new RecapBeat("ending", run.EndingKey));
+
+        return Build(run, template, pet, language, sceneSpecHash, puzzleMechanic, beats);
+    }
+
     public static AdventureRecapSpec For(
         ExperienceRun run,
         ExperienceTemplate template,
@@ -137,6 +170,18 @@ public sealed record AdventureRecapSpec(
             beats.Add(new RecapBeat(BeatKeyFor(template.Key, beats.Count), chosen));
         }
 
+        return Build(run, template, pet, language, sceneSpecHash, puzzleMechanic, beats);
+    }
+
+    private static AdventureRecapSpec Build(
+        ExperienceRun run,
+        ExperienceTemplate template,
+        Pet pet,
+        string language,
+        string sceneSpecHash,
+        string puzzleMechanic,
+        IReadOnlyList<RecapBeat> beats)
+    {
         return new AdventureRecapSpec(
             RunId: run.Id,
             ChildProfileId: run.ChildProfileId,

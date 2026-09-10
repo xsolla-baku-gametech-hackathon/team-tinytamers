@@ -181,6 +181,9 @@ public static class AdaptivePetDirector
     /// İki–dörd qısa izah. Bunlar hesablanmış faktlardır: bal cədvəlindən və
     /// run tarixçəsindən çıxır, modelin "düşüncəsi" deyil.
     /// </summary>
+    public static IReadOnlyList<string> ReasonsFor(DirectorCandidate winner, PetBrainDirectorContext context) =>
+        BuildReasons(winner, context);
+
     private static List<string> BuildReasons(DirectorCandidate winner, PetBrainDirectorContext context)
     {
         var language = context.Language;

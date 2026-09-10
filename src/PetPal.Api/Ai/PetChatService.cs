@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using PetPal.Api.Common;
 using PetPal.Api.Data;
 using PetPal.Api.Entities;
+using PetPal.Api.PetBrain;
 using PetPal.Api.Pets;
 using PetPal.Api.Progress;
 using PetPal.Shared.Dtos.Pets;
@@ -192,6 +193,31 @@ public class PetChatService : IPetChatService
     }
 
     /// <summary>Cavabı yaradır; hər uğursuzluqda qayda əsaslı mətnə düşür.</summary>
+    /// <summary>
+    /// Söhbətə daşınan BİR xatirə cümləsi.
+    ///
+    /// <para>Yaddaş sətri strukturludur (açar + dəyər); cümlə render zamanı
+    /// uşağın dilində qurulur. Ona görə burada model üçün sərbəst mətn yaranmır
+    /// və dil dəyişəndə xatirə də tərcümə olunur.</para>
+    ///
+    /// <para>Yaddaş yoxdursa boş sətir qayıdır — pet uydurmur.</para>
+    /// </summary>
+    private async Task<string> MemoryLineAsync(ChildProfile child, CancellationToken ct)
+    {
+        var now = _clock.GetUtcNow().UtcDateTime;
+
+        var memories = await _db.PetMemories
+            .AsNoTracking()
+            .Where(m => m.ChildProfileId == child.Id)
+            .ToListAsync(ct);
+
+        var memory = MemoryPolicy.Select(memories, now, limit: 1).FirstOrDefault();
+
+        return memory is null
+            ? string.Empty
+            : MemoryPolicy.Render(memory, child.LanguageCode, child.Pet!.Name);
+    }
+
     private async Task<(string Text, bool FromAi)> GenerateAsync(
         ChildProfile child, string message, PetMood mood, CancellationToken ct)
     {
@@ -225,10 +251,15 @@ public class PetChatService : IPetChatService
 
         var history = await RecentHistoryAsync(child.Id, ct);
 
+        // Xarakter və yaddaş ORTAQ mənbədəndir: söhbətdəki pet ilə Pet Brain
+        // ekranındakı pet eyni olmalıdır. Xatirə cümləsi serverin strukturlu
+        // faktından qurulur — uşağın yazdığı mətn buraya heç vaxt düşmür.
+        var memoryLine = await MemoryLineAsync(child, ct);
+
         var raw = await OpenAiChat.CompleteAsync(
             _http,
             _ai.EffectiveChatModel,
-            PetChatPrompt.Build(context, history, message),
+            PetChatPrompt.Build(context, child.Personality, memoryLine, history, message),
             _ai.ChatMaxOutputTokens,
             temperature: 0.7,
             _logger,

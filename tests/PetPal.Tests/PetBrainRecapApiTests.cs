@@ -180,8 +180,8 @@ public class PetBrainRecapApiTests
         factory.Video.IsEnabled = false;
 
         var client = await NewChildAsync(factory, "recap-off@petpal.test");
-        var run = await PlayToEndAsync(client);
-        var summary = (await CompleteAsync(client, run.RunId)).Summary!;
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
+        var summary = (await PetBrainPlaythrough.CompleteAsync(client, run.RunId)).Summary!;
 
         Assert.Equal(PetBrainRecapStatus.Fallback, summary.Recap.Status);
         Assert.Empty(summary.Recap.VideoUrl);
@@ -209,8 +209,8 @@ public class PetBrainRecapApiTests
         var owner = await NewChildAsync(factory, "recap-owner@petpal.test");
         var stranger = await NewChildAsync(factory, "recap-stranger@petpal.test");
 
-        var run = await PlayToEndAsync(owner);
-        await CompleteAsync(owner, run.RunId);
+        var run = await PetBrainPlaythrough.PlayToEndAsync(owner);
+        await PetBrainPlaythrough.CompleteAsync(owner, run.RunId);
 
         var ready = await WaitForRecapAsync(owner, run.RunId);
 
@@ -236,8 +236,8 @@ public class PetBrainRecapApiTests
         using var factory = NewFactory();
 
         var client = await NewChildAsync(factory, "recap-range@petpal.test");
-        var run = await PlayToEndAsync(client);
-        await CompleteAsync(client, run.RunId);
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
+        await PetBrainPlaythrough.CompleteAsync(client, run.RunId);
 
         var ready = await WaitForRecapAsync(client, run.RunId);
 
@@ -260,8 +260,8 @@ public class PetBrainRecapApiTests
         using var factory = NewFactory();
 
         var client = await NewChildAsync(factory, "recap-pii@petpal.test", "Aylin");
-        var run = await PlayToEndAsync(client);
-        await CompleteAsync(client, run.RunId);
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
+        await PetBrainPlaythrough.CompleteAsync(client, run.RunId);
 
         await WaitForRecapAsync(client, run.RunId);
 
@@ -294,7 +294,7 @@ public class PetBrainRecapApiTests
         factory.Video.WorkingPolls = 2;
 
         var client = await NewChildAsync(factory, "recap-once@petpal.test");
-        var run = await PlayToEndAsync(client);
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
 
         // Beş eyni vaxtlı tamamlama — uşaq düyməyə təkrar basır.
         await Task.WhenAll(Enumerable.Range(0, 5).Select(_ =>
@@ -315,14 +315,14 @@ public class PetBrainRecapApiTests
         using var factory = NewFactory();
 
         var client = await NewChildAsync(factory, "recap-cache@petpal.test");
-        var run = await PlayToEndAsync(client);
-        await CompleteAsync(client, run.RunId);
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
+        await PetBrainPlaythrough.CompleteAsync(client, run.RunId);
 
         var first = await WaitForRecapAsync(client, run.RunId);
         var startsAfterFirst = factory.Video.Starts;
 
         // Təkrar tamamlama — hazır yekun qayıdır.
-        var again = (await CompleteAsync(client, run.RunId)).Summary!;
+        var again = (await PetBrainPlaythrough.CompleteAsync(client, run.RunId)).Summary!;
 
         Assert.Equal(first.VideoUrl, again.Recap.VideoUrl);
         Assert.Equal(PetBrainRecapStatus.Ready, again.Recap.Status);
@@ -345,9 +345,9 @@ public class PetBrainRecapApiTests
         factory.Video.Behaviour = behaviour;
 
         var client = await NewChildAsync(factory, $"recap-fail-{behaviour}@petpal.test");
-        var run = await PlayToEndAsync(client);
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
 
-        var summary = (await CompleteAsync(client, run.RunId)).Summary!;
+        var summary = (await PetBrainPlaythrough.CompleteAsync(client, run.RunId)).Summary!;
 
         // Mükafat DƏRHAL və tam verilib.
         // Mükafat həmişə verilir. Kosmetik yalnız Mars/Əjdaha şablonlarında
@@ -403,8 +403,8 @@ public class PetBrainRecapApiTests
             await db.SaveChangesAsync();
         }
 
-        var run = await PlayToEndAsync(client);
-        var summary = (await CompleteAsync(client, run.RunId)).Summary!;
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
+        var summary = (await PetBrainPlaythrough.CompleteAsync(client, run.RunId)).Summary!;
 
         Assert.Equal(PetBrainRecapStatus.Fallback, summary.Recap.Status);
         Assert.Equal(0, factory.Video.Starts);
@@ -427,8 +427,8 @@ public class PetBrainRecapApiTests
         using var factory = NewFactory();
 
         var client = await NewChildAsync(factory, "recap-restart@petpal.test");
-        var run = await PlayToEndAsync(client);
-        await CompleteAsync(client, run.RunId);
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
+        await PetBrainPlaythrough.CompleteAsync(client, run.RunId);
 
         await WaitForRecapAsync(client, run.RunId);
 
@@ -488,8 +488,8 @@ public class PetBrainRecapApiTests
         factory.Video.RealizedCredits = 500;
 
         var client = await NewChildAsync(factory, "recap-overspend@petpal.test");
-        var run = await PlayToEndAsync(client);
-        await CompleteAsync(client, run.RunId);
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
+        await PetBrainPlaythrough.CompleteAsync(client, run.RunId);
 
         await WaitForRecapAsync(client, run.RunId);
 
@@ -555,48 +555,6 @@ public class PetBrainRecapApiTests
         await db.SaveChangesAsync();
     }
 
-    private static async Task<PetBrainRunDto> PlayToEndAsync(ApiTestClient client)
-    {
-        var response = await client.Http.PostAsJsonAsync("/api/pet-brain/runs", new StartPetBrainRunRequest());
-        response.EnsureSuccessStatusCode();
-
-        var run = (await response.Content.ReadFromJsonAsync<PetBrainRunDto>())!;
-
-        var guard = 0;
-        while (run.Stage is not null && guard++ < 40)
-        {
-            var request = run.Stage.Kind switch
-            {
-                PetBrainStageKind.Intro => new PetBrainChoiceRequest
-                {
-                    StageIndex = run.Stage.Index,
-                    OptionKey = "continue"
-                },
-
-                PetBrainStageKind.Choice => new PetBrainChoiceRequest
-                {
-                    StageIndex = run.Stage.Index,
-                    OptionKey = run.Stage.Options[0].Key
-                },
-
-                _ => new PetBrainChoiceRequest
-                {
-                    StageIndex = run.Stage.Index,
-                    SelectedIds = Solve(run.Stage.Puzzle!)
-                }
-            };
-
-            var step = await client.Http.PostAsJsonAsync(
-                $"/api/pet-brain/runs/{run.RunId}/choices", request);
-
-            step.EnsureSuccessStatusCode();
-            run = (await step.Content.ReadFromJsonAsync<PetBrainRunDto>())!;
-        }
-
-        Assert.True(run.CurrentStage >= run.StageCount, "Macəra sona çatmadı.");
-        return run;
-    }
-
     private static async Task<PetBrainRunDto> CompleteAsync(ApiTestClient client, Guid runId)
     {
         var response = await client.Http.PostAsync($"/api/pet-brain/runs/{runId}/complete", null);
@@ -625,53 +583,4 @@ public class PetBrainRecapApiTests
         return new PetBrainRecapDto();
     }
 
-    /// <summary>Tapmacanı GÖRÜNƏN məlumatdan həll edir.</summary>
-    private static List<string> Solve(PetBrainPuzzleDto puzzle)
-    {
-        if (puzzle.Mechanic != PetBrainPuzzleMechanic.OrderedRoute)
-            return [.. puzzle.Items.Take(Math.Max(1, puzzle.AnswerSchema.Min)).Select(i => i.Id)];
-
-        var start = puzzle.Nodes.First(n => n.Kind == PetBrainNodeKind.Start);
-        var cost = puzzle.MoveCost ?? 1;
-        var maximum = puzzle.MaximumEnergy ?? 0;
-
-        List<string>? found = null;
-
-        Walk([start.Id], puzzle.InitialEnergy ?? 0);
-
-        Assert.NotNull(found);
-        return found;
-
-        void Walk(List<string> path, int energy)
-        {
-            if (found is not null || path.Count > puzzle.AnswerSchema.Max)
-                return;
-
-            var here = puzzle.Nodes.First(n => n.Id == path[^1]);
-
-            if (here.Kind == PetBrainNodeKind.Recharge)
-                energy = Math.Min(maximum, energy + (here.EnergyDelta ?? 0));
-
-            if (here.Kind == PetBrainNodeKind.Goal)
-            {
-                if (puzzle.RequiredBeforeGoal.All(path.Contains))
-                    found = [.. path];
-
-                return;
-            }
-
-            foreach (var next in puzzle.Edges
-                         .Where(e => e.From == here.Id || e.To == here.Id)
-                         .Select(e => e.From == here.Id ? e.To : e.From)
-                         .OrderBy(id => id, StringComparer.Ordinal))
-            {
-                if (path.Contains(next) || energy - cost < 0)
-                    continue;
-
-                path.Add(next);
-                Walk(path, energy - cost);
-                path.RemoveAt(path.Count - 1);
-            }
-        }
-    }
 }

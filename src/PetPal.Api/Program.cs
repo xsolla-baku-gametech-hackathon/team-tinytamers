@@ -28,9 +28,11 @@ using PetPal.Api.Notifications;
 using PetPal.Api.Realtime;
 using PetPal.Api.Parent;
 using PetPal.Api.PetBrain;
+using PetPal.Api.PetBrain.Mind;
 using PetPal.Api.PetBrain.Media;
 using PetPal.Api.PetBrain.Puzzles;
 using PetPal.Api.PetBrain.Recap;
+using PetPal.Api.PetBrain.Story;
 using PetPal.Api.Pets;
 using PetPal.Api.Progress;
 using PetPal.Api.Rewards;
@@ -376,6 +378,7 @@ else
 // modelsiz də tam işləyir. Model yalnız BAŞLIQ və GİRİŞ cümləsini
 // zənginləşdirir və o da ayrıca açarla açılır.
 builder.Services.Configure<PetBrainOptions>(builder.Configuration.GetSection(PetBrainOptions.SectionName));
+builder.Services.Configure<PetBrainV2Options>(builder.Configuration.GetSection(PetBrainV2Options.SectionName));
 
 var petBrainOptions = builder.Configuration
     .GetSection(PetBrainOptions.SectionName)
@@ -447,6 +450,9 @@ builder.Services.AddScoped<IRecapSpecFactory, RecapSpecFactory>();
 builder.Services.AddScoped<RecapCoordinator>();
 builder.Services.AddHostedService<RecapWorker>();
 
+builder.Services.AddSingleton<DeclinedRecommendations>();
+builder.Services.AddSingleton<PetBrainTelemetry>();
+builder.Services.AddScoped<PetMindContextBuilder>();
 builder.Services.AddScoped<TraitDailyLedger>();
 builder.Services.AddScoped<IBehaviorTracker, BehaviorTracker>();
 builder.Services.AddScoped<IPetBrainService, PetBrainService>();

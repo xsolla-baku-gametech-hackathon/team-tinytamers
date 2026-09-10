@@ -47,7 +47,21 @@ public static class PetBrainGreeting
         string childName,
         string language,
         IEnumerable<PetMemory> memories,
-        DateTime now)
+        DateTime now) =>
+        Build(pet, childName, language, memories, now, PetBrainPersonality.Balanced);
+
+    /// <param name="personality">
+    /// Salamlamanın RƏNGİNİ dəyişir: eyni vəziyyətdə maraqlı alim və
+    /// kəşfiyyatçı yoldaş fərqli sual verir. Xarakter yalnız SÖZƏ toxunur —
+    /// prioritet sırasına, qulluq ehtiyacına və yumurta qaydasına yox.
+    /// </param>
+    public static GreetingResult Build(
+        Pet pet,
+        string childName,
+        string language,
+        IEnumerable<PetMemory> memories,
+        DateTime now,
+        PetBrainPersonality personality)
     {
         if (pet.HatchedAt is null)
             return new GreetingResult(PetVoice.StillAnEgg(language), GreetingSource.Egg, null);
@@ -63,10 +77,16 @@ public static class PetBrainGreeting
         var memory = MemoryPolicy.PickForGreeting(memories, now);
 
         if (memory is null)
+        {
+            // Yaddaş boşdursa xarakterin öz sualı gəlir — "bu gün nə edək?"
+            // hamı üçün eyni səslənməməlidir.
+            var flavour = Mind.PersonalityVoice.GreetingFlavour(personality, language);
+
             return new GreetingResult(
-                PetVoice.Idle(language, mood, childName, pet.Name),
+                $"{PetVoice.Idle(language, mood, childName, pet.Name)} {flavour}",
                 GreetingSource.Idle,
                 null);
+        }
 
         var recalled = MemoryPolicy.Render(memory, language, pet.Name);
 

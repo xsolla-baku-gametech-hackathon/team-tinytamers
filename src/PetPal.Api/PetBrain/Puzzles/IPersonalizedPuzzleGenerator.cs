@@ -47,7 +47,17 @@ public sealed record PuzzleGenerationContext(
     bool Assisted,
 
     /// <summary>Son tapmacaların barmaq izləri — eyni sual dalbadal təkrarlanmasın.</summary>
-    IReadOnlyCollection<string> RecentSignatures);
+    IReadOnlyCollection<string> RecentSignatures,
+
+    /// <summary>
+    /// Hekayənin İSTƏDİYİ mexanika açarı; boşdursa generator özü seçir.
+    ///
+    /// <para>Budaqlanan macərada düyün hansı tapmacanın hekayəyə uyğun
+    /// olduğunu bilir — Ayda kristal marşrutu. Bu, uyğunluq süzgəcini ƏVƏZ
+    /// ETMİR: açar yenə də şablonun icazə verdiyi mexanikalar arasından
+    /// olmalıdır, əks halda nəzərə alınmır.</para>
+    /// </summary>
+    string PreferredBlueprintKey = "");
 
 /// <summary>Serverdə saxlanan HƏLL — heç bir DTO-ya düşmür.</summary>
 public sealed record PuzzleSolution(IReadOnlyList<string> Ids, PetBrainAnswerKind Kind);

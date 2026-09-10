@@ -180,9 +180,6 @@ public class PetBrainIllustrationApiTests
             var template = ExperienceCatalog.Find(run.TemplateKey);
             Assert.NotNull(template);
 
-            var puzzleStageIndex = Enumerable.Range(0, template.Stages.Count)
-                .Single(index => template.Stages[index].Kind == PetBrainStageKind.Puzzle);
-
             using (var scope = factory.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -191,8 +188,13 @@ public class PetBrainIllustrationApiTests
                     .SingleAsync(p => p.ExperienceRunId == run.RunId);
 
                 Assert.Equal(upcoming.PuzzleId, issued.Id);
-                Assert.Equal(puzzleStageIndex, issued.StageIndex);
-                Assert.NotEqual(run.CurrentStage, issued.StageIndex);
+
+                // Tapmaca uşağın HƏLƏ ÇATMADIĞI addım üçün verilir — mahiyyət
+                // budur. Dəqiq indeks modelə görə dəyişir: xətti şablonda
+                // mərhələ nömrəsidir, budaqlanan hekayədə isə qarşıdakı
+                // birmənalı tapmacaya qədərki addım sayı.
+                Assert.True(issued.StageIndex > run.CurrentStage,
+                    $"Tapmaca {issued.StageIndex} addımı üçün verilib, uşaq isə {run.CurrentStage}-dədir.");
 
                 var illustration = await db.PuzzleIllustrations
                     .AsNoTracking()
@@ -484,38 +486,14 @@ public class PetBrainIllustrationApiTests
         await db.SaveChangesAsync();
     }
 
-    private static async Task<PetBrainRunDto> StartRunAsync(ApiTestClient client)
-    {
-        var response = await client.Http.PostAsJsonAsync("/api/pet-brain/runs", new StartPetBrainRunRequest());
-        response.EnsureSuccessStatusCode();
+    private static Task<PetBrainRunDto> StartRunAsync(ApiTestClient client) =>
+        PetBrainPlaythrough.StartAsync(client);
 
-        return (await response.Content.ReadFromJsonAsync<PetBrainRunDto>())!;
-    }
+    private static Task<PetBrainRunDto> ReachPuzzleAsync(ApiTestClient client) =>
+        PetBrainPlaythrough.ReachPuzzleAsync(client);
 
-    private static async Task<PetBrainRunDto> ReachPuzzleAsync(ApiTestClient client) =>
-        await AdvanceToPuzzleAsync(client, await StartRunAsync(client));
-
-    private static async Task<PetBrainRunDto> AdvanceToPuzzleAsync(
-        ApiTestClient client, PetBrainRunDto run)
-    {
-        var guard = 0;
-        while (run.Stage is not null && run.Stage.Kind != PetBrainStageKind.Puzzle && guard++ < 10)
-        {
-            var key = run.Stage.Kind == PetBrainStageKind.Intro
-                ? "continue"
-                : run.Stage.Options[0].Key;
-
-            var step = await client.Http.PostAsJsonAsync(
-                $"/api/pet-brain/runs/{run.RunId}/choices",
-                new PetBrainChoiceRequest { StageIndex = run.CurrentStage, OptionKey = key });
-
-            step.EnsureSuccessStatusCode();
-            run = (await step.Content.ReadFromJsonAsync<PetBrainRunDto>())!;
-        }
-
-        Assert.Equal(PetBrainStageKind.Puzzle, run.Stage!.Kind);
-        return run;
-    }
+    private static Task<PetBrainRunDto> AdvanceToPuzzleAsync(ApiTestClient client, PetBrainRunDto run) =>
+        PetBrainPlaythrough.AdvanceToPuzzleAsync(client, run);
 
     /// <summary>
     /// Arxa fon işçisi səhnəni bitirənə qədər gözləyir.
@@ -558,62 +536,6 @@ public class PetBrainIllustrationApiTests
     }
 
     /// <summary>Marşrutu GÖRÜNƏN məlumatdan həll edir — uşağın etdiyi kimi.</summary>
-    private static async Task<PetBrainRunDto> SolveRouteAsync(ApiTestClient client, PetBrainRunDto run)
-    {
-        var puzzle = run.Stage!.Puzzle!;
-        var route = ShortestValidRoute(puzzle);
-
-        Assert.NotNull(route);
-
-        var response = await client.Http.PostAsJsonAsync(
-            $"/api/pet-brain/runs/{run.RunId}/choices",
-            new PetBrainChoiceRequest { StageIndex = run.Stage.Index, SelectedIds = route });
-
-        response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<PetBrainRunDto>())!;
-    }
-
-    private static List<string>? ShortestValidRoute(PetBrainPuzzleDto puzzle)
-    {
-        var start = puzzle.Nodes.First(n => n.Kind == PetBrainNodeKind.Start);
-        var cost = puzzle.MoveCost ?? 1;
-        var maximum = puzzle.MaximumEnergy ?? 0;
-
-        List<string>? found = null;
-
-        Walk([start.Id], puzzle.InitialEnergy ?? 0);
-        return found;
-
-        void Walk(List<string> path, int energy)
-        {
-            if (found is not null || path.Count > puzzle.AnswerSchema.Max)
-                return;
-
-            var here = puzzle.Nodes.First(n => n.Id == path[^1]);
-
-            if (here.Kind == PetBrainNodeKind.Recharge)
-                energy = Math.Min(maximum, energy + (here.EnergyDelta ?? 0));
-
-            if (here.Kind == PetBrainNodeKind.Goal)
-            {
-                if (puzzle.RequiredBeforeGoal.All(path.Contains))
-                    found = [.. path];
-
-                return;
-            }
-
-            foreach (var next in puzzle.Edges
-                         .Where(e => e.From == here.Id || e.To == here.Id)
-                         .Select(e => e.From == here.Id ? e.To : e.From)
-                         .OrderBy(id => id, StringComparer.Ordinal))
-            {
-                if (path.Contains(next) || energy - cost < 0)
-                    continue;
-
-                path.Add(next);
-                Walk(path, energy - cost);
-                path.RemoveAt(path.Count - 1);
-            }
-        }
-    }
+    private static Task<PetBrainRunDto> SolveRouteAsync(ApiTestClient client, PetBrainRunDto run) =>
+        PetBrainPlaythrough.StepAsync(client, run);
 }

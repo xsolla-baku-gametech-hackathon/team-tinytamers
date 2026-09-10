@@ -1,4 +1,5 @@
 using PetPal.Api.Common;
+using PetPal.Api.PetBrain.Story;
 
 namespace PetPal.Api.PetBrain.Recap;
 
@@ -41,9 +42,107 @@ public static class RecapStoryboard
         {
             ExperienceCatalog.MarsRoverRescue => Mars(spec, language),
             ExperienceCatalog.DragonLostColors => Dragon(spec, language),
+            ExperienceCatalog.MoonCrystalRescue => Moon(spec, language),
             _ => Neutral(language)
         };
     }
+
+    // ==================== Ay ====================
+
+    /// <summary>
+    /// Ay macərasının xülasəsi — üç kadr, uşağın HƏQİQİ yolu.
+    ///
+    /// <para>Beat-lər budaqlanan run-ın nəticə sətirlərindən gəlir (bax
+    /// <see cref="AdventureRecapSpec.ForGraph"/>), ona görə burada "üçüncü
+    /// mərhələ" kimi indeks təxmini yoxdur: hansı krater və hansı sonluq —
+    /// hər ikisi açıq açardır.</para>
+    /// </summary>
+    private static IReadOnlyList<RecapShot> Moon(AdventureRecapSpec spec, string language)
+    {
+        var crater = Choice(spec, "first-choice");
+        var ending = Choice(spec, "ending");
+
+        return
+        [
+            new(0.0, 3.0,
+                $"the pet lands softly on the Moon and sets off into {MoonCraterMotion(crater)}",
+                Localized.T(language,
+                    $"{MoonCraterAz(crater)} ilə başladıq.",
+                    $"We started at {MoonCraterEn(crater)}."),
+                MoonCraterIcon(crater)),
+
+            new(3.0, 7.0,
+                "the rover crosses a glowing pool, then a field of tilted mirrors; " +
+                "a large crystal slowly lights up",
+                Localized.T(language,
+                    "İşığı güzgüdən keçirib kristalı oyatdıq.",
+                    "We bounced the light off the mirrors and woke the crystal."),
+                "💎"),
+
+            new(7.0, 10.0,
+                $"{MoonEndingMotion(ending)}" + Cosmetic(spec.PetCosmetic),
+                Localized.T(language, MoonEndingAz(ending), MoonEndingEn(ending)),
+                MoonEndingIcon(ending))
+        ];
+    }
+
+    private static string MoonCraterMotion(string key) => key switch
+    {
+        "deep-crater" => "a deep shadowed crater",
+        "bright-crater" => "a bright echoing crater",
+        _ => "a northern crater crossed by a ribbon of light"
+    };
+
+    private static string MoonCraterAz(string key) => key switch
+    {
+        "deep-crater" => "dərin krater",
+        "bright-crater" => "parlaq krater",
+        _ => "şimal krateri"
+    };
+
+    private static string MoonCraterEn(string key) => key switch
+    {
+        "deep-crater" => "the deep crater",
+        "bright-crater" => "the bright crater",
+        _ => "the north crater"
+    };
+
+    private static string MoonCraterIcon(string key) => key switch
+    {
+        "deep-crater" => "🕳️",
+        "bright-crater" => "✨",
+        _ => "🧭"
+    };
+
+    private static string MoonEndingMotion(string key) => key switch
+    {
+        MoonCrystalHunt.ScientistEnding =>
+            "the ship glides down beside the pet as the signal reaches it",
+        MoonCrystalHunt.CaringEnding =>
+            "the pet carries the crystal in a small lantern cradle, lighting the path home",
+        _ => "the pet reaches the summit and the crystal lights up the whole Moon"
+    };
+
+    private static string MoonEndingAz(string key) => key switch
+    {
+        MoonCrystalHunt.ScientistEnding => "Siqnal göndərdik və gəmi bizə gəldi!",
+        MoonCrystalHunt.CaringEnding => "Kristalı fənər kimi apardıq — bütün yol işıqlı idi.",
+        _ => "Zirvəyə qalxdıq və bütün Ay işıqlandı!"
+    };
+
+    private static string MoonEndingEn(string key) => key switch
+    {
+        MoonCrystalHunt.ScientistEnding => "We sent the signal and the ship came to us!",
+        MoonCrystalHunt.CaringEnding => "We carried the crystal like a lantern — the whole way was bright.",
+        _ => "We climbed to the summit and the whole Moon lit up!"
+    };
+
+    private static string MoonEndingIcon(string key) => key switch
+    {
+        MoonCrystalHunt.ScientistEnding => "📶",
+        MoonCrystalHunt.CaringEnding => "🏮",
+        _ => "⛰️"
+    };
 
     // ==================== Mars ====================
 

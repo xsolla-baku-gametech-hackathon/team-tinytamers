@@ -30,6 +30,17 @@ public static class PetBrainEndpoints
                 (await service.GetStateAsync(http.User.ChildIdOrThrow(), ct)).ToHttpResult())
             .WithSummary("Profil, yaddaş, bağ, xarakter və növbəti macəra tövsiyəsi.");
 
+        // ---- Tövsiyəyə cavab ----
+        // "Başqa fikir" və "sonra". Klient burada NƏ şablon, NƏ də bal
+        // dəyişikliyi göndərmir — yalnız serverin verdiyi qərar id-sini.
+        group.MapPost("/recommendation/feedback", async (
+                [FromBody] PetBrainFeedbackRequest request,
+                HttpContext http,
+                IPetBrainService service,
+                CancellationToken ct) =>
+            (await service.SubmitFeedbackAsync(http.User.ChildIdOrThrow(), request, ct)).ToHttpResult())
+            .WithSummary("«Başqa fikir» və ya «sonra» — yeni vəziyyəti qaytarır.");
+
         group.MapPost("/runs", async (
                 [FromBody] StartPetBrainRunRequest? request,
                 HttpContext http,
