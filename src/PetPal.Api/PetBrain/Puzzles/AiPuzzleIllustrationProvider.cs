@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using PetPal.Api.Ai;
+using PetPal.Api.PetBrain.Scenery;
 
 namespace PetPal.Api.PetBrain.Puzzles;
 
@@ -53,7 +54,7 @@ public sealed class AiPuzzleIllustrationProvider : IPuzzleIllustrationProvider
         _options.UseAiIllustration && !string.IsNullOrWhiteSpace(_options.IllustrationModel);
 
     public async Task<PuzzleIllustrationResult> RenderAsync(
-        PuzzleSceneSpec spec, string prompt, CancellationToken ct = default)
+        IStoryScene scene, string prompt, CancellationToken ct = default)
     {
         if (!IsEnabled)
             return PuzzleIllustrationResult.Failed("disabled");

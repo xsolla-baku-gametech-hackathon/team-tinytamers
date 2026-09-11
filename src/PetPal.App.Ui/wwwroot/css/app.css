@@ -9472,6 +9472,80 @@
     text-align: center;
 }
 
+.pbx__speaker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.pbx__speaker .pbx__bubble {
+    min-width: 0;
+    max-width: 268px;
+}
+
+.pbx-hero {
+    flex: 0 0 auto;
+    margin: 0;
+    width: 64px;
+    text-align: center;
+}
+
+.pbx-hero__frame {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: rgba(251, 247, 239, 0.96);
+    box-shadow: 0 3px 0 var(--pp-edge-neutral), var(--pp-shadow-md);
+}
+
+.pbx-hero__art {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: pbx-art-in var(--pbx-art-fade, 1200ms) ease-out both;
+}
+
+.pbx-hero__pet {
+    position: absolute;
+    inset: -8px -4px -14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pbx-hero__pet .pet-wrap,
+.pbx-hero__pet .pet {
+    width: 100%;
+    height: 100%;
+}
+
+.pbx-hero__spark {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 2px rgba(255, 217, 102, 0.85);
+    animation: pbx-hero-glow 1600ms ease-in-out infinite;
+}
+
+@keyframes pbx-hero-glow {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+}
+
+.pbx-hero__label {
+    display: block;
+    margin-top: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--pp-ink-muted);
+}
+
+.pbx--large-text .pbx-hero__label { font-size: 12px; }
+
 .pbx__panel {
     border-radius: var(--pp-radius-lg);
     background: var(--pp-card);
@@ -11737,6 +11811,471 @@
 }
 
 .pbx-rover--moon { left: 42%; }
+
+.pbx-moon__nightsky {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #0A1030 0%, #1B2450 58%, #2E3A66 100%);
+}
+
+.pbx-moon__farmoon {
+    position: absolute;
+    top: 54px;
+    right: 46px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 32%, #FFFBEC 0%, #E6E2CE 60%, #C6C2AE 100%);
+    box-shadow: 0 0 26px rgba(255, 249, 214, 0.42);
+}
+
+.pbx-moon__windowframe {
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    top: 14%;
+    bottom: 18%;
+    border: 10px solid #6B5842;
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.14);
+}
+
+.pbx-moon__windowframe::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    margin-left: -4px;
+    background: #6B5842;
+}
+
+.pbx-moon__interior {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #1C2338 0%, #2A3350 60%, #36405E 76%, #242B42 76%, #1B2033 100%);
+}
+
+.pbx-moon--cave .pbx-moon__interior {
+    background: linear-gradient(180deg, #1A1636 0%, #2E2558 60%, #40316E 78%, #2A2148 78%, #1E1836 100%);
+}
+
+.pbx-moon--passage .pbx-moon__interior {
+    background: radial-gradient(70% 60% at 50% 50%, #6A76A8 0%, #2A3150 62%, #141A2E 100%);
+}
+
+.pbx-moon--observatory .pbx-moon__interior,
+.pbx-moon--core .pbx-moon__interior {
+    background: linear-gradient(180deg, #141B33 0%, #22305A 62%, #2C3C6E 80%, #1D2742 80%, #151C31 100%);
+}
+
+.pbx-moon--earth-desk .pbx-moon__interior,
+.pbx-moon--kit-table .pbx-moon__interior {
+    background: linear-gradient(180deg, #2B2233 0%, #3E3040 60%, #574055 82%, #6B4F3A 82%, #54402F 100%);
+}
+
+.pbx-moon--launch .pbx-moon__nightsky {
+    background: linear-gradient(180deg, #0A1030 0%, #1B2450 40%, #2E3A66 48%, #4E8A4C 48%, #3A6B3A 100%);
+}
+
+.pbx-moon--earth-night .pbx-moon__farmoon {
+    top: 24%;
+    right: 28%;
+}
+
+.pbx-moon__desk {
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    bottom: 16%;
+    height: 54px;
+    border-radius: 10px 10px 4px 4px;
+    background: linear-gradient(180deg, #8C6B4A 0%, #6A4F36 100%);
+}
+
+.pbx-moon__antenna {
+    position: absolute;
+    left: 26%;
+    bottom: calc(16% + 54px);
+    width: 4px;
+    height: 62px;
+    background: #C8D2E6;
+}
+
+.pbx-moon__antenna::after {
+    content: "";
+    position: absolute;
+    top: -14px;
+    left: -15px;
+    width: 34px;
+    height: 18px;
+    border-radius: 50% 50% 0 0;
+    border: 3px solid #C8D2E6;
+    border-bottom: 0;
+}
+
+.pbx-moon__wave {
+    position: absolute;
+    left: 54%;
+    bottom: calc(16% + 60px);
+    width: 84px;
+    height: 84px;
+    border: 2px solid rgba(255, 214, 120, 0.35);
+    border-radius: 50%;
+}
+
+.pbx-moon__wave--on {
+    border-color: rgba(255, 214, 120, 0.9);
+    box-shadow: 0 0 28px rgba(255, 206, 122, 0.45);
+}
+
+.pbx-moon__table {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    bottom: 20%;
+    height: 46px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #9A7A56 0%, #74593C 100%);
+}
+
+.pbx-moon__tool {
+    position: absolute;
+    bottom: calc(20% + 46px);
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    opacity: 0.45;
+    filter: grayscale(0.5);
+}
+
+.pbx-moon__tool--taken {
+    opacity: 1;
+    filter: none;
+    transform: translateY(-8px);
+    box-shadow: 0 0 18px rgba(255, 229, 168, 0.55);
+}
+
+.pbx-moon__tool--scanner { left: 20%; background: linear-gradient(180deg, #A8E6FF 0%, #5FA8D6 100%); }
+.pbx-moon__tool--repair { left: 45%; background: linear-gradient(180deg, #FFD9A8 0%, #D39B52 100%); }
+.pbx-moon__tool--light { left: 70%; background: linear-gradient(180deg, #E8D4FF 0%, #9A7BD8 100%); }
+
+.pbx-moon__pad {
+    position: absolute;
+    left: 18%;
+    right: 18%;
+    bottom: calc(var(--pbx-horizon) - 6px);
+    height: 14px;
+    border-radius: var(--pp-radius-pill);
+    background: linear-gradient(180deg, #C2C9D8 0%, #8C93A6 100%);
+}
+
+.pbx-moon__rocket {
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--pbx-horizon) + 4px);
+    width: 42px;
+    height: 96px;
+    margin-left: -21px;
+    border-radius: 50% 50% 18% 18%;
+    background: linear-gradient(180deg, #FBF7EF 0%, #D9DEEA 62%, #A8B0C4 100%);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.3);
+}
+
+.pbx-moon__panel {
+    position: absolute;
+    left: 6%;
+    top: 22%;
+    width: 76px;
+    height: 54px;
+    border-radius: 10px;
+    background: #2F3958;
+    box-shadow: inset 0 0 0 2px rgba(200, 210, 230, 0.3);
+}
+
+.pbx-moon__panel--live {
+    background: linear-gradient(180deg, #2F5F8E 0%, #3E8FC0 100%);
+    box-shadow: inset 0 0 0 2px rgba(200, 230, 255, 0.55), 0 0 24px rgba(110, 190, 240, 0.4);
+}
+
+.pbx-moon__mapwall {
+    position: absolute;
+    right: 8%;
+    top: 20%;
+    width: 96px;
+    height: 66px;
+    border-radius: 8px;
+    background: radial-gradient(60% 60% at 40% 40%, #9BE8C8 0%, #2F6E58 100%);
+    box-shadow: 0 0 26px rgba(120, 232, 190, 0.4);
+}
+
+.pbx-moon__comms {
+    position: absolute;
+    right: 16%;
+    bottom: 26%;
+    width: 6px;
+    height: 58px;
+    background: #C8D2E6;
+    box-shadow: 0 0 20px rgba(255, 214, 120, 0.5);
+}
+
+.pbx-moon__comms::after {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: -12px;
+    width: 30px;
+    height: 10px;
+    border-radius: var(--pp-radius-pill);
+    background: #FFD166;
+}
+
+.pbx-moon__repair {
+    position: absolute;
+    left: 22%;
+    bottom: 22%;
+    width: 74px;
+    height: 40px;
+    border-radius: 10px 10px 4px 4px;
+    background: linear-gradient(180deg, #E3A857 0%, #A7712F 100%);
+}
+
+.pbx-moon__bot {
+    position: absolute;
+    left: 54%;
+    bottom: 24%;
+    width: 36px;
+    height: 34px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #D7DEEC 0%, #9AA3BA 100%);
+}
+
+.pbx-moon__bot::after {
+    content: "";
+    position: absolute;
+    left: 9px;
+    top: 12px;
+    width: 18px;
+    height: 6px;
+    border-radius: var(--pp-radius-pill);
+    background: #55607C;
+}
+
+.pbx-moon__bot--fixed::after {
+    background: #7BE0A8;
+    box-shadow: 0 0 16px rgba(123, 224, 168, 0.7);
+}
+
+.pbx-moon__brokenshards {
+    position: absolute;
+    left: 50%;
+    bottom: 26%;
+    width: 90px;
+    height: 44px;
+    margin-left: -45px;
+    background:
+        linear-gradient(150deg, transparent 46%, #7C88AC 46% 54%, transparent 54%),
+        linear-gradient(30deg, transparent 46%, #7C88AC 46% 54%, transparent 54%);
+}
+
+.pbx-moon__brokenshards--joined {
+    background: linear-gradient(180deg, #BFF0FF 0%, #6FC7F5 100%);
+    clip-path: polygon(50% 0%, 100% 34%, 78% 100%, 22% 100%, 0% 34%);
+    box-shadow: 0 0 26px rgba(150, 224, 255, 0.55);
+}
+
+.pbx-moon__path {
+    position: absolute;
+    bottom: calc(var(--pbx-horizon) - 10px);
+    height: 10px;
+    border-radius: var(--pp-radius-pill);
+    background: rgba(234, 243, 255, 0.55);
+}
+
+.pbx-moon__path--cave { left: 8%; width: 38%; transform: rotate(-6deg); }
+.pbx-moon__path--crater { right: 8%; width: 38%; transform: rotate(6deg); }
+
+.pbx-moon__path--hidden {
+    left: 40%;
+    width: 22%;
+    background: rgba(255, 226, 150, 0.8);
+    box-shadow: 0 0 18px rgba(255, 214, 120, 0.5);
+}
+
+.pbx-moon__column {
+    position: absolute;
+    bottom: 0;
+    width: 34px;
+    border-radius: 18px 18px 0 0;
+    background: linear-gradient(180deg, #9C8CE8 0%, #5B4AA0 100%);
+    box-shadow: 0 0 24px rgba(156, 140, 232, 0.45);
+}
+
+.pbx-moon__column--a { left: 12%; height: 46%; }
+.pbx-moon__column--b { left: 44%; height: 62%; width: 42px; }
+.pbx-moon__column--c { right: 14%; height: 38%; }
+
+.pbx-moon__bridge {
+    position: absolute;
+    left: 18%;
+    right: 18%;
+    bottom: 24%;
+    height: 8px;
+    border-radius: var(--pp-radius-pill);
+    background: linear-gradient(90deg, #BFF0FF 0%, #7CA8F0 50%, #BFF0FF 100%);
+    box-shadow: 0 0 20px rgba(150, 224, 255, 0.55);
+}
+
+.pbx-moon__creature {
+    position: absolute;
+    right: 24%;
+    bottom: 26%;
+    width: 42px;
+    height: 30px;
+    border-radius: 50% 50% 42% 42%;
+    background: linear-gradient(180deg, #9BE8C8 0%, #4FA98A 100%);
+    box-shadow: 0 0 22px rgba(120, 232, 190, 0.5);
+}
+
+.pbx-moon__shadow {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(var(--pbx-horizon) + 12%);
+    background: linear-gradient(180deg, rgba(8, 10, 24, 0) 0%, rgba(8, 10, 24, 0.62) 100%);
+}
+
+.pbx-moon__mirror {
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--pbx-horizon) + 4%);
+    width: 110px;
+    height: 34px;
+    margin-left: -55px;
+    background:
+        linear-gradient(90deg, #E7EEFF 0 22%, transparent 22% 28%,
+        #E7EEFF 28% 50%, transparent 50% 56%, #E7EEFF 56% 78%, transparent 78%);
+    transform: skewX(-8deg);
+    opacity: 0.85;
+}
+
+.pbx-moon__tunnel {
+    position: absolute;
+    left: 50%;
+    top: 22%;
+    width: 150px;
+    height: 200px;
+    margin-left: -75px;
+    border-radius: 50% 50% 8% 8%;
+    background: radial-gradient(60% 60% at 50% 62%, #FFE9B0 0%, rgba(255, 233, 176, 0) 72%);
+    box-shadow: inset 0 0 0 4px rgba(200, 210, 230, 0.2);
+}
+
+.pbx-moon__tracks {
+    position: absolute;
+    left: 6%;
+    right: 30%;
+    bottom: calc(var(--pbx-horizon) - 14px);
+    height: 16px;
+    background: repeating-linear-gradient(90deg,
+        rgba(120, 130, 152, 0.85) 0 8px, transparent 8px 18px);
+    border-radius: var(--pp-radius-pill);
+}
+
+.pbx-moon__memory {
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--pbx-horizon) + 16%);
+    width: 96px;
+    height: 60px;
+    margin-left: -48px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(191, 240, 255, 0.85) 0%, rgba(111, 199, 245, 0.5) 100%);
+    box-shadow: 0 0 30px rgba(150, 224, 255, 0.5);
+}
+
+.pbx-moon__dome {
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--pbx-horizon) - 4px);
+    width: 190px;
+    height: 118px;
+    margin-left: -95px;
+    border-radius: 50% 50% 0 0;
+    background: radial-gradient(60% 70% at 50% 70%, rgba(155, 232, 200, 0.4) 0%, rgba(155, 232, 200, 0.1) 100%);
+    box-shadow: inset 0 0 0 3px rgba(200, 240, 220, 0.5);
+}
+
+.pbx-moon__sprout {
+    position: absolute;
+    left: 50%;
+    bottom: var(--pbx-horizon);
+    width: 8px;
+    height: 34px;
+    margin-left: -4px;
+    border-radius: var(--pp-radius-pill);
+    background: #5FBF87;
+}
+
+.pbx-moon__sprout::after {
+    content: "";
+    position: absolute;
+    top: -8px;
+    left: -12px;
+    width: 32px;
+    height: 16px;
+    border-radius: 50% 50% 40% 40%;
+    background: #7BE0A8;
+}
+
+.pbx-moon__hallwindow {
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    top: 12%;
+    height: 42%;
+    border-radius: 120px 120px 12px 12px;
+    background: radial-gradient(60% 80% at 50% 80%, #2B3A6E 0%, #0A1030 100%);
+    box-shadow: inset 0 0 0 4px rgba(200, 210, 230, 0.3);
+}
+
+.pbx-moon__board {
+    position: absolute;
+    left: 16%;
+    right: 16%;
+    bottom: 18%;
+    height: 88px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #3B4772 0%, #26304F 100%);
+    box-shadow: inset 0 0 0 2px rgba(200, 210, 230, 0.28);
+}
+
+.pbx-moon__ring {
+    position: absolute;
+    left: 50%;
+    bottom: 22%;
+    width: 172px;
+    height: 172px;
+    margin-left: -86px;
+    border: 6px solid rgba(200, 214, 245, 0.55);
+    border-radius: 50%;
+}
+
+.pbx-moon__lightwave {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(50% 42% at 50% 62%, rgba(191, 240, 255, 0.55) 0%, rgba(191, 240, 255, 0) 72%);
+}
+
+.pbx-moon--core .pbx-moon__crystal,
+.pbx-moon--finale .pbx-moon__crystal {
+    left: 50%;
+    right: auto;
+    bottom: 30%;
+    margin-left: -17px;
+}
 
 /* Hərəkət həssaslığı: kristalın parıltısı sabit qalır — o, dekorasiya deyil,
    hekayənin nəticəsidir və hərəkətsiz də oxunur. */

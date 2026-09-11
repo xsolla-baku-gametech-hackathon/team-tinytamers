@@ -33,7 +33,7 @@
 
             <ExperienceScene SceneKey="@_run.SceneKey" Choices="_run.Choices" Icon="@RunIcon"
                              SceneVariant="@_run.Stage?.SceneVariant"
-                             SceneImage="@AdventureSceneImage" Awakening="@SceneAwaited" />
+                             SceneImage="@AdventureSceneImage" Awakening="@BackdropAwaited" />
 
             @if (_run.Adventure is { ChapterCount: > 0 } adventure && _run.Summary is null)
             {
@@ -63,7 +63,14 @@
                 <div class="pbx__stage">
                     @* Pet-in replikası səhnənin üstündə üzür — uşaq üçün ən
                        tanış giriş nöqtəsi onun DEDİYİdir. *@
-                    <div class="pbx__bubble" aria-live="polite">@_run.Stage.PetLine</div>
+                    <div class="pbx__speaker">
+                        <HeroPortrait Image="@_portrait.Image" Waiting="@_portrait.Waiting"
+                                      AltText="@_run.Stage.Portrait.AltText"
+                                      Species="@PetSpecies" Stage="PetStageValue"
+                                      Name="@PetName" Accessories="PetAccessoriesValue" />
+
+                        <div class="pbx__bubble" aria-live="polite">@_run.Stage.PetLine</div>
+                    </div>
 
                     @if (_run.Adventure?.Changes is { } changes)
                     {
@@ -559,8 +566,20 @@
     /// Macəra səhnəsinin AI fonu. Öz lövhəsi olan mexanikada rəsm lövhənin
     /// İÇİNDƏDİR və macəra fonu gizlənir, ona görə eyni rəsm iki dəfə
     /// çəkilmir.
+    ///
+    /// <para>Tapmacanın öz rəsmi varsa o qalibdir — səhnə məhz həmin tapmacanın
+    /// anıdır. Qalan mərhələlərdə uşağın seçimlərinin qurduğu arxa fon gəlir.</para>
     /// </summary>
-    private string? AdventureSceneImage => HasOwnScene ? null : PuzzleSceneImage;
+    private string? AdventureSceneImage => HasOwnScene ? null : PuzzleSceneImage ?? _backdrop.Image;
+
+    /// <summary>
+    /// Mərhələnin arxa fonu və obrazı — seçimlərə görə dəyişən AI rəsmləri.
+    ///
+    /// <para>Hər ikisi AYRICA yüklənir və gec gələ bilər: ekran onlardan asılı
+    /// deyil, deterministik səhnə və pet-in öz görünüşü onsuz da yerindədir.</para>
+    /// </summary>
+    private readonly PetBrainArtSlot _backdrop = new();
+    private readonly PetBrainArtSlot _portrait = new();
 
     /// <summary>
     /// AI rəsmi yoldadır, amma hələ ekranda deyil — səhnənin üstündə sehrli toz
@@ -568,6 +587,13 @@
     /// göstəriləndə, gəlməyəcəyi bəlli olanda və ya AI bağlı olanda toz
     /// yavaşca sönür.
     /// </summary>
+    /// <summary>
+    /// Macəra səhnəsinin üstündə sehrli toz parıldayırmı: ya tapmacanın rəsmi,
+    /// ya da mərhələnin arxa fonu yoldadır.
+    /// </summary>
+    private bool BackdropAwaited =>
+        SceneAwaited || (_backdrop.Waiting && AdventureSceneImage is null);
+
     private bool SceneAwaited =>
         SceneTarget is { } target &&
         target.Status != PetBrainIllustrationStatus.Fallback &&
@@ -909,8 +935,44 @@
     protected override void OnAfterRender(bool firstRender)
     {
         PrefetchScene();
+        TrackStageArt();
         WatchRecap();
     }
+
+    /// <summary>
+    /// Mərhələnin arxa fonunu və obrazını izləyir.
+    ///
+    /// <para>Ünvanın içində səhnənin hash-ı var: seçim dünyanı dəyişəndə ünvan
+    /// dəyişir və yeni rəsm yüklənir, köhnəsi isə dərhal atılır. Mərhələ
+    /// yoxdursa (yekun ekranı) hər ikisi təmizlənir.</para>
+    /// </summary>
+    private void TrackStageArt()
+    {
+        if (_run?.Stage is not { } stage)
+        {
+            _backdrop.Clear();
+            _portrait.Clear();
+            return;
+        }
+
+        _backdrop.Track(
+            stage.Backdrop.AssetUrl, stage.Backdrop.IllustrationStatus,
+            FetchSceneAsync, RefreshAsync, _sceneLifetime.Token);
+
+        _portrait.Track(
+            stage.Portrait.AssetUrl, stage.Portrait.IllustrationStatus,
+            FetchSceneAsync, RefreshAsync, _sceneLifetime.Token);
+    }
+
+    /// <summary>Rəsmi app-in ÖZ endpoint-indən alır; gəlmədisə <c>null</c>.</summary>
+    private async Task<string?> FetchSceneAsync(string url, CancellationToken ct)
+    {
+        var result = await Api.GetPetBrainSceneAsync(url, ct);
+
+        return result is { Succeeded: true, Value: { Length: > 0 } image } ? image : null;
+    }
+
+    private Task RefreshAsync() => InvokeAsync(StateHasChanged);
 
     /// <summary>
     /// Rəsmi yüklənməli tapmacanı izləyir və yükləməni başladır.

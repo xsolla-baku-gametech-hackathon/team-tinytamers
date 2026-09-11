@@ -11,6 +11,7 @@ using PetPal.Api.PetBrain.Mind;
 using PetPal.Api.PetBrain.Puzzles;
 using PetPal.Api.PetBrain.Recap;
 using PetPal.Api.PetBrain.Recommendation;
+using PetPal.Api.PetBrain.Scenery;
 using PetPal.Api.PetBrain.Story;
 using PetPal.Api.Pets;
 using PetPal.Api.Progress;
@@ -3390,6 +3391,10 @@ public class PetBrainService : IPetBrainService
             PetLine = stage.PetLine(language)
         };
 
+        var scenery = SceneryContext.Linear(
+            template.Key, template.Theme, sceneVariant: string.Empty,
+            run.Choices, child.Pet?.Species ?? string.Empty, language);
+
         if (stage.Kind != PetBrainStageKind.Puzzle)
         {
             dto.Stage.Options =
@@ -3398,6 +3403,7 @@ public class PetBrainService : IPetBrainService
                     .Select(o => ToOptionDto(o, language))
             ];
             dto.UpcomingScene = await UpcomingSceneAsync(run, template, child, ct);
+            await ApplyStageArtAsync(dto, run, scenery, ct);
             return dto;
         }
 
@@ -3412,6 +3418,7 @@ public class PetBrainService : IPetBrainService
         // rəsm gec hazır olanda uşaq növbəti kadrda onu görməlidir. Həndəsə
         // dəyişmir — yalnız fon.
         await ApplySceneAsync(puzzle, issued, template, child, ct);
+        await ApplyStageArtAsync(dto, run, scenery, ct);
 
         var support = SupportOf(child);
         var reveal = showHint
@@ -3505,6 +3512,8 @@ public class PetBrainService : IPetBrainService
         if (node.Kind == PetBrainStageKind.Consequence)
             dto.Stage.PetReaction = PersonalityVoice.ChoiceReaction(child.Personality, language);
 
+        var scenery = SceneryOf(template, child, dto.Stage.SceneVariant, adventureState, run.Choices);
+
         if (node.Kind != PetBrainStageKind.Puzzle)
         {
             var available = node.Options
@@ -3522,6 +3531,7 @@ public class PetBrainService : IPetBrainService
             foreach (var option in dto.Stage.Options)
                 option.Suggested = string.Equals(option.Key, suggested, StringComparison.Ordinal);
             dto.UpcomingScene = await UpcomingGraphSceneAsync(run, template, child, graph, node, ct);
+            await ApplyStageArtAsync(dto, run, scenery, ct);
 
             return dto;
         }
@@ -3532,6 +3542,7 @@ public class PetBrainService : IPetBrainService
         puzzle.Attempts = issued.Attempts;
 
         await ApplySceneAsync(puzzle, issued, template, child, ct);
+        await ApplyStageArtAsync(dto, run, scenery, ct);
 
         var support = SupportOf(child);
         var reveal = showHint
@@ -4119,6 +4130,156 @@ public class PetBrainService : IPetBrainService
         PuzzleBlueprint blueprint, ExperienceTemplate template, ChildProfile child) =>
         PuzzleSceneSpec.For(
             blueprint, child.LanguageCode, template, child.Pet?.Species ?? string.Empty);
+
+
+    /// <summary>
+    /// Vəziyyəti rəsm qatının anladığı formaya salır.
+    ///
+    /// <para>Bura yalnız hekayənin ÖZ açarları düşür: seçimlər, bayraqlar,
+    /// inventar və düyünün səhnə variantı. Uşağın adı, id-si və pet-in adı
+    /// keçmir — onları göndərəsi sahə yoxdur.</para>
+    /// </summary>
+    private static SceneryContext SceneryOf(
+        ExperienceTemplate template,
+        ChildProfile child,
+        string sceneVariant,
+        AdventureState? state,
+        IEnumerable<string> choices)
+    {
+        var species = child.Pet?.Species ?? string.Empty;
+
+        if (state is null)
+            return SceneryContext.Linear(
+                template.Key, template.Theme, sceneVariant, choices, species, child.LanguageCode);
+
+        return new SceneryContext(
+            ExperienceKey: template.Key,
+            Theme: template.Theme,
+            SceneVariant: sceneVariant,
+            Choices: state.SelectedChoiceIds,
+            Flags: state.Flags,
+            WorldFlags: state.WorldFlags,
+            Items: new HashSet<string>(
+                state.Inventory.Where(i => i.Quantity > 0).Select(i => i.ItemId), StringComparer.Ordinal),
+            Species: species,
+            Language: child.LanguageCode);
+    }
+
+    /// <summary>
+    /// Mərhələnin arxa fonunu və obrazını AÇIR.
+    ///
+    /// <para>Model burada gözlənilmir: sətir açılır, hazır deyilsə növbəyə
+    /// düşür və ekran deterministik səhnə ilə dərhal işləyir. Rəsm hazır olanda
+    /// növbəti yenilənmədə fon dəyişir, həndəsə isə yerində qalır.</para>
+    /// </summary>
+    private async Task ApplyStageArtAsync(
+        PetBrainRunDto dto, ExperienceRun run, SceneryContext context, CancellationToken ct)
+    {
+        if (dto.Stage is null)
+            return;
+
+        dto.Stage.Backdrop = await OpenSceneAsync(run.Id, AdventureSceneDirector.Backdrop(context), ct);
+        dto.Stage.Portrait = await OpenSceneAsync(run.Id, AdventureSceneDirector.Portrait(context), ct);
+    }
+
+    /// <summary>
+    /// Bir səhnənin sətrini açır və klientin görəcəyi vəziyyəti qurur.
+    ///
+    /// <para>Ünvanda səhnənin HASH-ı var: seçim dəyişəndə ünvan da dəyişir,
+    /// yəni klient köhnə rəsmi keşdən göstərə bilmir. Hash uşaqdan asılı
+    /// deyil, sahiblik isə endpoint-də run üzərindən yoxlanılır.</para>
+    /// </summary>
+    private async Task<PetBrainSceneDto> OpenSceneAsync(Guid runId, IStoryScene scene, CancellationToken ct)
+    {
+        var hash = scene.Hash();
+        var row = await _illustrations.EnsureRowAsync(scene, ct);
+
+        if (row.Status == PetBrainIllustrationStatus.Pending)
+            _sceneQueue.Enqueue(scene);
+
+        return new PetBrainSceneDto
+        {
+            IllustrationStatus = row.Status,
+            AltText = scene.AltText(),
+            AssetUrl = row.Status == PetBrainIllustrationStatus.Fallback
+                ? string.Empty
+                : $"/api/pet-brain/runs/{runId}/scenes/{hash}"
+        };
+    }
+
+    /// <summary>
+    /// Uşağın ÖZ macərasının cari arxa fonu və ya obrazı.
+    ///
+    /// <para>Sahiblik İKİ QAT yoxlanılır: run uşağındır və hash run-ın HAZIRKI
+    /// səhnəsinə aiddir. İkincisi qəsdəndir — səhnə sətirləri uşaqlar arasında
+    /// paylaşılan keşdir, ona görə "hash bilən hər kəs oxuya bilsin" qaydası
+    /// yolverilməz olardı. Hash serverdə YENİDƏN hesablanır, yəni klient onu
+    /// uydura bilmir.</para>
+    /// </summary>
+    public async Task<PuzzleIllustrationLookup?> GetRunSceneAsync(
+        Guid childId, Guid runId, string sceneHash, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(sceneHash))
+            return null;
+
+        var child = await LoadChildAsync(childId, ct);
+
+        if (child is null)
+            return null;
+
+        var run = await _db.ExperienceRuns
+            .FirstOrDefaultAsync(r => r.Id == runId && r.ChildProfileId == childId, ct);
+
+        if (run is null || TemplateOf(run) is not { } template)
+            return null;
+
+        if (!await IsCurrentSceneAsync(run, child, template, sceneHash, ct))
+            return null;
+
+        var row = await _db.PuzzleIllustrations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(i => i.SceneSpecHash == sceneHash, ct);
+
+        if (row is null)
+            return new PuzzleIllustrationLookup(PetBrainIllustrationStatus.Fallback, null);
+
+        return new PuzzleIllustrationLookup(
+            row.Status,
+            row.Status == PetBrainIllustrationStatus.Ready && !string.IsNullOrEmpty(row.AssetKey)
+                ? row.AssetKey
+                : null);
+    }
+
+    /// <summary>Hash run-ın indiki arxa fonu və ya obrazıdırmı.</summary>
+    private async Task<bool> IsCurrentSceneAsync(
+        ExperienceRun run, ChildProfile child, ExperienceTemplate template, string sceneHash, CancellationToken ct)
+    {
+        var context = await SceneryOfRunAsync(run, child, template, ct);
+
+        return string.Equals(AdventureSceneDirector.Backdrop(context).Hash(), sceneHash, StringComparison.Ordinal)
+               || string.Equals(AdventureSceneDirector.Portrait(context).Hash(), sceneHash, StringComparison.Ordinal);
+    }
+
+    /// <summary>Run-ın CARİ vəziyyəti — qraf run-unda düyün və vəziyyət sətri ilə.</summary>
+    private async Task<SceneryContext> SceneryOfRunAsync(
+        ExperienceRun run, ChildProfile child, ExperienceTemplate template, CancellationToken ct)
+    {
+        if (GraphOf(run) is not { } graph)
+            return SceneryContext.Linear(
+                template.Key, template.Theme, sceneVariant: string.Empty,
+                run.Choices, child.Pet?.Species ?? string.Empty, child.LanguageCode);
+
+        var node = graph.Find(run.CurrentNodeId);
+        var sceneVariant = node is null ? string.Empty : StoryRuntime.SceneVariantOf(node);
+
+        AdventureState? state = null;
+
+        if (await LoadAdventureStateAsync(run, ct) is { } stateRow)
+            state = AdventureStateMapper.ToState(
+                stateRow, run.StoryFlags, BondTiers.Of(child.Pet?.Bond ?? 0), run.CurrentNodeId);
+
+        return SceneryOf(template, child, sceneVariant, state, run.Choices);
+    }
 
     /// <summary>
     /// Saxlanan tapmaca hələ də bu buraxılışla oxunurmu: şablon kataloqdadır və

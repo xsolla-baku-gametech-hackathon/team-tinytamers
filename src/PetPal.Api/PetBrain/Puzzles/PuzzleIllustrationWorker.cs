@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
+using PetPal.Api.PetBrain.Scenery;
 
 namespace PetPal.Api.PetBrain.Puzzles;
 
@@ -16,8 +17,8 @@ namespace PetPal.Api.PetBrain.Puzzles;
 /// </summary>
 public sealed class PuzzleIllustrationQueue
 {
-    private readonly Channel<PuzzleSceneSpec> _channel =
-        Channel.CreateBounded<PuzzleSceneSpec>(new BoundedChannelOptions(256)
+    private readonly Channel<IStoryScene> _channel =
+        Channel.CreateBounded<IStoryScene>(new BoundedChannelOptions(256)
         {
             // Növbə dolsa ƏN KÖHNƏ atılır: uşaq gözləmir, ekranda onsuz da
             // deterministik səhnə var.
@@ -27,7 +28,7 @@ public sealed class PuzzleIllustrationQueue
     /// <summary>Növbəyə eyni səhnə iki dəfə düşməsin.</summary>
     private readonly ConcurrentDictionary<string, byte> _queued = new(StringComparer.Ordinal);
 
-    public void Enqueue(PuzzleSceneSpec spec)
+    public void Enqueue(IStoryScene spec)
     {
         var hash = spec.Hash();
 
@@ -38,7 +39,7 @@ public sealed class PuzzleIllustrationQueue
             _queued.TryRemove(hash, out _);
     }
 
-    public IAsyncEnumerable<PuzzleSceneSpec> ReadAllAsync(CancellationToken ct) =>
+    public IAsyncEnumerable<IStoryScene> ReadAllAsync(CancellationToken ct) =>
         _channel.Reader.ReadAllAsync(ct);
 
     public void Release(string hash) => _queued.TryRemove(hash, out _);

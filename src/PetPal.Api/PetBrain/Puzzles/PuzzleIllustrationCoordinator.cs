@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using PetPal.Api.Data;
 using PetPal.Api.Entities;
 using PetPal.Api.PetBrain.Media;
+using PetPal.Api.PetBrain.Scenery;
 using PetPal.Shared.Enums;
 
 namespace PetPal.Api.PetBrain.Puzzles;
@@ -22,13 +24,22 @@ namespace PetPal.Api.PetBrain.Puzzles;
 ///   <item><b>Uğursuzluq görünmür.</b> Nə timeout, nə pozuq bayt, nə də
 ///   moderasiya rəddi uşağa çatır — ekranda onsuz da tam oynanan deterministik
 ///   səhnə var.</item>
+///
+///   <item><b>Gündəlik kredit tavanı sətir açılmazdan ƏVVƏL yoxlanılır.</b>
+///   Tapmaca səhnəsi, macəra arxa fonu və obraz eyni büdcədən xərcləyir, ona
+///   görə hədd də birdir: dolubsa sətir birbaşa «Fallback» açılır, heç bir iş
+///   növbəyə düşmür və uşaq deterministik səhnə ilə oynamağa davam edir.</item>
 /// </list>
+///
+/// <para>Qat səhnənin NÖVÜNÜ tanımır: tapmaca rəsmi də, arxa fon da, obraz da
+/// eyni <see cref="IStoryScene"/> müqaviləsindədir.</para>
 /// </summary>
 public sealed class PuzzleIllustrationCoordinator
 {
     private readonly AppDbContext _db;
     private readonly IPuzzleIllustrationProvider _provider;
     private readonly IPuzzleIllustrationStore _store;
+    private readonly PetBrainMediaOptions _media;
     private readonly TimeProvider _clock;
     private readonly ILogger<PuzzleIllustrationCoordinator> _logger;
 
@@ -36,12 +47,14 @@ public sealed class PuzzleIllustrationCoordinator
         AppDbContext db,
         IPuzzleIllustrationProvider provider,
         IPuzzleIllustrationStore store,
+        IOptions<PetBrainMediaOptions> media,
         TimeProvider clock,
         ILogger<PuzzleIllustrationCoordinator> logger)
     {
         _db = db;
         _provider = provider;
         _store = store;
+        _media = media.Value;
         _clock = clock;
         _logger = logger;
     }
@@ -52,9 +65,9 @@ public sealed class PuzzleIllustrationCoordinator
     /// <para>Model burada çağırılmır — bu metod sürətli olmalıdır, çünki
     /// tapmacanı göstərən sorğunun içindədir.</para>
     /// </summary>
-    public async Task<PuzzleIllustration> EnsureRowAsync(PuzzleSceneSpec spec, CancellationToken ct)
+    public async Task<PuzzleIllustration> EnsureRowAsync(IStoryScene scene, CancellationToken ct)
     {
-        var hash = spec.Hash();
+        var hash = scene.Hash();
 
         var existing = await _db.PuzzleIllustrations
             .FirstOrDefaultAsync(i => i.SceneSpecHash == hash, ct);
@@ -64,16 +77,18 @@ public sealed class PuzzleIllustrationCoordinator
 
         // AI bağlıdırsa sətir dərhal "Fallback" kimi yazılır: uşaq gözləmir,
         // biz isə hər sorğuda yenidən yoxlamırıq.
+        var denial = await DenialAsync(ct);
+
         var row = new PuzzleIllustration
         {
             Id = Guid.NewGuid(),
             SceneSpecHash = hash,
-            BlueprintKey = spec.BlueprintKey,
-            Status = _provider.IsEnabled
+            BlueprintKey = scene.SceneKey,
+            Status = denial.Length == 0
                 ? PetBrainIllustrationStatus.Pending
                 : PetBrainIllustrationStatus.Fallback,
-            PromptTemplateVersion = SafePuzzleIllustrationPromptBuilder.TemplateVersion,
-            FailureReason = _provider.IsEnabled ? string.Empty : "disabled",
+            PromptTemplateVersion = scene.PromptVersion,
+            FailureReason = denial,
             RequestedAt = _clock.GetUtcNow().UtcDateTime
         };
 
@@ -99,7 +114,7 @@ public sealed class PuzzleIllustrationCoordinator
     /// Gözləyən səhnəni ÇƏKDİRİR. Bu metod arxa fon işçisindən çağırılır —
     /// uşağın sorğusu onu gözləmir.
     /// </summary>
-    public async Task RenderAsync(string sceneSpecHash, PuzzleSceneSpec spec, CancellationToken ct)
+    public async Task RenderAsync(string sceneSpecHash, IStoryScene scene, CancellationToken ct)
     {
         if (!_provider.IsEnabled)
             return;
@@ -109,10 +124,10 @@ public sealed class PuzzleIllustrationCoordinator
         if (row is null || row.Status != PetBrainIllustrationStatus.Pending)
             return;
 
-        var prompt = SafePuzzleIllustrationPromptBuilder.Build(spec);
+        var prompt = scene.BuildPrompt();
 
-        row.PromptHash = SafePuzzleIllustrationPromptBuilder.HashOf(prompt);
-        row.PromptTemplateVersion = SafePuzzleIllustrationPromptBuilder.TemplateVersion;
+        row.PromptHash = StoryScenePrompt.Fingerprint(prompt);
+        row.PromptTemplateVersion = scene.PromptVersion;
 
         PuzzleIllustrationResult result;
 
@@ -120,7 +135,7 @@ public sealed class PuzzleIllustrationCoordinator
         {
             // DİQQƏT: burada açıq tranzaksiya YOXDUR. Model saniyələrlə
             // gecikə bilər, baza bağlantısı isə o müddətdə tutulmamalıdır.
-            result = await _provider.RenderAsync(spec, prompt, ct);
+            result = await _provider.RenderAsync(scene, prompt, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -169,9 +184,9 @@ public sealed class PuzzleIllustrationCoordinator
     /// </summary>
     private async Task<PuzzleIllustration> ReopenIfNowEnabledAsync(PuzzleIllustration row, CancellationToken ct)
     {
-        if (!_provider.IsEnabled ||
-            row.Status != PetBrainIllustrationStatus.Fallback ||
-            !MediaFailure.NeverReachedProvider(row.FailureReason))
+        if (row.Status != PetBrainIllustrationStatus.Fallback ||
+            !MediaFailure.NeverReachedProvider(row.FailureReason) ||
+            (await DenialAsync(ct)).Length > 0)
             return row;
 
         row.Status = PetBrainIllustrationStatus.Pending;
@@ -184,6 +199,41 @@ public sealed class PuzzleIllustrationCoordinator
         await _db.SaveChangesAsync(ct);
 
         return row;
+    }
+
+    /// <summary>
+    /// Pullu iş bu an ümumiyyətlə başlaya bilərmi — boş sətir «başlaya bilər»
+    /// deməkdir.
+    ///
+    /// <para>Səbəb sətirdə saxlanılır və hamısı <see cref="MediaFailure"/>-in
+    /// «provayderə heç çatmadı» siyahısındadır: hədd sabahkı gün sıfırlananda
+    /// və ya açar sonradan qoşulanda həmin səhnə yenidən açılır.</para>
+    /// </summary>
+    private async Task<string> DenialAsync(CancellationToken ct)
+    {
+        if (!_provider.IsEnabled)
+            return "disabled";
+
+        return await PaidTodayAsync(ct) >= Math.Max(0, _media.MaxPaidScenesPerDay)
+            ? "global-daily-quota"
+            : string.Empty;
+    }
+
+    /// <summary>
+    /// Bu gün PROVAYDERƏ çatmış səhnələrin sayı.
+    ///
+    /// <para>Ehtiyata düşən, amma heç vaxt göndərilməmiş sətirlər sayılmır —
+    /// onlar pul xərcləməyib. Sayğac səhnənin növünə baxmır: büdcə birdir.</para>
+    /// </summary>
+    private Task<int> PaidTodayAsync(CancellationToken ct)
+    {
+        var since = _clock.GetUtcNow().UtcDateTime.Date;
+
+        return _db.PuzzleIllustrations.CountAsync(
+            i => i.RequestedAt >= since &&
+                 (i.Status != PetBrainIllustrationStatus.Fallback ||
+                  !MediaFailure.NotAttemptedReasons.Contains(i.FailureReason)),
+            ct);
     }
 
     private void Reject(PuzzleIllustration row, string reason, string provider, string model)

@@ -9,6 +9,7 @@ using PetPal.Api.Data;
 using PetPal.Api.Entities;
 using PetPal.Api.PetBrain;
 using PetPal.Api.PetBrain.Puzzles;
+using PetPal.Api.PetBrain.Scenery;
 using PetPal.Shared.Dtos.PetBrain;
 using PetPal.Shared.Enums;
 
@@ -52,13 +53,42 @@ public sealed class FakePuzzleIllustrationProvider : IPuzzleIllustrationProvider
 
     public void Release() => _release.TrySetResult();
 
+    /// <summary>Hər çağırışın səhnə növü və hash-ı — hansı səhnənin neçə dəfə çəkildiyi.</summary>
+    public List<(string SceneKey, string Hash)> Scenes { get; } = [];
+
+    /// <summary>Yalnız TAPMACA səhnələri üçün çağırışlar — arxa fon və obraz sayılmır.</summary>
+    public int PuzzleCalls
+    {
+        get
+        {
+            lock (Prompts)
+                return Scenes.Count(s => !SceneryKeys.IsStageArt(s.SceneKey));
+        }
+    }
+
+    /// <summary>
+    /// Ən çox çəkilən BİR səhnənin çağırış sayı — "bir səhnə → bir pullu
+    /// sorğu" iddiası səhnənin növündən asılı olmadan 1-dən böyük olmamalıdır.
+    /// </summary>
+    public int MostCallsForOneScene
+    {
+        get
+        {
+            lock (Prompts)
+                return Scenes.GroupBy(s => s.Hash).Select(g => g.Count()).DefaultIfEmpty(0).Max();
+        }
+    }
+
     public async Task<PuzzleIllustrationResult> RenderAsync(
-        PuzzleSceneSpec spec, string prompt, CancellationToken ct = default)
+        IStoryScene scene, string prompt, CancellationToken ct = default)
     {
         Interlocked.Increment(ref _calls);
 
         lock (Prompts)
+        {
             Prompts.Add(prompt);
+            Scenes.Add((scene.SceneKey, scene.Hash()));
+        }
 
         _started.TrySetResult();
 
@@ -268,7 +298,8 @@ public class PetBrainIllustrationApiTests
 
         Assert.Equal(upcoming.PuzzleId, run.Stage!.Puzzle!.PuzzleId);
         Assert.Equal(PetBrainIllustrationStatus.Ready, run.Stage.Puzzle.Scene.IllustrationStatus);
-        Assert.Equal(1, factory.Provider.Calls);
+        Assert.Equal(1, factory.Provider.PuzzleCalls);
+        Assert.Equal(1, factory.Provider.MostCallsForOneScene);
     }
 
     /// <summary>
@@ -330,8 +361,9 @@ public class PetBrainIllustrationApiTests
 
         await WaitForSceneAsync(client, run.RunId);
 
-        Assert.Equal(1, factory.Provider.Calls);
-        Assert.Equal(1, await DistinctScenesAsync(factory));
+        Assert.Equal(1, factory.Provider.PuzzleCalls);
+        Assert.Equal(1, await DistinctPuzzleScenesAsync(factory));
+        Assert.Equal(1, factory.Provider.MostCallsForOneScene);
     }
 
     /// <summary>Yad uşaq rəsmi GÖRƏ BİLMİR — 404, 403 deyil (test 33).</summary>
@@ -451,6 +483,16 @@ public class PetBrainIllustrationApiTests
     }
 
     // ==================== Köməkçilər ====================
+
+    /// <summary>Bazada neçə AYRI tapmaca səhnəsi var — mərhələnin arxa fonu və obrazı sayılmır.</summary>
+    private static async Task<int> DistinctPuzzleScenesAsync(PetBrainIllustrationFactory factory)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        return await db.PuzzleIllustrations.CountAsync(i =>
+            i.BlueprintKey != SceneryKeys.BackdropSceneKey && i.BlueprintKey != SceneryKeys.PortraitSceneKey);
+    }
 
     /// <summary>Bazada neçə AYRI səhnə var — pullu sorğuların yuxarı həddi.</summary>
     private static async Task<int> DistinctScenesAsync(PetBrainIllustrationFactory factory)

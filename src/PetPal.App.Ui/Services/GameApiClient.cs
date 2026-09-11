@@ -210,6 +210,18 @@ public class GameApiClient : ApiClientBase
         GetDataUrlAsync($"api/pet-brain/puzzles/{puzzleId}/illustration", ct);
 
     /// <summary>
+    /// Macəranın cari arxa fonu və ya obrazı.
+    ///
+    /// <para>Ünvan serverin ÖZ cavabından gəlir (mərhələnin <c>Backdrop</c> və
+    /// <c>Portrait</c> sahələri) və içində səhnənin hash-ı var: seçim dəyişəndə
+    /// ünvan da dəyişir, ona görə klient köhnə rəsmi göstərmir. Rəsm hələ
+    /// çəkilirsə sorğu <c>404</c> alır — ekran deterministik səhnə ilə işləməyə
+    /// davam edir.</para>
+    /// </summary>
+    public Task<ApiResult<string>> GetPetBrainSceneAsync(string assetUrl, CancellationToken ct = default) =>
+        GetDataUrlAsync(assetUrl.TrimStart('/'), ct);
+
+    /// <summary>
     /// Tamamlanmış macəranın recap vəziyyəti. Video arxa fonda hazırlanır —
     /// ekran bunu seyrək soruşur və video hazır olanda storyboard-ı onunla
     /// əvəz edir.

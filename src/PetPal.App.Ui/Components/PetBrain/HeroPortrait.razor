@@ -1,0 +1,57 @@
+@using PetPal.Shared.Enums
+@inject Loc Loc
+
+<figure class="pbx-hero @(Waiting ? "pbx-hero--waking" : null)">
+    <div class="pbx-hero__frame">
+        @if (!string.IsNullOrEmpty(Image))
+        {
+            <img class="pbx-hero__art" src="@Image" alt="@Description" />
+        }
+        else
+        {
+            <div class="pbx-hero__pet" role="img" aria-label="@Description">
+                <PetAvatar Species="@Species" Stage="Stage" Mood="PetMood.Happy"
+                           Name="@Name" Accessories="Accessories" />
+            </div>
+        }
+
+        @if (Waiting)
+        {
+            <span class="pbx-hero__spark" aria-hidden="true"></span>
+        }
+    </div>
+
+    <figcaption class="pbx-hero__label">@Loc.T("Obrazın", "Your look")</figcaption>
+</figure>
+
+@code {
+    /// <summary>
+    /// Seçimlərə görə çəkilmiş obrazın <c>data:</c> URI-si.
+    ///
+    /// <para>Boşdursa pet-in deterministik görünüşü qalır — obraz HEÇ VAXT
+    /// itmir, sadəcə rəsmsiz olur.</para>
+    /// </summary>
+    [Parameter] public string? Image { get; set; }
+
+    /// <summary>Obrazın rəsmi hələ yoldadır — çərçivə yumşaq parıldayır.</summary>
+    [Parameter] public bool Waiting { get; set; }
+
+    /// <summary>
+    /// Ekran oxuyucusu üçün mətn. SERVERDƏN gəlir və nəzarətli şablondandır —
+    /// modelin çıxışı deyil.
+    /// </summary>
+    [Parameter] public string? AltText { get; set; }
+
+    [Parameter] public string Species { get; set; } = "fox";
+
+    [Parameter] public PetStage Stage { get; set; } = PetStage.Child;
+
+    [Parameter] public string Name { get; set; } = "Pet";
+
+    [Parameter] public IReadOnlyCollection<string>? Accessories { get; set; }
+
+    private string Description =>
+        string.IsNullOrWhiteSpace(AltText)
+            ? Loc.T($"{Name} — sənin yoldaşın.", $"{Name} — your companion.")
+            : AltText;
+}

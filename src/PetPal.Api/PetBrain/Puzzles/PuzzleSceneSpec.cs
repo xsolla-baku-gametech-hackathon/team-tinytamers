@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using PetPal.Api.Common;
+using PetPal.Api.PetBrain.Scenery;
 using PetPal.Shared.Enums;
 
 namespace PetPal.Api.PetBrain.Puzzles;
@@ -48,10 +49,17 @@ public sealed record PuzzleSceneSpec(
     IReadOnlyList<string> QuietZones,
 
     /// <summary>Uşağın dili — yalnız alt mətn üçün, prompta düşmür.</summary>
-    string Language)
+    string Language) : IStoryScene
 {
     /// <summary>Portret kompozisiya — app kətanı 390×690-dır.</summary>
     public const string AspectRatio = "9:16";
+
+    /// <summary>Səhnənin növü — tapmacada şablonun ÖZ açarıdır.</summary>
+    public string SceneKey => BlueprintKey;
+
+    public int PromptVersion => SafePuzzleIllustrationPromptBuilder.TemplateVersion;
+
+    public string BuildPrompt() => SafePuzzleIllustrationPromptBuilder.Build(this);
 
     /// <summary>Sahə ayırıcısı — PuzzleSeed ilə eyni (0x1F, unit separator).</summary>
     private const char Separator = (char)0x1F;

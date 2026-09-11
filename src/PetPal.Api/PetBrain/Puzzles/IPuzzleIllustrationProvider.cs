@@ -1,3 +1,5 @@
+using PetPal.Api.PetBrain.Scenery;
+
 namespace PetPal.Api.PetBrain.Puzzles;
 
 /// <summary>
@@ -36,7 +38,7 @@ public interface IPuzzleIllustrationProvider
     bool IsEnabled { get; }
 
     Task<PuzzleIllustrationResult> RenderAsync(
-        PuzzleSceneSpec spec, string prompt, CancellationToken ct = default);
+        IStoryScene scene, string prompt, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -51,6 +53,6 @@ public sealed class DisabledPuzzleIllustrationProvider : IPuzzleIllustrationProv
     public bool IsEnabled => false;
 
     public Task<PuzzleIllustrationResult> RenderAsync(
-        PuzzleSceneSpec spec, string prompt, CancellationToken ct = default) =>
+        IStoryScene scene, string prompt, CancellationToken ct = default) =>
         Task.FromResult(PuzzleIllustrationResult.Failed("disabled"));
 }

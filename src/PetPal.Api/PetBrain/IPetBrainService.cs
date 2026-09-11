@@ -91,6 +91,17 @@ public interface IPetBrainService
     Task<PuzzleIllustrationLookup?> GetIllustrationAsync(Guid childId, Guid puzzleId, CancellationToken ct = default);
 
     /// <summary>
+    /// Uşağın ÖZ macərasının cari arxa fonu və ya obrazı.
+    ///
+    /// <para>Hash klientin gördüyü ünvandan gəlir, amma serverdə YENİDƏN
+    /// hesablanır: yalnız run-un indiki səhnəsi verilir. Yad run, naməlum hash
+    /// və artıq keçilmiş səhnə üçün <c>null</c> — endpoint <c>404</c> cavab
+    /// verir.</para>
+    /// </summary>
+    Task<PuzzleIllustrationLookup?> GetRunSceneAsync(
+        Guid childId, Guid runId, string sceneHash, CancellationToken ct = default);
+
+    /// <summary>
     /// Uşağın ÖZ tamamlanmış macərasının recap vəziyyəti — storyboard və
     /// videonun hazır olub-olmadığı. Yad, naməlum və bitməmiş run üçün <c>null</c>.
     /// </summary>

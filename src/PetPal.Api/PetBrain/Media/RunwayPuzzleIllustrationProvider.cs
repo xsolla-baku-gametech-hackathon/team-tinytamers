@@ -1,4 +1,5 @@
 using PetPal.Api.PetBrain.Puzzles;
+using PetPal.Api.PetBrain.Scenery;
 
 namespace PetPal.Api.PetBrain.Media;
 
@@ -59,7 +60,7 @@ public sealed class RunwayPuzzleIllustrationProvider : IPuzzleIllustrationProvid
     /// provayderin başlığına inanılmır, baytlar özü oxunur.</para>
     /// </summary>
     public async Task<PuzzleIllustrationResult> RenderAsync(
-        PuzzleSceneSpec spec, string prompt, CancellationToken ct = default)
+        IStoryScene scene, string prompt, CancellationToken ct = default)
     {
         if (!IsEnabled)
             return PuzzleIllustrationResult.Failed("disabled");

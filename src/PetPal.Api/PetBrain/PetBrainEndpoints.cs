@@ -268,6 +268,28 @@ public static class PetBrainEndpoints
             })
             .WithSummary("Uşağın ÖZ tapmacasının hekayə rəsmi: hazırdırsa fayl, hələ çəkilirsə 404, gəlməyəcəksə 410.");
 
+        group.MapGet("/runs/{runId:guid}/scenes/{sceneHash}", async (
+                Guid runId,
+                string sceneHash,
+                HttpContext http,
+                IPetBrainService service,
+                IPuzzleIllustrationStore store,
+                CancellationToken ct) =>
+            {
+                var scene = await service.GetRunSceneAsync(http.User.ChildIdOrThrow(), runId, sceneHash, ct);
+
+                if (scene is null || scene.StillDrawing)
+                    return Results.NotFound();
+
+                if (scene.AssetKey is null || await store.OpenAsync(scene.AssetKey, ct) is not { } file)
+                    return Results.StatusCode(StatusCodes.Status410Gone);
+
+                http.Response.Headers.CacheControl = "private, max-age=86400, immutable";
+
+                return Results.File(file.AbsolutePath, file.ContentType, enableRangeProcessing: true);
+            })
+            .WithSummary("Uşağın ÖZ macərasının cari arxa fonu və ya obrazı: hazırdırsa fayl, çəkilirsə 404, gəlməyəcəksə 410.");
+
         group.MapGet("/runs/{runId:guid}/recap", async (
                 Guid runId,
                 HttpContext http,

@@ -95,20 +95,164 @@
         case "moon":
             @* Ayın ÖZ səhnəsi. Ümumi fon buradan çıxarıldı, çünki Ay macərası
                artıq budaqlanır: krater seçimi relyefi, tapmaca kristalın
-               işığını, daşıma seçimi isə finalı dəyişir. Ümumi səhnə bunların
-               heç birini göstərə bilmirdi.
+               işığını, daşıma seçimi isə finalı dəyişir.
 
                Variant SERVERDƏN gəlir (düyünün öz açarı) — klient onu
                uydurmur. *@
-            <div class="pbx-moon pbx-moon--@MoonVariant">
-                <span class="pbx-moon__sky"></span>
-                <span class="pbx-moon__star pbx-moon__star--a"></span>
-                <span class="pbx-moon__star pbx-moon__star--b"></span>
-                <span class="pbx-moon__star pbx-moon__star--c"></span>
-                <span class="pbx-moon__earth"></span>
+            <div class="pbx-moon pbx-moon--@MoonFamilyName">
+                @if (MoonSceneVariants.IsOnEarth(MoonFamily))
+                {
+                    <span class="pbx-moon__nightsky"></span>
+                    <span class="pbx-moon__star pbx-moon__star--a"></span>
+                    <span class="pbx-moon__star pbx-moon__star--b"></span>
+                    <span class="pbx-moon__farmoon"></span>
+                }
+                else if (MoonSceneVariants.IsIndoors(MoonFamily))
+                {
+                    <span class="pbx-moon__interior"></span>
+                }
+                else
+                {
+                    <span class="pbx-moon__sky"></span>
+                    <span class="pbx-moon__star pbx-moon__star--a"></span>
+                    <span class="pbx-moon__star pbx-moon__star--b"></span>
+                    <span class="pbx-moon__star pbx-moon__star--c"></span>
+                    <span class="pbx-moon__earth"></span>
+                    <span class="pbx-moon__ground pbx-moon__ground--@MoonTerrain"></span>
+                }
 
-                @* Relyef uşağın seçdiyi kraterdir. *@
-                <span class="pbx-moon__ground pbx-moon__ground--@MoonTerrain"></span>
+                @switch (MoonFamily)
+                {
+                    case MoonSceneFamily.EarthNight:
+                        <span class="pbx-moon__windowframe"></span>
+                        break;
+
+                    case MoonSceneFamily.EarthDesk:
+                        <span class="pbx-moon__desk"></span>
+                        <span class="pbx-moon__antenna"></span>
+                        <span class="pbx-moon__wave @(SceneVariant == "moon-signal-wave" ? "pbx-moon__wave--on" : null)"></span>
+                        break;
+
+                    case MoonSceneFamily.KitTable:
+                        <span class="pbx-moon__table"></span>
+                        <span class="pbx-moon__tool pbx-moon__tool--scanner @(Has("pick-scanner") ? "pbx-moon__tool--taken" : null)"></span>
+                        <span class="pbx-moon__tool pbx-moon__tool--repair @(Has("pick-repair") ? "pbx-moon__tool--taken" : null)"></span>
+                        <span class="pbx-moon__tool pbx-moon__tool--light @(Has("pick-light") ? "pbx-moon__tool--taken" : null)"></span>
+                        break;
+
+                    case MoonSceneFamily.Launch:
+                        <span class="pbx-moon__pad"></span>
+                        <span class="pbx-moon__rocket"></span>
+                        break;
+
+                    case MoonSceneFamily.BaseInside:
+                        <span class="pbx-moon__panel @(BaseAwake ? "pbx-moon__panel--live" : null)"></span>
+
+                        @if (Has("power-map") || SceneVariant is "moon-map-wall" or "moon-map-glow")
+                        {
+                            <span class="pbx-moon__mapwall"></span>
+                        }
+                        @if (Has("power-comms") || SceneVariant == "moon-comms-room")
+                        {
+                            <span class="pbx-moon__comms"></span>
+                        }
+                        @if (Has("power-repair") || SceneVariant == "moon-repair-station")
+                        {
+                            <span class="pbx-moon__repair"></span>
+                        }
+                        @if (SceneVariant is "moon-corridor-bot" or "moon-corridor-happy")
+                        {
+                            <span class="pbx-moon__bot @(Has("bot-fix") ? "pbx-moon__bot--fixed" : null)"></span>
+                        }
+                        @if (SceneVariant == "moon-crystal-broken")
+                        {
+                            <span class="pbx-moon__brokenshards"></span>
+                        }
+                        break;
+
+                    case MoonSceneFamily.Fork:
+                        <span class="pbx-moon__path pbx-moon__path--cave"></span>
+                        <span class="pbx-moon__path pbx-moon__path--crater"></span>
+                        @if (Has("route-hidden"))
+                        {
+                            <span class="pbx-moon__path pbx-moon__path--hidden"></span>
+                        }
+                        break;
+
+                    case MoonSceneFamily.Cave:
+                        <span class="pbx-moon__column pbx-moon__column--a"></span>
+                        <span class="pbx-moon__column pbx-moon__column--b"></span>
+                        <span class="pbx-moon__column pbx-moon__column--c"></span>
+                        @if (SceneVariant == "moon-cave-bridge" || Has("cave-help"))
+                        {
+                            <span class="pbx-moon__bridge"></span>
+                        }
+                        @if (SceneVariant is "moon-cave-follow" or "moon-cave-song-echo" || Has("cave-watch"))
+                        {
+                            <span class="pbx-moon__creature"></span>
+                        }
+                        break;
+
+                    case MoonSceneFamily.Crater:
+                        <span class="pbx-moon__shadow"></span>
+                        @if (SceneVariant == "moon-mirror-field")
+                        {
+                            <span class="pbx-moon__mirror"></span>
+                        }
+                        @if (CraterLit)
+                        {
+                            <span class="pbx-moon__ribbon"></span>
+                        }
+                        break;
+
+                    case MoonSceneFamily.Passage:
+                        <span class="pbx-moon__tunnel"></span>
+                        break;
+
+                    case MoonSceneFamily.RoverSite:
+                        <span class="pbx-moon__tracks"></span>
+                        <span class="pbx-rover pbx-rover--moon">
+                            <span class="pbx-rover__wheel pbx-rover__wheel--left"></span>
+                            <span class="pbx-rover__wheel pbx-rover__wheel--right"></span>
+                            <span class="pbx-rover__body"></span>
+                            <span class="pbx-rover__mast"></span>
+                            <span class="pbx-rover__head"></span>
+                            <span class="pbx-rover__eye @(RoverAwake ? "pbx-rover__eye--on" : null)"></span>
+                        </span>
+                        @if (SceneVariant == "moon-memory-playback" || Has("rover-memory"))
+                        {
+                            <span class="pbx-moon__memory"></span>
+                        }
+                        break;
+
+                    case MoonSceneFamily.Garden:
+                        <span class="pbx-moon__dome"></span>
+                        <span class="pbx-moon__sprout"></span>
+                        break;
+
+                    case MoonSceneFamily.Observatory:
+                        <span class="pbx-moon__hallwindow"></span>
+                        <span class="pbx-moon__board"></span>
+                        @if (SceneVariant is "moon-shards-join" or "moon-truth-reveal")
+                        {
+                            <span class="pbx-moon__brokenshards pbx-moon__brokenshards--joined"></span>
+                        }
+                        break;
+
+                    case MoonSceneFamily.Core:
+                        <span class="pbx-moon__ring"></span>
+                        <span class="pbx-moon__crystal @(CrystalAwake ? "pbx-moon__crystal--awake" : null)"></span>
+                        break;
+
+                    case MoonSceneFamily.Finale:
+                        <span class="pbx-moon__lightwave"></span>
+                        <span class="pbx-moon__crystal pbx-moon__crystal--awake"></span>
+                        break;
+
+                    default:
+                        <span class="pbx-moon__crystal @(CrystalAwake ? "pbx-moon__crystal--awake" : null)"></span>
+                        break;
+                }
 
                 @if (Has("north-crater"))
                 {
@@ -119,9 +263,6 @@
                     <span class="pbx-moon__echo pbx-moon__echo--a"></span>
                     <span class="pbx-moon__echo pbx-moon__echo--b"></span>
                 }
-
-                <span class="pbx-moon__crystal @(CrystalAwake ? "pbx-moon__crystal--awake" : null)"></span>
-
                 @if (Has("lantern-cradle"))
                 {
                     <span class="pbx-moon__lantern"></span>
@@ -135,14 +276,17 @@
                     <span class="pbx-moon__summit"></span>
                 }
 
-                <span class="pbx-rover pbx-rover--moon">
-                    <span class="pbx-rover__wheel pbx-rover__wheel--left"></span>
-                    <span class="pbx-rover__wheel pbx-rover__wheel--right"></span>
-                    <span class="pbx-rover__body"></span>
-                    <span class="pbx-rover__mast"></span>
-                    <span class="pbx-rover__head"></span>
-                    <span class="pbx-rover__eye @(CrystalAwake ? "pbx-rover__eye--on" : null)"></span>
-                </span>
+                @if (MoonFamily == MoonSceneFamily.Arrival)
+                {
+                    <span class="pbx-rover pbx-rover--moon">
+                        <span class="pbx-rover__wheel pbx-rover__wheel--left"></span>
+                        <span class="pbx-rover__wheel pbx-rover__wheel--right"></span>
+                        <span class="pbx-rover__body"></span>
+                        <span class="pbx-rover__mast"></span>
+                        <span class="pbx-rover__head"></span>
+                        <span class="pbx-rover__eye @(CrystalAwake ? "pbx-rover__eye--on" : null)"></span>
+                    </span>
+                }
             </div>
             break;
 
@@ -212,24 +356,37 @@
 
     private string? Pattern => Choices.FirstOrDefault(Patterns.Contains);
 
-    /// <summary>Ay səhnəsinin təsdiqlənmiş variantları — naməlum açar ümumi kadra düşür.</summary>
-    private static readonly string[] MoonVariants =
-    [
-        "moon-arrival", "moon-three-craters", "moon-light-ribbon", "moon-deep-hum",
-        "moon-echo-walls", "moon-mirror-field", "moon-crystal-bright", "moon-crystal-glow",
-        "moon-carry", "moon-summit-finale", "moon-signal-finale", "moon-lantern-finale"
-    ];
+    /// <summary>
+    /// Səhnə variantının AİLƏSİ — hansı məkanı çəkəcəyimiz.
+    ///
+    /// <para>Uyğunluq cədvəli serverlə paylaşılan müqavilədədir: əvvəl ekranın
+    /// öz on iki açarlıq siyahısı vardı və uzun macəranın yeni açarları
+    /// səssizcə eniş səhnəsinə düşürdü.</para>
+    /// </summary>
+    private MoonSceneFamily MoonFamily => MoonSceneVariants.FamilyOf(SceneVariant);
 
-    private string MoonVariant =>
-        SceneVariant is not null && MoonVariants.Contains(SceneVariant, StringComparer.Ordinal)
-            ? SceneVariant
-            : "moon-arrival";
+    private string MoonFamilyName => MoonSceneVariants.CssName(MoonFamily);
 
     private string MoonTerrain =>
         Has("deep-crater") ? "deep" : Has("bright-crater") ? "bright" : Has("north-crater") ? "north" : "plain";
 
-    /// <summary>Kristal yalnız tapmacadan SONRA parlayır — vəd əvvəlcədən verilmir.</summary>
+    /// <summary>Baza uşağın enerji qərarından SONRA işıqlanır.</summary>
+    private bool BaseAwake =>
+        Has("power-map") || Has("power-comms") || Has("power-repair") || Has("bot-fix") ||
+        SceneVariant is "moon-base-awake" or "moon-map-glow" or "moon-power-lines" or "moon-corridor-happy";
+
+    /// <summary>Krater yalnız işıq kristalı və ya işıq zolağı ilə görünür.</summary>
+    private bool CraterLit =>
+        Has("crater-light") || SceneVariant is "moon-crater-lit" or "moon-light-ribbon";
+
+    /// <summary>Rover yalnız ona kömək edildikdən sonra gözünü açır.</summary>
+    private bool RoverAwake =>
+        Has("rover-home") || Has("rover-memory") || Has("rover-team") ||
+        SceneVariant is "moon-rover-base" or "moon-rover-memory" or "moon-rover-team"
+            or "moon-rover-helps" or "moon-memory-playback";
+
+    /// <summary>Kristal yalnız bərpa olunandan SONRA parlayır — vəd əvvəlcədən verilmir.</summary>
     private bool CrystalAwake =>
-        MoonVariant is "moon-crystal-bright" or "moon-crystal-glow" or "moon-carry"
-            or "moon-summit-finale" or "moon-signal-finale" or "moon-lantern-finale";
+        MoonFamily == MoonSceneFamily.Finale ||
+        SceneVariant is "moon-crystal-bright" or "moon-crystal-glow" or "moon-carry";
 }

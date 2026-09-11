@@ -225,7 +225,79 @@ public class PetBrainV2MarkupTests
         Assert.Contains("SceneVariant", scene, StringComparison.Ordinal);
 
         // Naməlum variant ümumi kadra düşür (fail closed).
-        Assert.Contains("MoonVariants.Contains", scene, StringComparison.Ordinal);
+        Assert.Contains("MoonSceneVariants.FamilyOf(SceneVariant)", scene, StringComparison.Ordinal);
+        Assert.DoesNotContain("MoonVariants.Contains", scene, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Uzun Ay macərasının MƏKANLARI ayrıca çəkilir: baza, mağara, krater,
+    /// rover, bağça, rəsədxana və final eyni «eniş» kadrına düşmür.
+    /// </summary>
+    [Fact]
+    public void AySehnesi_HerMekanOzDekorunuCekir()
+    {
+        var scene = ReadComponent("ExperienceScene");
+
+        foreach (var family in Enum.GetValues<PetPal.Shared.Scenes.MoonSceneFamily>())
+        {
+            var drawn = family == PetPal.Shared.Scenes.MoonSceneFamily.Arrival
+                ? "MoonFamily == MoonSceneFamily.Arrival"
+                : $"case MoonSceneFamily.{family}:";
+
+            Assert.Contains(drawn, scene, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("pbx-moon--@MoonFamilyName", scene, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Seçim dekorun ÖZÜNÜ dəyişir: enerji qərarı bazanı, alət seçimi masanı,
+    /// kömək qərarı mağaranı, rover qərarı roverin gözünü.
+    /// </summary>
+    [Fact]
+    public void AySehnesi_UzunMaceraninSecimleriniGosterir()
+    {
+        var scene = ReadComponent("ExperienceScene");
+
+        foreach (var choice in new[]
+                 {
+                     "power-map", "power-comms", "power-repair", "bot-fix",
+                     "pick-scanner", "pick-repair", "pick-light",
+                     "route-hidden", "cave-help", "cave-watch", "crater-light",
+                     "rover-home", "rover-memory", "rover-team"
+                 })
+            Assert.Contains($"Has(\"{choice}\")", scene, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Obraz macəra ekranındadır, rəsm yoxdursa pet-in öz görünüşü qalır.
+    /// </summary>
+    [Fact]
+    public void Obraz_SecimlereGoreCekilir_RessmsizDePetGorunur()
+    {
+        var page = ReadPage("PetBrain.razor");
+        var portrait = ReadComponent("HeroPortrait");
+
+        Assert.Contains("<HeroPortrait Image=\"@_portrait.Image\"", page, StringComparison.Ordinal);
+        Assert.Contains("AltText=\"@_run.Stage.Portrait.AltText\"", page, StringComparison.Ordinal);
+        Assert.Contains("<PetAvatar", portrait, StringComparison.Ordinal);
+        Assert.Contains("pbx-hero__art", portrait, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Arxa fon seçimə görə dəyişir, amma tapmacanın öz rəsmi QALİBDİR və
+    /// öz lövhəsi olan mexanikada fon ümumiyyətlə çəkilmir.
+    /// </summary>
+    [Fact]
+    public void ArxaFon_TapmacaRessmindenSonraGelir()
+    {
+        var page = ReadPage("PetBrain.razor");
+
+        Assert.Contains(
+            "AdventureSceneImage => HasOwnScene ? null : PuzzleSceneImage ?? _backdrop.Image;",
+            page, StringComparison.Ordinal);
+        Assert.Contains("stage.Backdrop.AssetUrl", page, StringComparison.Ordinal);
+        Assert.Contains("stage.Portrait.AssetUrl", page, StringComparison.Ordinal);
     }
 
     /// <summary>

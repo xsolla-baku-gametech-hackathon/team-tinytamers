@@ -75,6 +75,20 @@ public class PetBrainMediaOptions
     /// <summary>Bir run üçün video kreditinin TAVANI.</summary>
     public int MaxVideoCreditsPerRun { get; set; } = 50;
 
+    /// <summary>
+    /// Gündə neçə PULLU səhnə rəsmi — tapmaca səhnəsi, macəra arxa fonu və
+    /// obraz BİRLİKDƏ.
+    ///
+    /// <para>Arxa fon və obraz seçimlərə görə dəyişdiyi üçün səhnə sayı artıq
+    /// kataloqun ölçüsü ilə məhdud deyil: bir macəra ilk dəfə oynananda on-on
+    /// beş yeni səhnə yarada bilər. Bu hədd həmin artımın günlük sərhədidir —
+    /// standart 20 səhnə × 5 kredit = 100 kredit ($1.00). Hədd dolanda uşaq
+    /// deterministik səhnəni görür; heç nə sınmır, sadəcə rəsm gəlmir.</para>
+    ///
+    /// <para>Keşdən gələn səhnə sayılmır: hədd yalnız YENİ, pullu işlərə aiddir.</para>
+    /// </summary>
+    public int MaxPaidScenesPerDay { get; set; } = 20;
+
     /// <summary>Bir uşağa gündə neçə PULLU recap. Keşlənmiş təkrar sayılmır.</summary>
     public int MaxPaidRecapsPerChildPerDay { get; set; } = 3;
 

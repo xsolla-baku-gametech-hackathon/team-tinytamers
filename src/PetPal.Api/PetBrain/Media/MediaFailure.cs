@@ -26,13 +26,19 @@ public static class MediaFailure
         "http-429", "http-502", "http-503", "http-504"
     };
 
-    private static readonly HashSet<string> NotAttempted = new(StringComparer.Ordinal)
-    {
+    /// <summary>
+    /// Provayderə HEÇ ÇATMAMIŞ səbəblər — sətir açıq siyahı kimi saxlanılır ki,
+    /// baza sorğusu da (kvota sayğacı) onu birbaşa işlədə bilsin.
+    /// </summary>
+    public static readonly string[] NotAttemptedReasons =
+    [
         "disabled", "not-configured", "paid-media-disabled", "circuit-open",
         "unknown-model", "model-not-in-profile", "model-modality-mismatch",
         "duration-out-of-contract", "ratio-not-supported", "over-credit-cap",
         "prompt-length", "daily-quota", "global-daily-quota"
-    };
+    ];
+
+    private static readonly HashSet<string> NotAttempted = new(NotAttemptedReasons, StringComparer.Ordinal);
 
     public static bool IsRetryableCreate(string? reason) =>
         reason is not null && RetryableCreate.Contains(reason);

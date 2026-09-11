@@ -437,6 +437,27 @@ public class PetBrainStageDto
     public string SceneVariant { get; set; } = string.Empty;
 
     /// <summary>
+    /// Mərhələnin AI ARXA FONU — uşağın seçimlərinin qurduğu məkan.
+    ///
+    /// <para>Deterministik səhnəni ƏVƏZ ETMİR, onun üstünə düşür: rəsm gec
+    /// gəlsə, heç gəlməsə və ya AI bağlı olsa da ekran tam işləkdir.</para>
+    ///
+    /// <para>Ünvan rəsm hələ çəkilirkən DƏ doludur: klient onunla gözləyir
+    /// (hazır olmayan səhnə <c>404</c> qaytarır) və hazır olan kimi göstərir.
+    /// Ehtiyata düşmüş səhnədə ünvan boşdur — gözləməyə dəyməz. Ünvanın içində
+    /// səhnənin hash-ı var, yəni seçim dəyişəndə ünvan da dəyişir.</para>
+    /// </summary>
+    public PetBrainSceneDto Backdrop { get; set; } = new();
+
+    /// <summary>
+    /// Yoldaşın OBRAZI — rol və çanta seçimləri onu geyindirir.
+    ///
+    /// <para>Obraz uşağın özü deyil, pet-idir: model heç vaxt uşaq portreti
+    /// çəkmir. Rəsm yoxdursa ekran pet-in adi görünüşünü saxlayır.</para>
+    /// </summary>
+    public PetBrainSceneDto Portrait { get; set; } = new();
+
+    /// <summary>
     /// Pet-in əvvəlki macəradan xatırladığı bir detal; yoxdursa boş.
     /// UI onu "Mən bunu xatırlayıram" nişanı ilə göstərir.
     /// </summary>
