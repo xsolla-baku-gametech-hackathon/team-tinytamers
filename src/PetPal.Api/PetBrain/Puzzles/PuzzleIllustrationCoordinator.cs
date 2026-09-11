@@ -181,25 +181,61 @@ public sealed class PuzzleIllustrationCoordinator
     /// yazılan «Fallback» sətri olduğu kimi qalsaydı, açar sonradan qoşulanda
     /// həmin səhnələr heç vaxt çəkilməzdi. Provayderə çatmış və ya rədd olunmuş
     /// səhnəyə toxunulmur — o, ikinci pullu sorğu olardı.</para>
+    ///
+    /// <para><b>Faylı itmiş hazır səhnə</b> də yenidən açılır. Sətir «hazır»
+    /// desə də şəkil saxlancda yoxdursa (disk təmizlənib, paket yenidən
+    /// qurulub), keş onu əbədi «hazır» saxlayardı: tapmaca həmişə sadə kadrda
+    /// qalar, recap isə ilk kadrını tapmazdı. Belə səhnə növbəti dəfə lazım
+    /// olanda bir dəfə yenidən çəkilir — gündəlik hədd doludursa sabah.</para>
     /// </summary>
     private async Task<PuzzleIllustration> ReopenIfNowEnabledAsync(PuzzleIllustration row, CancellationToken ct)
     {
-        if (row.Status != PetBrainIllustrationStatus.Fallback ||
-            !MediaFailure.NeverReachedProvider(row.FailureReason) ||
-            (await DenialAsync(ct)).Length > 0)
+        var lost = await FileLostAsync(row, ct);
+
+        if (!lost &&
+            (row.Status != PetBrainIllustrationStatus.Fallback ||
+             !MediaFailure.NeverReachedProvider(row.FailureReason)))
             return row;
+
+        var now = _clock.GetUtcNow().UtcDateTime;
+        var denial = await DenialAsync(ct);
+
+        if (denial.Length > 0)
+        {
+            if (!lost)
+                return row;
+
+            row.Status = PetBrainIllustrationStatus.Fallback;
+            row.FailureReason = denial;
+            row.AssetKey = string.Empty;
+            row.CompletedAt = now;
+
+            await _db.SaveChangesAsync(ct);
+
+            return row;
+        }
+
+        if (lost)
+            _logger.LogWarning(
+                "PetBrain: hazır səhnənin faylı yoxdur ({Hash}) — səhnə yenidən çəkiləcək.", row.SceneSpecHash);
 
         row.Status = PetBrainIllustrationStatus.Pending;
         row.FailureReason = string.Empty;
         row.Provider = string.Empty;
         row.Model = string.Empty;
-        row.RequestedAt = _clock.GetUtcNow().UtcDateTime;
+        row.AssetKey = string.Empty;
+        row.RequestedAt = now;
         row.CompletedAt = null;
 
         await _db.SaveChangesAsync(ct);
 
         return row;
     }
+
+    /// <summary>Sətir hazırdır, amma faylı saxlancda yoxdur.</summary>
+    private async Task<bool> FileLostAsync(PuzzleIllustration row, CancellationToken ct) =>
+        row.Status == PetBrainIllustrationStatus.Ready &&
+        (row.AssetKey.Length == 0 || await _store.OpenAsync(row.AssetKey, ct) is null);
 
     /// <summary>
     /// Pullu iş bu an ümumiyyətlə başlaya bilərmi — boş sətir «başlaya bilər»

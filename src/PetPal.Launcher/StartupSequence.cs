@@ -270,6 +270,12 @@ internal sealed class StartupSequence(string baseDirectory)
         startInfo.Environment["ASPNETCORE_URLS"] = ApiBaseUrl.TrimEnd('/');
         startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
 
+        var persistentMediaRoot = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AI Pets for Kids", "media");
+
+        startInfo.Environment.TryAdd("PetBrain__IllustrationStorageRoot", persistentMediaRoot);
+        startInfo.Environment.TryAdd("Discovery__StorageRoot", persistentMediaRoot);
+
         // AI konfiqurasiyası environment dəyişəni ilə ötürülür — masaüstü paketində
         // istifadəçi appsettings faylını redaktə etmir. ASP.NET Core "__" ayırıcısını
         // konfiqurasiya iyerarxiyası kimi oxuyur.

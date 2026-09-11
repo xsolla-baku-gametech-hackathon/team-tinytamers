@@ -91,7 +91,7 @@ public sealed class RecapCoordinator
         var existing = await _db.AdventureRecaps.FirstOrDefaultAsync(r => r.RecapSpecHash == hash, ct);
 
         if (existing is not null)
-            return await ReopenIfNowAllowedAsync(existing, spec, now, ct);
+            return await ReopenIfNowAllowedAsync(await DropLostVideoAsync(existing, ct), spec, now, ct);
 
         var denial = await DenialAsync(spec.ChildProfileId, now, ct);
         var allowed = denial.Length == 0;
@@ -369,10 +369,38 @@ public sealed class RecapCoordinator
         var hash = spec.Hash();
         var row = await _db.AdventureRecaps.FirstOrDefaultAsync(r => r.RecapSpecHash == hash, ct);
 
+        if (row is null)
+            return null;
+
+        row = await DropLostVideoAsync(row, ct);
+
         if (row is not { Status: PetBrainRecapStatus.Fallback } || row.FailureReason != NoReferenceImage)
             return row;
 
         return await ReopenIfNowAllowedAsync(row, spec, _clock.GetUtcNow().UtcDateTime, ct);
+    }
+
+    /// <summary>Hazır videonun faylı saxlancda yoxdur — sətir artıq «hazır» deyil.</summary>
+    public const string AssetMissing = "asset-missing";
+
+    /// <summary>
+    /// «Hazır» deyən, amma faylı saxlancda olmayan videonu storyboard-a salır.
+    ///
+    /// <para>Belə olmasa ekran «videoya bax» düyməsi göstərir, video isə
+    /// açılmır. Yenidən çəkmə AVTOMATİK DEYİL: səbəb «provayderə heç çatmadı»
+    /// siyahısında yoxdur, yəni rəfə və ya yekuna baxmaq pul xərcləmir —
+    /// itmiş videonu yenidən çəkmək böyüklərin açıq qərarıdır.</para>
+    /// </summary>
+    private async Task<AdventureRecap> DropLostVideoAsync(AdventureRecap row, CancellationToken ct)
+    {
+        if (row.Status != PetBrainRecapStatus.Ready ||
+            (!string.IsNullOrEmpty(row.AssetKey) && await _store.OpenAsync(row.AssetKey, ct) is not null))
+            return row;
+
+        Settle(row, PetBrainRecapStatus.Fallback, AssetMissing);
+        await _db.SaveChangesAsync(ct);
+
+        return row;
     }
 
     /// <summary>
