@@ -552,14 +552,18 @@ public class PetBrainMarkupTests
         Assert.Contains("min-height: var(--pp-tap)", choice, StringComparison.Ordinal);
     }
 
-    /// <summary>Beş bölmə BEŞ qalır — Pet Brain altıncı element əlavə etmir.</summary>
+    /// <summary>
+    /// Macəra Kəşfin yerini tutur, altıncı element olmur. Kəşf hələlik
+    /// bağlıdır, ona görə alt naviqasiyada ona keçid qalmamalıdır.
+    /// </summary>
     [Fact]
-    public void AltNaviqasiya_BesElementQalir()
+    public void AltNaviqasiya_MaceraKesfinYeriniTutur()
     {
         var nav = ReadLayout("BottomNav.razor");
 
         Assert.Equal(5, Regex.Matches(nav, @"<NavLink\b").Count);
-        Assert.DoesNotContain("pet-brain", nav, StringComparison.Ordinal);
+        Assert.Contains("href=\"pet-brain\"", nav, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"explore\"", nav, StringComparison.Ordinal);
     }
 
     /// <summary>

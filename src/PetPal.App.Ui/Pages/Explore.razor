@@ -9,6 +9,17 @@
 
 <h1 class="visually-hidden-title">@Loc.T("Kəşf", "Explore")</h1>
 
+@if (!IsOpen)
+{
+    <div class="state">
+        <div class="state__icon" aria-hidden="true">🍃</div>
+        <div>@Loc.T("Kəşf hələlik bağlıdır. Gəl, birlikdə macəraya çıxaq!", "Explore is closed for now. Let's go on an adventure together!")</div>
+        <a class="btn btn--primary" href="pet-brain">@Loc.T("Macəraya get", "Go on an adventure")</a>
+    </div>
+}
+else
+{
+
 @* BÜTÜN ekran sürüşən qutunun içindədir, yalnız kolleksiya deyil.
    Əvvəl forma qutudan kənarda idi: şəkil seçiləndə önizləmə forması uzadırdı,
    uzanan hissə isə .app-main-in `overflow: hidden`-i ilə kəsilirdi — "Kəşfi
@@ -79,8 +90,16 @@
                    LoadPhoto="LoadPhotoAsync"
                    EmptyText="@Loc.T("Hələ heç nə tapmamısan. Çölə çıx və ilk kəşfini qeyd et!", "Nothing found yet. Head outside and record your first discovery!")" />
 </div>
+}
 
 @code {
+    /// <summary>
+    /// Kəşf hələlik bağlıdır: alt naviqasiyada onun yerini Macəra tutur və
+    /// bağlı ekran kolleksiyanı yükləmir. Yenidən açmaq üçün bunu
+    /// <c>true</c> et və keçidi BottomNav-a qaytar.
+    /// </summary>
+    private static readonly bool IsOpen = false;
+
     private readonly List<DiscoveryDto> _discoveries = [];
 
     private string _label = string.Empty;
@@ -90,7 +109,11 @@
     private string? _error;
     private bool _busy;
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsOpen)
+            await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {
