@@ -15,11 +15,17 @@ namespace PetPal.App.Ui.Services;
 /// </summary>
 public sealed class PetBrainArtSlot
 {
-    /// <summary>Hələ çəkilən rəsm üçün ən çox neçə yoxlama.</summary>
-    private const int MaxAttempts = 40;
+    /// <summary>
+    /// Hələ çəkilən rəsm üçün ən çox neçə yoxlama — təxminən beş dəqiqə.
+    ///
+    /// <para>Fon və obraz tapmaca səhnəsindən SONRA növbəyə düşür, Runway isə
+    /// dolu olanda bir şəkli iki-üç dəqiqəyə verir. Yoxlama bundan tez dayansa,
+    /// rəsm serverdə hazır olsa da ekran onu göstərməzdi.</para>
+    /// </summary>
+    private const int MaxAttempts = 100;
 
     private const int FirstDelayMilliseconds = 250;
-    private const int MaxDelayMilliseconds = 2_000;
+    private const int MaxDelayMilliseconds = 3_000;
 
     private string _url = string.Empty;
     private bool _loading;

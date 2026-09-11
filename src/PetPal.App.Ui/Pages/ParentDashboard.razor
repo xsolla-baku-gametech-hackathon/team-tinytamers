@@ -278,8 +278,11 @@ else
                 @if (_wardrobeLog is not null)
                 {
                     <p class="card__subtitle" style="margin-top:12px">
-                        @Loc.T($"Bu gün {_wardrobeLog.DesignsToday}/{_wardrobeLog.DesignsPerDay} dizayn.",
-                               $"{_wardrobeLog.DesignsToday}/{_wardrobeLog.DesignsPerDay} designs today.")
+                        @(_wardrobeLog.DesignsPerDay > 0
+                            ? Loc.T($"Bu gün {_wardrobeLog.DesignsToday}/{_wardrobeLog.DesignsPerDay} dizayn.",
+                                    $"{_wardrobeLog.DesignsToday}/{_wardrobeLog.DesignsPerDay} designs today.")
+                            : Loc.T($"Bu gün {_wardrobeLog.DesignsToday} dizayn — gündəlik hədd yoxdur.",
+                                    $"{_wardrobeLog.DesignsToday} designs today — no daily limit."))
                     </p>
 
                     @if (!_wardrobeLog.ServiceReady)

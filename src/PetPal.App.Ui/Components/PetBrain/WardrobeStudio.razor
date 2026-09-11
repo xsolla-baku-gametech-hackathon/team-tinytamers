@@ -37,7 +37,10 @@
 
                 <div class="studio__meta">
                     <span>@_text.Length/@_state.MaxTextLength</span>
-                    <span>@Loc.T($"Bu gün {_state.DesignsLeftToday} dizayn qalıb", $"{_state.DesignsLeftToday} designs left today")</span>
+                    @if (HasDailyLimit)
+                    {
+                        <span>@Loc.T($"Bu gün {_state.DesignsLeftToday} dizayn qalıb", $"{_state.DesignsLeftToday} designs left today")</span>
+                    }
                 </div>
 
                 <div class="studio__examples">
@@ -128,7 +131,7 @@
     [Parameter] public EventCallback<string?> OnLookChanged { get; set; }
 
     /// <summary>Hazır olmayan dizayn üçün ən çox neçə yoxlama — sonsuz sorğu olmasın.</summary>
-    private const int MaxPolls = 60;
+    private const int MaxPolls = 90;
 
     private WardrobeStateDto? _state;
     private string _text = string.Empty;
@@ -142,8 +145,12 @@
     private readonly Dictionary<Guid, string> _images = [];
     private readonly CancellationTokenSource _lifetime = new();
 
+    /// <summary>Gündəlik hədd qoşuludurmu. 0 «hədd yoxdur» deməkdir — onda sayğac göstərilmir.</summary>
+    private bool HasDailyLimit => _state is { DesignsPerDay: > 0 };
+
     private bool CanSubmit =>
-        !_busy && _state is { Enabled: true, DesignsLeftToday: > 0 } && _text.Trim().Length > 0;
+        !_busy && _state is { Enabled: true } && (!HasDailyLimit || _state.DesignsLeftToday > 0) &&
+        _text.Trim().Length > 0;
 
     /// <summary>
     /// Filtrin dərhal saxladığı arzu qalereyada göstərilmir — mesajı elə

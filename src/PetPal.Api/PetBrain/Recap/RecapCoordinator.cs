@@ -420,6 +420,10 @@ public sealed class RecapCoordinator
     /// həqiqətən provayderə gedən işlərdir. Uşaq başına hədd bir uşağın bütün
     /// büdcəni tutmasının, ümumi hədd isə gündəlik xərcin sərhədsiz böyüməsinin
     /// qarşısını alır.</para>
+    ///
+    /// <para>Hər iki hədd standart olaraq YOXDUR (0): yalnız müsbət dəyər
+    /// yazılanda sayılır. Video başına xərci onsuz da xərc siyasəti və keş
+    /// saxlayır — eyni seçimlər ikinci dəfə pul xərcləmir.</para>
     /// </summary>
     private async Task<string> DenialAsync(Guid childId, DateTime now, CancellationToken ct)
     {
@@ -429,15 +433,21 @@ public sealed class RecapCoordinator
         if (_breaker.IsOpen)
             return "circuit-open";
 
+        var perChild = _cost.Options.MaxPaidRecapsPerChildPerDay;
+        var overall = _cost.Options.MaxPaidRecapsPerDay;
+
+        if (perChild <= 0 && overall <= 0)
+            return string.Empty;
+
         var since = now.Date;
 
         var paidToday = _db.AdventureRecaps
             .Where(r => r.RequestedAt >= since && r.Status != PetBrainRecapStatus.Fallback);
 
-        if (await paidToday.CountAsync(r => r.ChildProfileId == childId, ct) >= _cost.Options.MaxPaidRecapsPerChildPerDay)
+        if (perChild > 0 && await paidToday.CountAsync(r => r.ChildProfileId == childId, ct) >= perChild)
             return "daily-quota";
 
-        if (await paidToday.CountAsync(ct) >= _cost.Options.MaxPaidRecapsPerDay)
+        if (overall > 0 && await paidToday.CountAsync(ct) >= overall)
             return "global-daily-quota";
 
         return string.Empty;

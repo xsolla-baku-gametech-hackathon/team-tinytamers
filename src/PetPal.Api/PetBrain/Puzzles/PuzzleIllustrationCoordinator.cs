@@ -25,10 +25,11 @@ namespace PetPal.Api.PetBrain.Puzzles;
 ///   moderasiya rəddi uşağa çatır — ekranda onsuz da tam oynanan deterministik
 ///   səhnə var.</item>
 ///
-///   <item><b>Gündəlik kredit tavanı sətir açılmazdan ƏVVƏL yoxlanılır.</b>
-///   Tapmaca səhnəsi, macəra arxa fonu və obraz eyni büdcədən xərcləyir, ona
-///   görə hədd də birdir: dolubsa sətir birbaşa «Fallback» açılır, heç bir iş
-///   növbəyə düşmür və uşaq deterministik səhnə ilə oynamağa davam edir.</item>
+///   <item><b>Gündəlik tavan, qoşulubsa, sətir açılmazdan ƏVVƏL yoxlanılır.</b>
+///   Standart olaraq tavan YOXDUR (<see cref="PetBrainMediaOptions.MaxPaidScenesPerDay"/>
+///   = 0). Müsbət dəyər yazılanda tapmaca səhnəsi, macəra arxa fonu və obraz
+///   eyni büdcədən xərcləyir: dolubsa sətir birbaşa «Fallback» açılır, heç bir
+///   iş növbəyə düşmür və uşaq deterministik səhnə ilə oynamağa davam edir.</item>
 /// </list>
 ///
 /// <para>Qat səhnənin NÖVÜNÜ tanımır: tapmaca rəsmi də, arxa fon da, obraz da
@@ -244,13 +245,19 @@ public sealed class PuzzleIllustrationCoordinator
     /// <para>Səbəb sətirdə saxlanılır və hamısı <see cref="MediaFailure"/>-in
     /// «provayderə heç çatmadı» siyahısındadır: hədd sabahkı gün sıfırlananda
     /// və ya açar sonradan qoşulanda həmin səhnə yenidən açılır.</para>
+    ///
+    /// <para>Gündəlik tavan yalnız müsbət dəyərdə sayılır; standart 0 «hədd
+    /// yoxdur» deməkdir və onda bu günün sayı heç sorğulanmır.</para>
     /// </summary>
     private async Task<string> DenialAsync(CancellationToken ct)
     {
         if (!_provider.IsEnabled)
             return "disabled";
 
-        return await PaidTodayAsync(ct) >= Math.Max(0, _media.MaxPaidScenesPerDay)
+        if (_media.MaxPaidScenesPerDay <= 0)
+            return string.Empty;
+
+        return await PaidTodayAsync(ct) >= _media.MaxPaidScenesPerDay
             ? "global-daily-quota"
             : string.Empty;
     }

@@ -28,6 +28,7 @@ public class WardrobeMarkupTests
         Assert.Contains("!_state.ParentAllowed", studio, StringComparison.Ordinal);
         Assert.Contains("!_state.ServiceReady", studio, StringComparison.Ordinal);
         Assert.Contains("DesignsLeftToday", studio, StringComparison.Ordinal);
+        Assert.Contains("DesignsPerDay: > 0", studio, StringComparison.Ordinal);
     }
 
     /// <summary>Hazır olmayan dizayn sonsuz soruşulmur — yoxlama sayı sərhədlidir.</summary>

@@ -29,8 +29,12 @@ public class WardrobeStateDto
     /// <summary>Şəkil xidməti qurulubmu.</summary>
     public bool ServiceReady { get; set; }
 
+    /// <summary>Uşaq başına gündəlik dizayn həddi. 0 — hədd yoxdur (standart).</summary>
     public int DesignsPerDay { get; set; }
+
+    /// <summary>Bu gün qalan dizayn sayı — yalnız <see cref="DesignsPerDay"/> müsbət olanda mənalıdır.</summary>
     public int DesignsLeftToday { get; set; }
+
     public int MaxTextLength { get; set; } = WardrobeLimits.MaxTextLength;
 
     /// <summary>Uşağa ilham verən hazır fikirlər — uşağın dilində.</summary>
@@ -96,6 +100,8 @@ public class ParentWardrobeLogDto
     public bool Enabled { get; set; }
     public bool ServiceReady { get; set; }
     public int DesignsToday { get; set; }
+
+    /// <summary>Uşaq başına gündəlik dizayn həddi. 0 və ya mənfi — hədd yoxdur.</summary>
     public int DesignsPerDay { get; set; }
 
     /// <summary>Ən yenidən ən köhnəyə.</summary>

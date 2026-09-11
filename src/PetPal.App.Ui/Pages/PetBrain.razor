@@ -1001,7 +1001,7 @@
     }
 
     /// <summary>
-    /// Rəsmi ayrıca yükləyir. AI hələ işləyirsə sorğular 250 ms-dən 2
+    /// Rəsmi ayrıca yükləyir. AI hələ işləyirsə sorğular 250 ms-dən 3
     /// saniyəyə qədər seyrəlir; tapmaca bu vaxt tam işləkdir.
     ///
     /// <para>Server rəsmin gəlməyəcəyini deyəndə (<c>410</c>) və ya gözləmə
@@ -1014,7 +1014,7 @@
     private async Task LoadSceneAsync(Guid puzzleId, bool waitUntilReady)
     {
         var delayMilliseconds = 250;
-        var attempts = waitUntilReady ? 40 : 1;
+        var attempts = waitUntilReady ? MaxSceneChecks : 1;
 
         try
         {
@@ -1044,7 +1044,7 @@
                 if (attempt < attempts - 1)
                 {
                     await Task.Delay(delayMilliseconds, _sceneLifetime.Token);
-                    delayMilliseconds = Math.Min(delayMilliseconds * 2, 2_000);
+                    delayMilliseconds = Math.Min(delayMilliseconds * 2, 3_000);
                 }
             }
 
@@ -1076,8 +1076,18 @@
     private bool _recapWatching;
     private bool _recapGaveUp;
 
-    /// <summary>Recap vəziyyəti ən çox neçə dəfə soruşulur — təxminən altı dəqiqə.</summary>
-    private const int MaxRecapChecks = 70;
+    /// <summary>
+    /// Recap vəziyyəti ən çox neçə dəfə soruşulur — təxminən on dəqiqə. İlk
+    /// kadr (səhnə rəsmi) və video Runway növbəsində gözləyə bilir.
+    /// </summary>
+    private const int MaxRecapChecks = 120;
+
+    /// <summary>
+    /// Səhnə rəsmi ən çox neçə dəfə soruşulur — təxminən beş dəqiqə. Runway
+    /// dolu olanda bir şəkil iki dəqiqədən çox çəkir; yoxlama bundan tez
+    /// dayansa hazır rəsm ekrana heç düşməzdi.
+    /// </summary>
+    private const int MaxSceneChecks = 100;
 
     private static bool RecapInProgress(PetBrainRecapStatus status) =>
         status is PetBrainRecapStatus.Pending or PetBrainRecapStatus.Generating;

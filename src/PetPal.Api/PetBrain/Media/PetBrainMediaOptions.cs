@@ -77,27 +77,32 @@ public class PetBrainMediaOptions
 
     /// <summary>
     /// Gündə neçə PULLU səhnə rəsmi — tapmaca səhnəsi, macəra arxa fonu və
-    /// obraz BİRLİKDƏ.
+    /// obraz BİRLİKDƏ. <b>0 və ya mənfi — hədd yoxdur; standart budur.</b>
     ///
-    /// <para>Arxa fon və obraz seçimlərə görə dəyişdiyi üçün səhnə sayı artıq
-    /// kataloqun ölçüsü ilə məhdud deyil: bir macəra ilk dəfə oynananda on-on
-    /// beş yeni səhnə yarada bilər. Bu hədd həmin artımın günlük sərhədidir —
-    /// standart 20 səhnə × 5 kredit = 100 kredit ($1.00). Hədd dolanda uşaq
-    /// deterministik səhnəni görür; heç nə sınmır, sadəcə rəsm gəlmir.</para>
+    /// <para>Hədd 11.09.2026-da ləğv edildi. Bir macəra mərhələsi üç şəkil
+    /// açır (tapmaca, fon, obraz), ona görə 20-lik tavan iki-üç macəradan sonra
+    /// dolurdu və uşaq günün qalanında rəsmsiz oynayırdı. Xərci indi hash keşi
+    /// (bir səhnə → bir pullu sorğu, uşaqlar və dillər arasında paylaşılır),
+    /// şəkil başına kredit tavanı (<see cref="MaxImageCreditsPerRun"/>) və xərc
+    /// kəsicisi saxlayır. Müsbət dəyər yazılsa gündəlik tavan geri qayıdır.</para>
     ///
     /// <para>Keşdən gələn səhnə sayılmır: hədd yalnız YENİ, pullu işlərə aiddir.</para>
     /// </summary>
-    public int MaxPaidScenesPerDay { get; set; } = 20;
-
-    /// <summary>Bir uşağa gündə neçə PULLU recap. Keşlənmiş təkrar sayılmır.</summary>
-    public int MaxPaidRecapsPerChildPerDay { get; set; } = 3;
+    public int MaxPaidScenesPerDay { get; set; }
 
     /// <summary>
-    /// Bütün uşaqlar üzrə gündə neçə PULLU recap. Uşaq başına hədd bir uşağın
-    /// büdcəni tutmasının, bu isə gündəlik xərcin sərhədsiz böyüməsinin
-    /// qarşısını alır: standartla gündə ən çox 100 × $0.50 = $50.
+    /// Bir uşağa gündə neçə PULLU recap. Keşlənmiş təkrar sayılmır.
+    /// <b>0 və ya mənfi — hədd yoxdur; standart budur.</b>
     /// </summary>
-    public int MaxPaidRecapsPerDay { get; set; } = 100;
+    public int MaxPaidRecapsPerChildPerDay { get; set; }
+
+    /// <summary>
+    /// Bütün uşaqlar üzrə gündə neçə PULLU recap. <b>0 və ya mənfi — hədd
+    /// yoxdur; standart budur.</b> Hər video yenə yalnız bir dəfə çəkilir: eyni
+    /// seçimlərlə təkrar baxış keşdən gəlir və pulsuzdur, video başına xərci isə
+    /// <see cref="MaxVideoCreditsPerRun"/> saxlayır.
+    /// </summary>
+    public int MaxPaidRecapsPerDay { get; set; }
 
     /// <summary>Video işinin ÜMUMİ vaxt həddi (saniyə).</summary>
     public int GenerationDeadlineSeconds { get; set; } = 180;

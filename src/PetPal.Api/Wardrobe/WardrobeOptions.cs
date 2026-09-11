@@ -100,11 +100,18 @@ public class WardrobeOptions
     /// </summary>
     public bool UseBasePortrait { get; set; } = true;
 
-    /// <summary>Bir uşağa gündə neçə dizayn. Alınmayan cəhd sayılmır.</summary>
-    public int DesignsPerChildPerDay { get; set; } = 3;
+    /// <summary>
+    /// Bir uşağa gündə neçə dizayn. Alınmayan cəhd sayılmır.
+    /// <b>0 və ya mənfi — hədd yoxdur; standart budur.</b>
+    /// </summary>
+    public int DesignsPerChildPerDay { get; set; }
 
-    /// <summary>Bütün uşaqlar üzrə gündə neçə pullu şəkil — xərcin sərhədi.</summary>
-    public int MaxPaidImagesPerDay { get; set; } = 20;
+    /// <summary>
+    /// Bütün uşaqlar üzrə gündə neçə pullu şəkil. <b>0 və ya mənfi — hədd
+    /// yoxdur; standart budur.</b> Şəkil başına xərci yenə
+    /// <see cref="MaxCreditsPerImage"/> və xərc kəsicisi saxlayır.
+    /// </summary>
+    public int MaxPaidImagesPerDay { get; set; }
 
     /// <summary>
     /// Runway-də bir şəklin kredit tavanı. Standart 6 = <c>medium</c> (5) +
@@ -119,8 +126,15 @@ public class WardrobeOptions
     /// <summary>Studiyada göstərilən son dizaynların sayı.</summary>
     public int GalleryLimit { get; set; } = 12;
 
-    /// <summary>Şəkil sorğusunun vaxt həddi — uşaq gözləmir, işçi gözləyir.</summary>
-    public int TimeoutSeconds { get; set; } = 120;
+    /// <summary>
+    /// Şəkil sorğusunun vaxt həddi — uşaq gözləmir, işçi gözləyir.
+    ///
+    /// <para>Runway növbəsi dolu olanda Flare şəkli iki dəqiqədən çox çəkə
+    /// bilir. Tapşırıq başlayandan sonra pulludur: gözləməni tez kəssək, şəkil
+    /// yenə hazırlanıb ödənir, uşaq isə «alınmadı» görür. Ona görə hədd bol
+    /// saxlanılır.</para>
+    /// </summary>
+    public int TimeoutSeconds { get; set; } = 300;
 
     /// <summary>Moderasiya sorğusunun vaxt həddi — qısadır, çünki cavab kiçikdir.</summary>
     public int ModerationTimeoutSeconds { get; set; } = 10;

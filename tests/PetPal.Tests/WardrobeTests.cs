@@ -478,6 +478,29 @@ public class WardrobeTests
         Assert.Equal(0, (await StateAsync(client)).DesignsLeftToday);
     }
 
+    /// <summary>
+    /// Hədd standart olaraq YOXDUR: köhnə «gündə 3» həddini keçən dizaynlar da
+    /// qəbul edilib çəkilir, studiya isə hələ də açıqdır.
+    /// </summary>
+    [Fact]
+    public async Task HeddYoxdursa_UcdenCoxDizaynCekilir()
+    {
+        using var factory = new WardrobeFactory { DesignsPerDay = 0 };
+        var client = await ChildAsync(factory, "wardrobe-unlimited@petpal.test");
+
+        foreach (var text in new[] { "qırmızı pelerin", "mavi pijama", "yaşıl papaq", "sarı şərf" })
+        {
+            var design = await WaitAsync(client, (await CreateAsync(client, text)).Id);
+
+            Assert.Equal(WardrobeDesignStatus.Ready, design.Status);
+        }
+
+        var state = await StateAsync(client);
+
+        Assert.Equal(0, state.DesignsPerDay);
+        Assert.True(state.Enabled);
+    }
+
     /// <summary>Uşaq silsə şəkil gedir, mətn isə valideyn baxışı üçün qalır.</summary>
     [Fact]
     public async Task Geyindir_VeSil_ValideynMetniGormeyeDavamEdir()

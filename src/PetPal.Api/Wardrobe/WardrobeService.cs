@@ -103,12 +103,14 @@ public sealed class WardrobeService : IWardrobeService
             return ServiceResult<WardrobeDesignDto>.Ok(ToDto(blocked, language));
         }
 
-        if (await UsedTodayAsync(child.Id, now, ct) >= Math.Max(0, _options.DesignsPerChildPerDay))
+        if (_options.DesignsPerChildPerDay > 0 &&
+            await UsedTodayAsync(child.Id, now, ct) >= _options.DesignsPerChildPerDay)
             return ServiceResult<WardrobeDesignDto>.Conflict(Localized.T(language,
                 "Bu gün dərzi çox işlədi — sabah yeni paltarlar tikək!",
                 "The tailor worked hard today — let us sew new outfits tomorrow!"));
 
-        if (await PaidTodayAsync(now, ct) >= Math.Max(0, _options.MaxPaidImagesPerDay))
+        if (_options.MaxPaidImagesPerDay > 0 &&
+            await PaidTodayAsync(now, ct) >= _options.MaxPaidImagesPerDay)
             return ServiceResult<WardrobeDesignDto>.Conflict(Localized.T(language,
                 "Dərzi bu gün çox məşğuldur — sabah yenə yoxla.",
                 "The tailor is very busy today — try again tomorrow."));

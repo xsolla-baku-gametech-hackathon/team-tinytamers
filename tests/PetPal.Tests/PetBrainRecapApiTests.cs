@@ -134,6 +134,12 @@ public sealed class PetBrainRecapFactory : TestWebAppFactory
 {
     public FakeRecapVideoProvider Video { get; } = new();
 
+    /// <summary>Qlobal gündəlik recap həddi — boşdursa hədd yoxdur, standart kimi.</summary>
+    public int? MaxPaidRecapsPerDay { get; init; }
+
+    /// <summary>Uşaq başına gündəlik recap həddi — boşdursa hədd yoxdur, standart kimi.</summary>
+    public int? MaxPaidRecapsPerChildPerDay { get; init; }
+
     public string StorageRoot { get; } =
         Path.Combine(Path.GetTempPath(), $"petpal-recaps-{Guid.NewGuid():N}");
 
@@ -151,6 +157,15 @@ public sealed class PetBrainRecapFactory : TestWebAppFactory
 
         // İzləmə addımı testdə qısadır — məntiq eynidir, gözləmə isə yoxdur.
         builder.UseSetting("PetBrainMedia:RecapPollMilliseconds", "50");
+
+        if (MaxPaidRecapsPerDay is { } cap)
+            builder.UseSetting(
+                "PetBrainMedia:MaxPaidRecapsPerDay", cap.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+        if (MaxPaidRecapsPerChildPerDay is { } perChild)
+            builder.UseSetting(
+                "PetBrainMedia:MaxPaidRecapsPerChildPerDay",
+                perChild.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
         builder.ConfigureTestServices(services =>
         {
@@ -381,12 +396,15 @@ public class PetBrainRecapApiTests
     }
 
     /// <summary>
-    /// Gündəlik kvota dolanda YENİ pullu iş başlamır (10C: xərc nəzarəti).
+    /// Uşaq başına gündəlik kvota (qoşulanda) dolanda YENİ pullu iş başlamır
+    /// (10C: xərc nəzarəti).
     /// </summary>
     [Fact]
     public async Task GundelikKvota_YeniIsiDayandirir()
     {
-        using var factory = NewFactory();
+        const int quota = 3;
+
+        using var factory = new PetBrainRecapFactory { MaxPaidRecapsPerChildPerDay = quota };
 
         var client = await NewChildAsync(factory, "recap-quota@petpal.test");
 
@@ -395,7 +413,7 @@ public class PetBrainRecapApiTests
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            for (var i = 0; i < 3; i++)
+            for (var i = 0; i < quota; i++)
             {
                 db.AdventureRecaps.Add(new AdventureRecap
                 {
@@ -645,13 +663,15 @@ public class PetBrainRecapApiTests
     }
 
     /// <summary>
-    /// Bütün uşaqlar üzrə gündəlik hədd dolanda YENİ pullu iş başlamır, hətta bu
+    /// Bütün uşaqlar üzrə gündəlik hədd (qoşulanda) dolanda YENİ pullu iş başlamır, hətta bu
     /// uşağın öz kvotası boş olsa belə (10C: qlobal xərc həddi).
     /// </summary>
     [Fact]
     public async Task QlobalGundelikHedd_YeniIsiDayandirir()
     {
-        using var factory = NewFactory();
+        const int limit = 3;
+
+        using var factory = new PetBrainRecapFactory { MaxPaidRecapsPerDay = limit };
 
         var client = await NewChildAsync(factory, "recap-global@petpal.test");
         var others = await NewChildAsync(factory, "recap-global-others@petpal.test");
@@ -659,7 +679,6 @@ public class PetBrainRecapApiTests
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var limit = new PetBrainMediaOptions().MaxPaidRecapsPerDay;
 
             for (var i = 0; i < limit; i++)
             {
@@ -690,6 +709,47 @@ public class PetBrainRecapApiTests
             .AdventureRecaps.AsNoTracking().FirstAsync(r => r.ExperienceRunId == run.RunId);
 
         Assert.Equal("global-daily-quota", recap.FailureReason);
+    }
+
+    /// <summary>
+    /// Gündəlik hədd standart olaraq YOXDUR: bu gün artıq beş video almış uşaq
+    /// yeni macəranın videosunu yenə alır — köhnə «uşaq başına 3» həddi getdi.
+    /// </summary>
+    [Fact]
+    public async Task HeddYoxdursa_UsaqGundeUcdenCoxVideoAlir()
+    {
+        using var factory = NewFactory();
+
+        var client = await NewChildAsync(factory, "recap-unlimited@petpal.test");
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            for (var i = 0; i < 5; i++)
+            {
+                db.AdventureRecaps.Add(new AdventureRecap
+                {
+                    Id = Guid.NewGuid(),
+                    RecapSpecHash = $"earlier-{i:D3}",
+                    ChildProfileId = client.ChildId,
+                    ExperienceRunId = Guid.NewGuid(),
+                    ExperienceKey = ExperienceCatalog.MarsRoverRescue,
+                    Status = PetBrainRecapStatus.Ready,
+                    RequestedAt = factory.Clock.GetUtcNow().UtcDateTime
+                });
+            }
+
+            await db.SaveChangesAsync();
+        }
+
+        var run = await PetBrainPlaythrough.PlayToEndAsync(client);
+        await PetBrainPlaythrough.CompleteAsync(client, run.RunId);
+
+        var recap = await WaitForRecapEndpointAsync(client, run.RunId);
+
+        Assert.Equal(PetBrainRecapStatus.Ready, recap.Status);
+        Assert.Equal(1, factory.Video.Starts);
     }
 
     // ==================== Köməkçilər ====================
