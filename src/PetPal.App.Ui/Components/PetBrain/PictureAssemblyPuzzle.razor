@@ -1,0 +1,220 @@
+@using System.Globalization
+@inject Loc Loc
+
+<div class="pbx-picture" style="@FrameStyle">
+
+    <div class="pbx-picture__frame @(Puzzle.AssistHighlight ? "pbx-picture__frame--assist" : null)">
+        <SceneDust Active="@SceneAwakening" />
+
+        <span class="pbx-picture__ghost" aria-hidden="true"></span>
+
+        @for (var slot = 0; slot < SlotCount; slot++)
+        {
+            var index = slot;
+            var placed = _slots[index] is not null;
+
+            <button type="button"
+                    class="pbx-picture__slot @(placed ? "pbx-picture__slot--full" : null) @(_nudge == index ? "pbx-picture__slot--nudge" : null)"
+                    style="@TileStyle(index)"
+                    disabled="@(Busy || placed)"
+                    aria-pressed="@placed"
+                    aria-label="@SlotLabel(index, placed)"
+                    @onclick="() => Place(index)">
+            </button>
+        }
+    </div>
+
+    <p class="pbx-picture__status" aria-live="polite">@StatusLine</p>
+
+    <div class="pbx-picture__tray">
+        @foreach (var tile in Tray)
+        {
+            var picked = tile.Id == _picked;
+
+            <button type="button"
+                    class="pbx-picture__tile @(picked ? "pbx-picture__tile--on" : null)"
+                    style="@TileStyle(tile.Value ?? 0)"
+                    disabled="@Busy"
+                    aria-pressed="@picked"
+                    aria-label="@tile.Label"
+                    @onclick="() => Pick(tile.Id)">
+                <span class="pbx-picture__tile-mark" aria-hidden="true">@(picked ? "✓" : null)</span>
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PetBrainPuzzleDto Puzzle { get; set; } = new();
+
+    /// <summary>
+    /// Çərçivədəki parçalar YER SIRASI ilə. Yalnız şəkil tam yığılanda dolur:
+    /// cavab bütöv sıradır, yarımçıq şəkil göndərilmir.
+    /// </summary>
+    [Parameter, EditorRequired] public List<string> Placed { get; set; } = [];
+
+    [Parameter] public bool Busy { get; set; }
+
+    /// <summary>Hazır hekayə rəsmi (data URI) — yoxdursa macəranın deterministik şəkli kəsilir.</summary>
+    [Parameter] public string? SceneImage { get; set; }
+
+    /// <summary>AI rəsmi yoldadır — çərçivədə sehrli toz parıldayır.</summary>
+    [Parameter] public bool SceneAwakening { get; set; }
+
+    /// <summary>Macəranın səhnə açarı — deterministik şəklin rəngi və əşyaları bundan gəlir.</summary>
+    [Parameter] public string SceneKey { get; set; } = string.Empty;
+
+    /// <summary>İpucunun artıq yerinə qoyduğu parçalar.</summary>
+    [Parameter] public IReadOnlyList<string> RevealIds { get; set; } = [];
+
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    /// <summary>Hekayə rəsmi 9:16 portretdir — hündürlük enin 16/9 qatıdır.</summary>
+    private const double PictureAspect = 16.0 / 9.0;
+
+    /// <summary>
+    /// Çərçivənin şəkildən kəsdiyi kvadratın yuxarı kənarı — hündürlüyün payı.
+    /// Hekayənin maraqlı hissəsi adətən ortadan aşağıdadır; üstdəki boş göy
+    /// zolağı kəsilir. 1 − 9/16 = 0.4375-dən kiçik olmalıdır ki, aşağı sətir
+    /// şəklin içində qalsın.
+    /// </summary>
+    private const double CropTop = 0.32;
+
+    private string?[] _slots = [];
+    private string? _picked;
+    private int _nudge = -1;
+    private bool _needsPiece;
+    private Guid _for;
+
+    private int Columns => Math.Max(2, Puzzle.GridColumns ?? 3);
+    private int Rows => Math.Max(2, Puzzle.GridRows ?? 3);
+    private int SlotCount => Columns * Rows;
+    private int Remaining => _slots.Count(s => s is null);
+
+    private IEnumerable<PetBrainPuzzleItemDto> Tray =>
+        Puzzle.Items.Where(i => Array.IndexOf(_slots, i.Id) < 0);
+
+    private string Picture => string.IsNullOrEmpty(SceneImage) ? PicturePostcard.DataUri(SceneKey) : SceneImage;
+
+    protected override void OnParametersSet()
+    {
+        if (_for != Puzzle.PuzzleId || _slots.Length != SlotCount)
+        {
+            _for = Puzzle.PuzzleId;
+            _slots = new string?[SlotCount];
+            _picked = null;
+            _nudge = -1;
+            _needsPiece = false;
+        }
+
+        foreach (var id in RevealIds)
+        {
+            if (Puzzle.Items.FirstOrDefault(i => i.Id == id) is { Value: { } slot } && slot >= 0 && slot < _slots.Length)
+                _slots[slot] = id;
+        }
+
+        Sync();
+    }
+
+    private void Pick(string id)
+    {
+        if (Busy)
+            return;
+
+        _picked = _picked == id ? null : id;
+        _nudge = -1;
+        _needsPiece = false;
+    }
+
+    /// <summary>
+    /// Seçilmiş parçanı yerə qoyur. Parça yalnız ÖZ yerinə oturur; başqa yerə
+    /// toxunanda yumşaq yellənib qabda qalır — «səhv» sözü və cəhd sayı yoxdur.
+    /// Parçanın yeri şəklin özündə görünür, ona görə bu, cavabı açmır.
+    /// </summary>
+    private async Task Place(int slot)
+    {
+        if (Busy || _slots[slot] is not null)
+            return;
+
+        if (_picked is null || Puzzle.Items.FirstOrDefault(i => i.Id == _picked) is not { } tile)
+        {
+            _nudge = -1;
+            _needsPiece = true;
+            return;
+        }
+
+        if (tile.Value != slot)
+        {
+            _nudge = slot;
+            return;
+        }
+
+        _slots[slot] = tile.Id;
+        _picked = null;
+        _nudge = -1;
+        _needsPiece = false;
+
+        Sync();
+        await OnChanged.InvokeAsync();
+    }
+
+    private void Sync()
+    {
+        Placed.Clear();
+
+        if (_slots.Length > 0 && _slots.All(s => s is not null))
+            Placed.AddRange(_slots.Select(s => s!));
+    }
+
+    private string StatusLine =>
+        _nudge >= 0 ? Loc.T("Bu parça başqa yerə aiddir — solğun şəklə bir də bax.",
+                            "This piece belongs somewhere else — take another look at the faint picture.")
+        : _needsPiece ? Loc.T("Əvvəlcə aşağıdan bir parça seç.", "First pick a piece from below.")
+        : _picked is not null ? Loc.T("İndi çərçivədə onun yerinə toxun.", "Now tap its spot in the frame.")
+        : Remaining > 0 ? Loc.T($"Daha {Remaining} parça qalıb.", $"{Remaining} more pieces to go.")
+        : Loc.T("Şəkil tamamdır!", "The picture is complete!");
+
+    private string SlotLabel(int slot, bool placed)
+    {
+        var row = slot / Columns + 1;
+        var column = slot % Columns + 1;
+
+        return placed
+            ? Loc.T($"Sətir {row}, sütun {column} — yerindədir", $"Row {row}, column {column} — in place")
+            : Loc.T($"Boş yer: sətir {row}, sütun {column}", $"Empty spot: row {row}, column {column}");
+    }
+
+    /// <summary>
+    /// Çərçivənin ölçüləri və şəklin özü — BİR yerdə, kökdə. Parçalar şəkli
+    /// CSS dəyişəni ilə miras alır, ona görə böyük data URI hər parçada
+    /// təkrarlanmır.
+    /// </summary>
+    private string FrameStyle =>
+        $"--pbx-picture:url('{Picture}'); --pbx-cols:{Columns}; --pbx-rows:{Rows}; " +
+        $"--pbx-tile-size:{Percent(Columns * 100.0)} {Percent(PictureAspect * Rows * 100.0)}; " +
+        $"--pbx-ghost-y:{Percent(CropTop * PictureAspect / (PictureAspect - 1) * 100.0)}";
+
+    /// <summary>
+    /// Parçanın şəkildəki hissəsi — YALNIZ serverin verdiyi yer rəqəmindən.
+    ///
+    /// <para>Faizli <c>background-position</c> şəklin p%-lik nöqtəsini qutunun
+    /// p%-lik nöqtəsinə düzür, ona görə sütun c üçün p = c/(n−1), sətir r üçün
+    /// isə p = (kəsim·k + r)/(k − 1), burada k = şəkil hündürlüyü / parça
+    /// hündürlüyü. Eyni faizlər çərçivədə də, qabda da işləyir, çünki hər iki
+    /// qutunun nisbəti eynidir.</para>
+    /// </summary>
+    private string TileStyle(int slot)
+    {
+        var column = slot % Columns;
+        var row = slot / Columns;
+        var k = PictureAspect * Rows;
+
+        var x = column * 100.0 / (Columns - 1);
+        var y = (CropTop * k + row) / (k - 1) * 100.0;
+
+        return $"--pbx-x:{Percent(x)}; --pbx-y:{Percent(y)}";
+    }
+
+    private static string Percent(double value) =>
+        value.ToString("0.###", CultureInfo.InvariantCulture) + "%";
+}

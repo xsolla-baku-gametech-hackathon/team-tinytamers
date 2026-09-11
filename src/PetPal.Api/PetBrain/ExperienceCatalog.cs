@@ -52,6 +52,13 @@ public sealed record ExperienceStage(
 {
     public string Prompt(string language) => Localized.T(language, PromptAz, PromptEn);
     public string PetLine(string language) => Localized.T(language, PetLineAz, PetLineEn);
+
+    /// <summary>
+    /// Tapmaca mərhələsində hansı şablon istənilir; boşdursa generator uşağın
+    /// profilinə görə özü seçir. Qraf düyünündəki eyni adlı sahənin xətti
+    /// qarşılığıdır.
+    /// </summary>
+    public string PuzzleFamily { get; init; } = string.Empty;
 }
 
 /// <summary>
@@ -207,12 +214,29 @@ public static class ExperienceCatalog
     private static ExperienceStage Intro(string az, string en, string petAz, string petEn) =>
         new(PetBrainStageKind.Intro, az, en, petAz, petEn, []);
 
+    /// <summary>
+    /// Hər macəranın ŞƏKİL YIĞIMI mərhələsi — hekayə rəsmi parçalara bölünür.
+    ///
+    /// <para>Sona əlavə olunur, ona görə yarımçıq run-ların mərhələ indeksləri
+    /// dəyişmir: onlar yalnız bitməzdən əvvəl bir mərhələ artıq görür.</para>
+    /// </summary>
+    private static ExperienceStage PictureStage() =>
+        new(PetBrainStageKind.Puzzle,
+            "Macəranın şəklini yığ",
+            "Put the adventure's picture together",
+            "Bu anın şəklini çəkdim, amma parçalara ayrıldı. Gəl onu yığaq — albomda qalsın!",
+            "I took a picture of this moment, but it fell into pieces. Let us put it together — for the album!",
+            [])
+        {
+            PuzzleFamily = Puzzles.PuzzleBlueprintCatalog.SceneJigsawKey
+        };
+
     public static IReadOnlyList<ExperienceTemplate> Templates { get; } =
     [
         // ================= A: Marsda Robo Xilasetmə =================
         new(
             Key: MarsRoverRescue,
-            Version: 1,
+            Version: 2,
             Type: PetBrainExperienceType.Adventure,
             Theme: TraitKeys.Space,
             ActivityType: "exploration-puzzle",
@@ -278,7 +302,9 @@ public static class ExperienceCatalog
                         new("carry-to-ship", "Gəmiyə apar", "Carry Robo to the ship", "🛸",
                             "Robonu qoruyaraq", "Keeping Robo safe",
                             [new(TraitKeys.Caring, 2), new(TraitKeys.Explorer, 1)])
-                    ])
+                    ]),
+
+                PictureStage()
             ])
         {
             MechanicAffinity = [MechanicKeys.Route, MechanicKeys.StoryChoice, MechanicKeys.Exploration],
@@ -288,7 +314,7 @@ public static class ExperienceCatalog
         // ================= B: Rənglərini İtirmiş Əjdaha =================
         new(
             Key: DragonLostColors,
-            Version: 1,
+            Version: 2,
             Type: PetBrainExperienceType.Creative,
             Theme: TraitKeys.Fantasy,
             ActivityType: "creative-design",
@@ -380,7 +406,9 @@ public static class ExperienceCatalog
                         new("bulud", "Bulud", "Cloudy", "☁️",
                             "Yumşaq və mehriban", "Soft and kind",
                             [new(TraitKeys.Stories, 2), new(TraitKeys.Caring, 1)])
-                    ])
+                    ]),
+
+                PictureStage()
             ])
         {
             MechanicAffinity = [MechanicKeys.Pattern, MechanicKeys.Building, MechanicKeys.Decorating],
@@ -547,7 +575,7 @@ public static class ExperienceCatalog
         // ================= Okeanda İşıq =================
         new(
             Key: OceanGlowQuest,
-            Version: 1,
+            Version: 2,
             Type: PetBrainExperienceType.Adventure,
             Theme: TraitKeys.Ocean,
             ActivityType: "exploration-puzzle",
@@ -613,7 +641,9 @@ public static class ExperienceCatalog
                         new("swim-together", "Birlikdə üz", "Swim together", "🐟",
                             "Yanlarında qal", "Stay right beside them",
                             [new(TraitKeys.Caring, 2), new(TraitKeys.Animals, 1)])
-                    ])
+                    ]),
+
+                PictureStage()
             ])
         {
             MechanicAffinity = [MechanicKeys.Sequencing, MechanicKeys.Exploration, MechanicKeys.Nurturing],
@@ -623,7 +653,7 @@ public static class ExperienceCatalog
         // ================= Meşə Dostları Karnavalı =================
         new(
             Key: ForestFriendsParade,
-            Version: 1,
+            Version: 2,
             Type: PetBrainExperienceType.Creative,
             Theme: TraitKeys.Animals,
             ActivityType: "creative-design",
@@ -699,7 +729,9 @@ public static class ExperienceCatalog
                         new("hilltop", "Təpənin başı", "On the hilltop", "⛰️",
                             "Hər yer görünür", "You can see everything",
                             [new(TraitKeys.Explorer, 2), new(TraitKeys.Playful, 1)])
-                    ])
+                    ]),
+
+                PictureStage()
             ])
         {
             MechanicAffinity = [MechanicKeys.Building, MechanicKeys.Decorating, MechanicKeys.Nurturing],
@@ -709,7 +741,7 @@ public static class ExperienceCatalog
         // ================= Robot Laboratoriyası =================
         new(
             Key: RobotLabPuzzle,
-            Version: 1,
+            Version: 2,
             Type: PetBrainExperienceType.Adventure,
             Theme: "robots",
             ActivityType: "logic-puzzle",
@@ -775,7 +807,9 @@ public static class ExperienceCatalog
                         new("story-book", "Nağıl kitabı", "A story book", "📚",
                             "Gecələr üçün", "For the evenings",
                             [new(TraitKeys.Stories, 2), new(TraitKeys.Caring, 1)])
-                    ])
+                    ]),
+
+                PictureStage()
             ])
         {
             MechanicAffinity = [MechanicKeys.Sequencing, MechanicKeys.Pattern, MechanicKeys.Experimentation, MechanicKeys.Memory],

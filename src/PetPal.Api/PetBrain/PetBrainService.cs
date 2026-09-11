@@ -956,7 +956,8 @@ public class PetBrainService : IPetBrainService
 
             // İpucu sayğacı tapmacanın özündə də saxlanılır: yenilənmədən sonra
             // ipucu ekranda QALMALIDIR, yoxsa uşaq onu itirmiş olur.
-            var hinted = await EnsurePuzzleAsync(run, template, child, run.CurrentStage, ct);
+            var hinted = await EnsurePuzzleAsync(
+                run, template, child, run.CurrentStage, ct, LinearFamily(template, run.CurrentStage));
             hinted.HintsUsed++;
 
             await _tracker.TrackAsync(
@@ -1554,7 +1555,8 @@ public class PetBrainService : IPetBrainService
         var language = child.LanguageCode;
         var stageIndex = run.CurrentStage;
 
-        var issued = await EnsurePuzzleAsync(run, template, child, run.CurrentStage, ct);
+        var issued = await EnsurePuzzleAsync(
+            run, template, child, run.CurrentStage, ct, LinearFamily(template, run.CurrentStage));
 
         // Naməlum mexanika heç yerdə qəbul edilmir (fail closed).
         var blueprint = PuzzleBlueprintCatalog.Find(issued.BlueprintKey);
@@ -3337,7 +3339,8 @@ public class PetBrainService : IPetBrainService
             return dto;
         }
 
-        var issued = await EnsurePuzzleAsync(run, template, child, run.CurrentStage, ct);
+        var issued = await EnsurePuzzleAsync(
+            run, template, child, run.CurrentStage, ct, LinearFamily(template, run.CurrentStage));
         var puzzle = ReadPublic(issued);
 
         // Cəhd sayı yalnız göstərmək üçündür — ruhlandırıcı mesaj ondan asılıdır.
@@ -3744,7 +3747,7 @@ public class PetBrainService : IPetBrainService
         if (NextPuzzleStage(template, run.CurrentStage) is not { } stageIndex)
             return null;
 
-        var issued = await EnsurePuzzleAsync(run, template, child, stageIndex, ct);
+        var issued = await EnsurePuzzleAsync(run, template, child, stageIndex, ct, LinearFamily(template, stageIndex));
         var scene = await SceneOfAsync(issued, template, child, ct);
 
         return new PetBrainUpcomingSceneDto
@@ -3753,6 +3756,16 @@ public class PetBrainService : IPetBrainService
             IllustrationStatus = scene?.Status ?? PetBrainIllustrationStatus.Fallback
         };
     }
+
+    /// <summary>
+    /// Xətti macərada mərhələnin istədiyi tapmaca şablonu; boşdursa generator
+    /// profilə görə özü seçir. Şəkil yığımı məhz bu yolla hər macərada öz
+    /// mərhələsini alır.
+    /// </summary>
+    private static string LinearFamily(ExperienceTemplate template, int stageIndex) =>
+        stageIndex >= 0 && stageIndex < template.StageCount
+            ? template.Stages[stageIndex].PuzzleFamily
+            : string.Empty;
 
     private static int? NextPuzzleStage(ExperienceTemplate template, int fromStage)
     {

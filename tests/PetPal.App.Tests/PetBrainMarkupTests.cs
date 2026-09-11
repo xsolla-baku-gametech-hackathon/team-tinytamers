@@ -16,7 +16,7 @@ public class PetBrainMarkupTests
     [
         "ExperienceShell", "ExperienceScene", "StageChoices", "RunSummary", "BrainDebugPanel",
         "PuzzleBoard", "OrderedRoutePuzzle", "SequenceOrderPuzzle", "RouteLogicPuzzle", "LightFragmentsPuzzle",
-        "RecapPlayer"
+        "RecapPlayer", "PictureAssemblyPuzzle"
     ];
 
     /// <summary>
@@ -29,14 +29,14 @@ public class PetBrainMarkupTests
     private static readonly string[] ComponentsWithOwnText =
     [
         "ExperienceShell", "RunSummary", "BrainDebugPanel", "PuzzleBoard", "OrderedRoutePuzzle",
-        "LightFragmentsPuzzle", "RecapPlayer"
+        "LightFragmentsPuzzle", "RecapPlayer", "PictureAssemblyPuzzle"
     ];
 
     /// <summary>Hər QAPALI mexanikanın öz təqdimat komponenti.</summary>
     private static readonly string[] PuzzleComponents =
     [
         "OrderedRoutePuzzle", "SequenceOrderPuzzle", "RouteLogicPuzzle", "LightFragmentsPuzzle",
-        "SignalPatternPuzzle", "ObservationRecallPuzzle", "MatchingPairsPuzzle"
+        "SignalPatternPuzzle", "ObservationRecallPuzzle", "MatchingPairsPuzzle", "PictureAssemblyPuzzle"
     ];
 
     // ==================== Marşrut və klient ====================

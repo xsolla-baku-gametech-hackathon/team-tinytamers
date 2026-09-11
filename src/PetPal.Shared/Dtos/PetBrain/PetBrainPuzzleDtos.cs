@@ -130,6 +130,20 @@ public class PetBrainPuzzleDto
     /// Nəyin dəyişdiyi burada YAZILMIR.</para>
     /// </summary>
     public List<PetBrainPuzzleItemDto> RecalledScene { get; set; } = new();
+
+    /// <summary>
+    /// Şəkil yığımında çərçivənin sütun sayı
+    /// (<see cref="PetBrainPuzzleMechanic.PictureAssembly"/>).
+    ///
+    /// <para>Parçanın <see cref="PetBrainPuzzleItemDto.Value"/>-su onun
+    /// çərçivədəki yeridir (sətir × sütun). Bu, cavabı gizlətmir və gizlədə də
+    /// bilməz: parça şəklin hansı hissəsini göstərirsə, yeri odur — uşaq da
+    /// məhz şəklə baxıb yığır. Doğruluq yenə serverdə yoxlanılır.</para>
+    /// </summary>
+    public int? GridColumns { get; set; }
+
+    /// <summary>Şəkil yığımında çərçivənin sətir sayı.</summary>
+    public int? GridRows { get; set; }
 }
 
 /// <summary>

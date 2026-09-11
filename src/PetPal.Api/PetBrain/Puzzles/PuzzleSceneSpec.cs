@@ -107,6 +107,23 @@ public sealed record PuzzleSceneSpec(
             "Kristal bağçada mehriban əjdaha — qanadının naxışı hələ solğundur.",
             "A friendly dragon in a crystal garden — the pattern on its wing is still faded."),
 
+        PuzzleBlueprintCatalog.SceneJigsawKey => ExperienceKey switch
+        {
+            ExperienceCatalog.OceanGlowQuest => Localized.T(Language,
+                "Günəşli mərcan rifi: parlayan balıqlar, dəniz otu və inci balıqqulaqları.",
+                "A sunny coral reef with glowing fish, sea grass and pearl shells."),
+
+            ExperienceCatalog.ForestFriendsParade => Localized.T(Language,
+                "Günəşli meşə talası: karnavala hazırlaşan heyvan dostlar və göbələk evlər.",
+                "A sunny forest clearing where animal friends get ready for the parade."),
+
+            ExperienceCatalog.RobotLabPuzzle => Localized.T(Language,
+                "İşıqlı emalatxana: dost robot, yumru maşınlar və iri dişli çarxlar.",
+                "A bright workshop with a friendly robot, rounded machines and big gears."),
+
+            _ => Localized.T(Language, "Macəranın səhnəsi.", "A scene from the adventure.")
+        },
+
         _ => Localized.T(Language, "Hekayə səhnəsi.", "A story scene.")
     };
 
@@ -163,6 +180,8 @@ public sealed record PuzzleSceneSpec(
             QuietZones: ["dragon-wing-slots", "lower-selection-strip"],
             Language: language),
 
+            PuzzleBlueprintCatalog.SceneJigsawKey => ForTemplate(language, template, species),
+
             _ => new(
                 blueprint.Key, blueprint.Version, template.Key,
                 StoryBeat: "quiet-moment",
@@ -175,6 +194,67 @@ public sealed record PuzzleSceneSpec(
             QuietZones: ["lower-selection-strip"],
             Language: language)
         };
+    }
+
+    /// <summary>
+    /// Macəranın HEKAYƏ səhnəsi — şəkil yığımı məhz bu rəsmi parçalara bölür.
+    ///
+    /// <para>Hekayə tapmacası olan macərada bu, həmin tapmacanın səhnəsinin
+    /// EYNİSİDİR: eyni təsvir eyni hash verir, yəni rəsm artıq keşdədirsə ikinci
+    /// pullu sorğu getmir və uşaq macərada gördüyü şəkli yığır. Qalan
+    /// macəralar öz təsdiqlənmiş səhnəsini alır — yenə yalnız kataloq
+    /// açarlarından, sərbəst mətn yoxdur.</para>
+    /// </summary>
+    public static PuzzleSceneSpec ForTemplate(string language, ExperienceTemplate template, string species) =>
+        template.Key switch
+        {
+            ExperienceCatalog.MarsRoverRescue =>
+                StoryOf(PuzzleBlueprintCatalog.MarsSignalRouteKey, language, template, species),
+
+            ExperienceCatalog.DragonLostColors =>
+                StoryOf(PuzzleBlueprintCatalog.LightFragmentsKey, language, template, species),
+
+            ExperienceCatalog.MoonCrystalRescue or ExperienceCatalog.MoonCrystalSecret =>
+                StoryOf(PuzzleBlueprintCatalog.MoonCrystalRouteKey, language, template, species),
+
+            ExperienceCatalog.OceanGlowQuest => StoryScene(template, language, species,
+                "sunlit-coral-reef", "lost-glowing-fish", "turquoise-and-coral", "gentle-wonder",
+                ["coral-arches", "glowing-fish", "sea-grass", "pearl-shells"]),
+
+            ExperienceCatalog.ForestFriendsParade => StoryScene(template, language, species,
+                "sunny-forest-clearing", "parade-preparations", "leaf-green-and-sunshine", "playful-cheer",
+                ["friendly-forest-animals", "flower-garlands", "mushroom-houses", "old-oak-tree"]),
+
+            ExperienceCatalog.RobotLabPuzzle => StoryScene(template, language, species,
+                "friendly-robot-workshop", "robot-waking-up", "mint-and-silver", "curious-bright",
+                ["workshop-robot", "rounded-machines", "gear-shelves", "desk-lamp"]),
+
+            _ => StoryScene(template, language, species,
+                template.Theme, "quiet-moment", "soft-daylight", "calm-curious", [])
+        };
+
+    private static PuzzleSceneSpec StoryOf(
+        string blueprintKey, string language, ExperienceTemplate template, string species) =>
+        For(PuzzleBlueprintCatalog.Find(blueprintKey)!, language, template, species);
+
+    private static PuzzleSceneSpec StoryScene(
+        ExperienceTemplate template, string language, string species,
+        string environment, string storyBeat, string palette, string mood, IReadOnlyList<string> props)
+    {
+        var petSpecies = Approved(species);
+        var jigsaw = PuzzleBlueprintCatalog.Find(PuzzleBlueprintCatalog.SceneJigsawKey)!;
+
+        return new PuzzleSceneSpec(
+            jigsaw.Key, jigsaw.Version, template.Key,
+            StoryBeat: storyBeat,
+            Environment: environment,
+            Mood: mood,
+            Palette: palette,
+            PetSpecies: petSpecies,
+            PetColor: ColorFor(petSpecies),
+            Props: props,
+            QuietZones: [],
+            Language: language);
     }
 
     /// <summary>

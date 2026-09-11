@@ -164,6 +164,9 @@ public static class PetBrainPlaythrough
         PetBrainPuzzleMechanic.MatchingPairs =>
             [.. puzzle.MatchTargets.Select(t => puzzle.Items.First(i => i.Value == t.Value).Id)],
 
+        PetBrainPuzzleMechanic.PictureAssembly =>
+            [.. puzzle.Items.OrderBy(i => i.Value).Select(i => i.Id)],
+
         // Yaradıcı yolda səhv seçim yoxdur — sxemin istədiyi say kifayətdir.
         _ => [.. puzzle.Items.Take(puzzle.AnswerSchema.Min).Select(i => i.Id)]
     };

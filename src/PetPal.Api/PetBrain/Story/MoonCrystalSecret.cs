@@ -173,9 +173,18 @@ internal static class Moon
 /// </summary>
 public static class MoonCrystalSecret
 {
-    public static ExperienceDefinition Definition { get; } = new(
+    /// <summary>Cari versiya — final fəsildə uşaq işığın qayıtdığı anın şəklini yığır.</summary>
+    public static ExperienceDefinition Definition { get; } = Build(version: 2, withPicture: true);
+
+    /// <summary>
+    /// Şəkil yığımından ƏVVƏLKİ versiya. Silinmir: həmin versiyada başlamış
+    /// run-lar bitənə qədər onu oxuyur (bax <see cref="StoryCatalog"/>).
+    /// </summary>
+    public static ExperienceDefinition PreviousDefinition { get; } = Build(version: 1, withPicture: false);
+
+    private static ExperienceDefinition Build(int version, bool withPicture) => new(
         Key: ExperienceCatalog.MoonCrystalSecret,
-        Version: 1,
+        Version: version,
         StartNodeId: "c1-hook",
         AllowedPuzzleFamilies:
         [
@@ -184,9 +193,10 @@ public static class MoonCrystalSecret
             PuzzleBlueprintCatalog.SequenceOrderKey,
             PuzzleBlueprintCatalog.RouteLogicKey,
             PuzzleBlueprintCatalog.MoonTrackRecallKey,
-            PuzzleBlueprintCatalog.MoonShardMatchKey
+            PuzzleBlueprintCatalog.MoonShardMatchKey,
+            .. (withPicture ? new[] { PuzzleBlueprintCatalog.SceneJigsawKey } : Array.Empty<string>())
         ],
-        Nodes: [.. MoonChaptersOneToThree.Nodes(), .. MoonChaptersFourToSix.Nodes()])
+        Nodes: [.. MoonChaptersOneToThree.Nodes(), .. MoonChaptersFourToSix.Nodes(withPicture)])
     {
         Chapters = MoonCrystalSecretContent.Chapters,
         Objectives = MoonCrystalSecretContent.Objectives,

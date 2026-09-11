@@ -19,7 +19,9 @@ public static class StoryCatalog
 {
     public static IReadOnlyList<ExperienceDefinition> Definitions { get; } =
     [
+        MoonCrystalHunt.PreviousDefinition,
         MoonCrystalHunt.Definition,
+        MoonCrystalSecret.PreviousDefinition,
         MoonCrystalSecret.Definition
     ];
 

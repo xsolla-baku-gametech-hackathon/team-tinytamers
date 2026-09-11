@@ -67,6 +67,13 @@
         case PetBrainPuzzleMechanic.MatchingPairs:
             <MatchingPairsPuzzle Puzzle="Puzzle" Selected="_selected" Busy="Busy" OnToggle="Toggle" />
             break;
+
+        case PetBrainPuzzleMechanic.PictureAssembly:
+            <PictureAssemblyPuzzle Puzzle="Puzzle" Placed="_selected" Busy="Busy"
+                                   SceneImage="@SceneImage" SceneAwakening="@SceneAwakening"
+                                   SceneKey="@SceneKey" RevealIds="RevealIds"
+                                   OnChanged="StateHasChanged" />
+            break;
     }
 
     @* Seçimin vəziyyəti mətnlə də bildirilir — rəng tək daşıyıcı deyil. *@
@@ -168,6 +175,12 @@
     /// </summary>
     [Parameter] public bool SceneAwakening { get; set; }
 
+    /// <summary>
+    /// Macəranın səhnə açarı — şəkil yığımı rəsm gəlməyəndə bu səhnənin
+    /// deterministik şəklini kəsir.
+    /// </summary>
+    [Parameter] public string SceneKey { get; set; } = string.Empty;
+
     /// <summary>Cavab serverə YALNIZ id siyahısı kimi gedir.</summary>
     [Parameter] public EventCallback<List<string>> OnSubmit { get; set; }
 
@@ -180,6 +193,8 @@
     private Guid _renderedPuzzleId;
 
     private bool IsRoute => Puzzle.Mechanic == PetBrainPuzzleMechanic.OrderedRoute;
+
+    private bool IsPicture => Puzzle.Mechanic == PetBrainPuzzleMechanic.PictureAssembly;
 
     protected override void OnParametersSet()
     {
@@ -212,6 +227,7 @@
         PetBrainPuzzleMechanic.OrderedRoute => "route-map",
         PetBrainPuzzleMechanic.SequenceOrder => "sequence",
         PetBrainPuzzleMechanic.RouteLogic => "route",
+        PetBrainPuzzleMechanic.PictureAssembly => "picture",
         _ => "fragments"
     };
 
@@ -223,7 +239,9 @@
         ? Loc.T("Hazırdır!", "Done!")
         : IsRoute
             ? Loc.T("Dronu göndər", "Send the drone")
-            : Loc.T("Yoxla", "Check");
+            : IsPicture
+                ? Loc.T("Şəkil hazırdır!", "The picture is ready!")
+                : Loc.T("Yoxla", "Check");
 
     private string StatusText
     {
@@ -234,6 +252,13 @@
                 return IsReady
                     ? Loc.T("Marşrut hazırdır", "The route is ready")
                     : Loc.T("Dronu Roboya çatdır", "Guide the drone to Robo");
+            }
+
+            if (IsPicture)
+            {
+                return IsReady
+                    ? Loc.T("Şəkil tamamdır — albom üçün göndər!", "The picture is complete — send it to the album!")
+                    : Loc.T("Parçaları çərçivəyə yerləşdir", "Place the pieces in the frame");
             }
 
             var remaining = Puzzle.AnswerSchema.Min - _selected.Count;

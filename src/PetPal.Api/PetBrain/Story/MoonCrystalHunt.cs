@@ -48,12 +48,52 @@ public static class MoonCrystalHunt
     private static ExperienceTransition Fallback(string target) =>
         new(target, Priority: 1000, IsFallback: true);
 
-    public static ExperienceDefinition Definition { get; } = new(
+    /// <summary>Cari versiya — kristal oyananda uşaq macəranın şəklini yığır.</summary>
+    public static ExperienceDefinition Definition { get; } = Build(version: 3, withPicture: true);
+
+    /// <summary>
+    /// Şəkil yığımından ƏVVƏLKİ versiya. Silinmir: həmin versiyada başlamış
+    /// run-lar bitənə qədər onu oxuyur (bax <see cref="StoryCatalog"/>).
+    /// </summary>
+    public static ExperienceDefinition PreviousDefinition { get; } = Build(version: 2, withPicture: false);
+
+    private const string PictureNodeId = "picture-puzzle";
+
+    private static ExperienceDefinition Build(int version, bool withPicture) => new(
         Key: ExperienceCatalog.MoonCrystalRescue,
-        Version: 2,
+        Version: version,
         StartNodeId: "intro",
-        AllowedPuzzleFamilies: [PuzzleBlueprintCatalog.MoonCrystalRouteKey],
-        Nodes:
+        AllowedPuzzleFamilies: withPicture
+            ? [PuzzleBlueprintCatalog.MoonCrystalRouteKey, PuzzleBlueprintCatalog.SceneJigsawKey]
+            : [PuzzleBlueprintCatalog.MoonCrystalRouteKey],
+        Nodes: withPicture ? WithPicture(StoryNodes()) : StoryNodes());
+
+    /// <summary>
+    /// Kristal oyandıqdan sonra ŞƏKİL YIĞIMI gəlir: işıq pet-in çəkdiyi şəkli
+    /// parçalara ayırıb və uşaq onu albom üçün yığır. Hər iki oyanış düyünü
+    /// ora aparır, hekayə isə daşıma seçimi ilə davam edir.
+    /// </summary>
+    private static IReadOnlyList<ExperienceNode> WithPicture(IReadOnlyList<ExperienceNode> nodes) =>
+    [
+        .. nodes.Select(node => node.Id is "crystal-awake" or "crystal-awake-clean"
+            ? node with { Transitions = [Fallback(PictureNodeId)] }
+            : node),
+
+        new ExperienceNode(
+            Id: PictureNodeId,
+            Kind: PetBrainStageKind.Puzzle,
+            PromptAz: "Kristalın şəklini yığ",
+            PromptEn: "Put the crystal's picture together",
+            PetLineAz: "Kristal parlayanda çəkdiyim şəkil parçalara ayrıldı. Gəl onu yığaq — albomda qalsın.",
+            PetLineEn: "When the crystal flared, my picture fell into pieces. Let us put it together — for the album.",
+            Options: [],
+            Transitions: [Fallback("carry-choice")],
+            Effects: [],
+            SceneVariant: "moon-crystal-glow",
+            PuzzleFamily: PuzzleBlueprintCatalog.SceneJigsawKey)
+    ];
+
+    private static IReadOnlyList<ExperienceNode> StoryNodes() =>
         [
             // ---------- Giriş ----------
             new ExperienceNode(
@@ -282,5 +322,5 @@ public static class MoonCrystalHunt
                 Effects: [new ExperienceEffect(ExperienceEffectKind.RememberChoice, "carry")],
                 SceneVariant: "moon-lantern-finale",
                 EndingKey: CaringEnding)
-        ]);
+        ];
 }

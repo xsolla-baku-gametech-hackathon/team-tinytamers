@@ -221,7 +221,21 @@ public class PetBrainIllustrationApiTests
 
             Assert.True(solved.CurrentStage > run.Stage.Index);
             Assert.Equal(0, solved.Mistakes);
-            Assert.Null(solved.UpcomingScene);
+
+            var picture = solved.UpcomingScene;
+            Assert.NotNull(picture);
+            Assert.NotEqual(puzzle.PuzzleId, picture.PuzzleId);
+
+            using (var scope = factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var story = await db.IssuedPuzzles.AsNoTracking().SingleAsync(p => p.Id == puzzle.PuzzleId);
+                var jigsaw = await db.IssuedPuzzles.AsNoTracking().SingleAsync(p => p.Id == picture.PuzzleId);
+
+                Assert.Equal(PetPal.Api.PetBrain.Puzzles.PuzzleBlueprintCatalog.SceneJigsawKey, jigsaw.BlueprintKey);
+                Assert.Equal(story.SceneSpecHash, jigsaw.SceneSpecHash);
+            }
+
             Assert.Equal(1, factory.Provider.Calls);
         }
         finally

@@ -68,8 +68,9 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
     /// </summary>
     public static IReadOnlyList<PuzzleBlueprint> Rank(PuzzleGenerationContext context) =>
         [.. PuzzleBlueprintCatalog.Blueprints
-            .Where(b => b.ExperienceType == context.ExperienceType
+            .Where(b => b.FitsExperienceType(context.ExperienceType)
                         && context.Age >= b.MinAge
+                        && b.OfferedFor(context.PreferredBlueprintKey)
 
                         // Hekayə mətni daşıyan mexanika YALNIZ öz macərasında
                         // işlədilir. Bu süzgəc olmasaydı, «həlledici» profilli
@@ -179,6 +180,7 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
                 => MoonPuzzleGenerators.BuildObservationRecall(context, tier, random),
             PetBrainPuzzleMechanic.MatchingPairs
                 => MoonPuzzleGenerators.BuildMatchingPairs(context, tier, random),
+            PetBrainPuzzleMechanic.PictureAssembly => BuildPictureAssembly(context, tier, random),
             _ => null
         };
 
@@ -598,6 +600,110 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
         return (dto, new PuzzleSolution(reference, PetBrainAnswerKind.SelectIds));
     }
 
+    /// <summary>
+    /// Macəranın ŞƏKLİNİ yığmaq — hekayə rəsmi parçalara bölünür, uşaq onu
+    /// çərçivəyə qaytarır.
+    ///
+    /// <para>Parça sayı pillədən gəlir: asan 2×3, orta 3×3, çətin 3×4; dəstək
+    /// rejimi bir pillə kiçildir. Parçaların id-ləri toxumla qarışdırılır, ona
+    /// görə id-nin adı yeri açmır; qabdakı sıra isə heç vaxt yığılmış sıra ilə
+    /// eyni çıxmır.</para>
+    ///
+    /// <para><b>Rəsm yenə yalnız görüntüdür.</b> Parçanın <c>Value</c>-su onun
+    /// çərçivədəki yeridir və overlay şəklin həmin hissəsini məhz bu rəqəmdən
+    /// kəsir. Rəsm gəlməsə deterministik şəkil eyni həndəsə ilə kəsilir, cavab
+    /// dəyişmir: doğruluq serverdə, saxlanmış sıraya qarşı yoxlanılır.</para>
+    /// </summary>
+    private static (PetBrainPuzzleDto, PuzzleSolution)? BuildPictureAssembly(
+        PuzzleGenerationContext context, PetBrainDifficulty tier, PuzzleRandom random)
+    {
+        var language = context.Language;
+        var (columns, rows) = PictureGrid(context.Assisted ? Easier(tier) : tier);
+        var count = columns * rows;
+
+        var ids = PictureTileIds.ToList();
+        random.Shuffle(ids);
+
+        var solution = ids.Take(count).ToList();
+
+        var tray = Enumerable.Range(0, count).ToList();
+        random.Shuffle(tray);
+
+        if (tray.SequenceEqual(Enumerable.Range(0, count)))
+            tray = [.. tray.Skip(1), tray[0]];
+
+        var items = tray
+            .Select((slot, position) => new PetBrainPuzzleItemDto
+            {
+                Id = solution[slot],
+                Label = Localized.T(language, $"Parça {position + 1}", $"Piece {position + 1}"),
+                Icon = PictureTileIcon,
+                Shape = PuzzleBlueprintCatalog.Shapes[position % PuzzleBlueprintCatalog.Shapes.Count],
+                Value = slot
+            })
+            .ToList();
+
+        var dto = new PetBrainPuzzleDto
+        {
+            Mechanic = PetBrainPuzzleMechanic.PictureAssembly,
+            Title = Localized.T(language, "Şəkli yenidən yığ", "Put the picture back together"),
+            StoryPrompt = Localized.T(language,
+                "Macəramızın şəkli parçalara ayrıldı. Onu yığ ki, pet albomuna yapışdırsın.",
+                "The picture of our adventure fell into pieces. Put it together so the pet can add it to the album."),
+            Instruction = Localized.T(language,
+                "Parçaya toxun, sonra çərçivədə onun yerinə toxun.",
+                "Tap a piece, then tap its spot in the frame."),
+            Items = items,
+            GridColumns = columns,
+            GridRows = rows,
+            Scene = new PetBrainSceneDto
+            {
+                IllustrationStatus = PetBrainIllustrationStatus.Fallback,
+                OverlayLayout = PuzzleBlueprintCatalog.SceneJigsawKey
+            },
+            AnswerSchema = new PetBrainAnswerSchemaDto
+            {
+                Kind = PetBrainAnswerKind.OrderIds,
+                Min = count,
+                Max = count
+            },
+            HintAvailable = true,
+            Hint = Localized.T(language,
+                "Çərçivədəki solğun şəklə bax: parçanın rəngini və əşyasını orada tap.",
+                "Look at the faint picture in the frame: find the piece's colours and objects there."),
+            AssistHighlight = tier == PetBrainDifficulty.Easy || context.Assisted
+        };
+
+        return (dto, new PuzzleSolution(solution, PetBrainAnswerKind.OrderIds));
+    }
+
+    /// <summary>
+    /// Parça id-ləri — yeri açmayan sabit adlar. Toxum onları qarışdırır,
+    /// yəni eyni ad hər tapmacada başqa yerə düşür.
+    /// </summary>
+    private static readonly string[] PictureTileIds =
+    [
+        "tile-amber", "tile-berry", "tile-cloud", "tile-dune", "tile-ember", "tile-fern",
+        "tile-glow", "tile-haze", "tile-iris", "tile-jade", "tile-kelp", "tile-lumen"
+    ];
+
+    private const string PictureTileIcon = "🧩";
+
+    /// <summary>Çərçivənin ölçüsü — sütun × sətir.</summary>
+    private static (int Columns, int Rows) PictureGrid(PetBrainDifficulty tier) => tier switch
+    {
+        PetBrainDifficulty.Easy => (2, 3),
+        PetBrainDifficulty.Hard => (3, 4),
+        _ => (3, 3)
+    };
+
+    /// <summary>Dəstək rejimi bir pillə aşağı — cəza deyil, kömək.</summary>
+    private static PetBrainDifficulty Easier(PetBrainDifficulty tier) => tier switch
+    {
+        PetBrainDifficulty.Hard => PetBrainDifficulty.Medium,
+        _ => PetBrainDifficulty.Easy
+    };
+
     // ==================== Köməkçilər ====================
 
     private static List<PetBrainPuzzleItemDto> BuildItems(
@@ -668,6 +774,8 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
                 => BuildLightFragments(context, PetBrainDifficulty.Easy, random),
             PetBrainPuzzleMechanic.RouteLogic
                 => BuildRouteLogic(context, PetBrainDifficulty.Easy, random),
+            PetBrainPuzzleMechanic.PictureAssembly
+                => BuildPictureAssembly(context, PetBrainDifficulty.Easy, random),
             _ => BuildSequenceOrder(context, PetBrainDifficulty.Easy, random)
         };
 

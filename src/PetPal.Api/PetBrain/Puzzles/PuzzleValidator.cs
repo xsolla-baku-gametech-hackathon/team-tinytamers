@@ -81,7 +81,7 @@ public static partial class PuzzleValidator
         }
         else
         {
-            if (puzzle.Items.Count < MinItems || puzzle.Items.Count > Math.Min(MaxItems, blueprint.MaxItems))
+            if (puzzle.Items.Count < MinItems || puzzle.Items.Count > ItemCap(blueprint))
                 return "item-count";
 
             ids = puzzle.Items.Select(i => i.Id).ToList();
@@ -101,6 +101,9 @@ public static partial class PuzzleValidator
                 if (!PuzzleBlueprintCatalog.Shapes.Contains(item.Shape))
                     return "bad-shape";
             }
+
+            if (blueprint.Mechanic == PetBrainPuzzleMechanic.PictureAssembly && ValidatePicture(puzzle) is { } picture)
+                return picture;
         }
 
         // ---- Mətn ----
@@ -289,8 +292,46 @@ public static partial class PuzzleValidator
                     ? 1
                     : 2,
 
+            PetBrainPuzzleMechanic.PictureAssembly =>
+                items.Select(i => i.Value).Distinct().Count() == items.Count ? 1 : 2,
+
             _ => 1
         };
+    }
+
+    /// <summary>
+    /// Element tavanı. Şəkil yığımı 12 parçaya qədər gedir — onun elementləri
+    /// seçim siyahısı deyil, bir şəklin hissələridir; cavabın ümumi tavanı isə
+    /// yenə qorunur.
+    /// </summary>
+    private static int ItemCap(PuzzleBlueprint blueprint) =>
+        blueprint.Mechanic == PetBrainPuzzleMechanic.PictureAssembly
+            ? Math.Min(blueprint.MaxItems, PuzzleAnswerEvaluator.MaxAnswerIds)
+            : Math.Min(MaxItems, blueprint.MaxItems);
+
+    /// <summary>
+    /// Şəkil yığımının quruluşu: çərçivə ölçüsü icazəlidir, hər yer tam bir
+    /// parçaya aiddir və qab yığılmış halda gəlmir — yoxsa tapmaca olmazdı.
+    /// </summary>
+    private static string? ValidatePicture(PetBrainPuzzleDto puzzle)
+    {
+        if (puzzle.GridColumns is not (>= 2 and <= 4) || puzzle.GridRows is not (>= 2 and <= 4))
+            return "bad-grid";
+
+        var count = puzzle.GridColumns.Value * puzzle.GridRows.Value;
+
+        if (puzzle.Items.Count != count)
+            return "grid-item-mismatch";
+
+        var slots = puzzle.Items.Select(i => i.Value ?? -1).ToList();
+
+        if (slots.Any(slot => slot < 0 || slot >= count) || slots.Distinct().Count() != count)
+            return "bad-tile-slot";
+
+        if (slots.SequenceEqual(Enumerable.Range(0, count)))
+            return "already-assembled";
+
+        return null;
     }
 
     /// <summary>Müşahidə tapmacasında dəyişmiş izin GÖRÜNƏN nişanı.</summary>

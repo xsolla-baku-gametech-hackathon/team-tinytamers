@@ -321,8 +321,13 @@ public class StoryRuntimeTests
         Assert.Equal("crystal-puzzle", fromIntro!.Value.Puzzle.Id);
         Assert.Equal(3, fromIntro.Value.Depth);
 
-        // Tapmacadan SONRA daha tapmaca yoxdur.
-        Assert.Null(StoryRuntime.UpcomingPuzzle(graph, graph.Find("crystal-awake")!));
+        var afterCrystal = StoryRuntime.UpcomingPuzzle(graph, graph.Find("crystal-awake")!);
+
+        Assert.NotNull(afterCrystal);
+        Assert.Equal("picture-puzzle", afterCrystal!.Value.Puzzle.Id);
+        Assert.Equal(1, afterCrystal.Value.Depth);
+
+        Assert.Null(StoryRuntime.UpcomingPuzzle(graph, graph.Find("picture-puzzle")!));
     }
 }
 

@@ -51,11 +51,30 @@ public sealed record PuzzleBlueprint(
         SupportedExperienceKeys.Count == 0
         || SupportedExperienceKeys.Contains(experienceKey, StringComparer.Ordinal);
 
+    /// <summary>
+    /// Hər təcrübə janrına yaraşır. Şəkil yığımı macərada da, yaradıcı yolda
+    /// da eyni cür oynanır — onun üçün janr süzgəci mənasızdır.
+    /// </summary>
+    public bool AnyExperienceType { get; init; }
+
+    /// <summary>
+    /// Yalnız mərhələ onu AÇIQ istəyəndə verilir. Belə şablon sıralamada adi
+    /// tapmacalarla yarışmır, yəni heç vaxt hekayə tapmacasının yerini tutmur.
+    /// </summary>
+    public bool RequestOnly { get; init; }
+
+    public bool FitsExperienceType(PetBrainExperienceType type) => AnyExperienceType || ExperienceType == type;
+
+    /// <summary>Bu mərhələdə təklif oluna bilərmi — tələb olunan şablon yalnız istənəndə.</summary>
+    public bool OfferedFor(string? preferredBlueprintKey) =>
+        !RequestOnly || string.Equals(Key, preferredBlueprintKey, StringComparison.Ordinal);
+
     /// <summary>Bu mexanika üçün icazə verilən ən böyük element sayı.</summary>
     public int MaxItems => Mechanic switch
     {
         PetBrainPuzzleMechanic.SequenceOrder => 5,
         PetBrainPuzzleMechanic.RouteLogic => 4,
+        PetBrainPuzzleMechanic.PictureAssembly => 12,
         _ => 8
     };
 
@@ -111,6 +130,16 @@ public static class PuzzleBlueprintCatalog
     /// burada dron yox, enerji axır və məcburi düyün paylayıcı qutudur.</para>
     /// </summary>
     public const string MoonBasePowerKey = "moon-base-power";
+
+    /// <summary>
+    /// Macəranın şəklini yığmaq — hekayə rəsmi parçalara bölünür.
+    ///
+    /// <para>Hər macərada bir mərhələ onu açıq istəyir; sıralamada isə
+    /// iştirak etmir. Səhnəsi macəranın hekayə səhnəsidir (bax
+    /// <see cref="PuzzleSceneSpec.ForTemplate"/>), yəni rəsm artıq keşdədirsə
+    /// yeni pullu sorğu getmir.</para>
+    /// </summary>
+    public const string SceneJigsawKey = "scene-jigsaw";
 
     /// <summary>
     /// Beş şablon, dörd mexanika — hər biri AYRI qarşılıqlı təsirdir.
@@ -194,7 +223,18 @@ public static class PuzzleBlueprintCatalog
             PlayStyles: [TraitKeys.ProblemSolver, TraitKeys.Caring],
             Interests: [TraitKeys.Space, TraitKeys.Science, TraitKeys.Puzzles],
             MinAge: 5, LowPressure: false,
-            SupportedExperienceKeys: [ExperienceCatalog.MoonCrystalSecret])
+            SupportedExperienceKeys: [ExperienceCatalog.MoonCrystalSecret]),
+
+        new(SceneJigsawKey, Version: 1, PetBrainPuzzleMechanic.PictureAssembly,
+            PetBrainExperienceType.Adventure, PetBrainAnswerKind.OrderIds,
+            PlayStyles: [],
+            Interests: [],
+            MinAge: 5, LowPressure: false,
+            SupportedExperienceKeys: [])
+        {
+            AnyExperienceType = true,
+            RequestOnly = true
+        }
     ];
 
     /// <summary>Hekayəsi olan marşrut şablonları — mətn paketi ayrıca seçilir.</summary>

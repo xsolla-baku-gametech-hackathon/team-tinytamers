@@ -14,11 +14,15 @@ namespace PetPal.Api.PetBrain.Story;
 /// </summary>
 internal static class MoonChaptersFourToSix
 {
-    public static IEnumerable<ExperienceNode> Nodes()
+    /// <param name="withPicture">
+    /// Final fəsildə şəkil yığımı olsunmu — köhnə versiya onsuz qurulur ki,
+    /// yarımçıq run-lar dəyişməmiş qrafı oxusun.
+    /// </param>
+    public static IEnumerable<ExperienceNode> Nodes(bool withPicture = true)
     {
         foreach (var node in ChapterFour()) yield return node;
         foreach (var node in ChapterFive()) yield return node;
-        foreach (var node in ChapterSix()) yield return node;
+        foreach (var node in ChapterSix(withPicture)) yield return node;
     }
 
     private static IEnumerable<ExperienceNode> ChapterFour()
@@ -533,7 +537,7 @@ internal static class MoonChaptersFourToSix
         };
     }
 
-    private static IEnumerable<ExperienceNode> ChapterSix()
+    private static IEnumerable<ExperienceNode> ChapterSix(bool withPicture)
     {
         const string chapter = MoonKeys.Chapter6;
 
@@ -787,7 +791,7 @@ internal static class MoonChaptersFourToSix
             PetLineAz: "İşıq mərkəzdən yayıldı və bütün Ay bir anda parladı. Biz bacardıq!",
             PetLineEn: "Light spread from the centre and the whole Moon flared at once. We did it!",
             Options: [],
-            Transitions: [Fallback("c6-ending-route")],
+            Transitions: [Fallback(withPicture ? "c6-picture" : "c6-ending-route")],
             Effects:
             [
                 Done(MoonKeys.ObjectiveRestoreLight),
@@ -797,6 +801,24 @@ internal static class MoonChaptersFourToSix
         {
             ChapterId = chapter
         };
+
+        if (withPicture)
+        {
+            yield return new ExperienceNode(
+                Id: "c6-picture",
+                Kind: PetBrainStageKind.Puzzle,
+                PromptAz: "Bu anın şəklini yığ",
+                PromptEn: "Put this moment's picture together",
+                PetLineAz: "İşıq elə parladı ki, çəkdiyim şəkil parçalara ayrıldı. Gəl onu yığaq — albomda qalsın.",
+                PetLineEn: "The light flared so bright my picture fell into pieces. Let us put it together — for the album.",
+                Options: [],
+                Transitions: [Fallback("c6-ending-route")],
+                Effects: [Scene("moon-light-returns")],
+                PuzzleFamily: PuzzleBlueprintCatalog.SceneJigsawKey)
+            {
+                ChapterId = chapter
+            };
+        }
 
         yield return new ExperienceNode(
             Id: "c6-ending-route",

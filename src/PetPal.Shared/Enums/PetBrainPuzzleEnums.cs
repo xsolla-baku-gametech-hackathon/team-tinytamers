@@ -72,7 +72,17 @@ public enum PetBrainPuzzleMechanic
     ///
     /// <para>Cavab SIRALIDIR, çünki sıra «kim kiminlədir» məlumatını daşıyır.</para>
     /// </summary>
-    MatchingPairs = 8
+    MatchingPairs = 8,
+
+    /// <summary>
+    /// Macəranın ŞƏKLİNİ yığmaq: hekayə rəsmi parçalara bölünür, uşaq onları
+    /// çərçivədəki yerlərinə qaytarır.
+    ///
+    /// <para>Hər macərada var və adi tapmacalarla yarışmır — mərhələ onu AÇIQ
+    /// istəyir. Rəsm yenə yalnız görüntüdür: parçanın yeri serverin rəqəmindən
+    /// gəlir, rəsm gəlməsə macəranın deterministik şəkli kəsilir.</para>
+    /// </summary>
+    PictureAssembly = 9
 }
 
 /// <summary>

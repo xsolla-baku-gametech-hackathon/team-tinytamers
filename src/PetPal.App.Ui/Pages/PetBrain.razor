@@ -137,7 +137,8 @@
                                nəticə seçib. Doğru cavab burada YOXDUR — o,
                                yalnız serverdə saxlanılır. *@
                             <PuzzleBoard Puzzle="puzzle" Busy="_busy" SceneImage="@PuzzleSceneImage"
-                                         SceneAwakening="@SceneAwaited" HintOffer="@_run.Stage.HintOffer"
+                                         SceneAwakening="@SceneAwaited" SceneKey="@_run.SceneKey"
+                                         HintOffer="@_run.Stage.HintOffer"
                                          JournalNote="@_run.Stage.JournalNote"
                                          JournalNoteTitle="@_run.Stage.JournalNoteTitle"
                                          RevealIds="_run.Stage.HintRevealIds"
@@ -866,7 +867,9 @@
     /// Belə hallarda dekorativ fon kənara çəkilir (bax ExperienceShell.IsBoard).
     /// </summary>
     private bool HasOwnScene => _run?.Stage?.Puzzle?.Mechanic
-        is PetBrainPuzzleMechanic.OrderedRoute or PetBrainPuzzleMechanic.LightFragments;
+        is PetBrainPuzzleMechanic.OrderedRoute
+            or PetBrainPuzzleMechanic.LightFragments
+            or PetBrainPuzzleMechanic.PictureAssembly;
 
     protected override void OnAfterRender(bool firstRender)
     {

@@ -69,6 +69,9 @@ public static class SafePuzzleIllustrationPromptBuilder
         "martian-canyon" => "a wide Martian canyon under a dusty orange sky",
         "lunar-crater" => "a wide shallow Moon crater under a black star-filled sky",
         "crystal-garden-at-dusk" => "a quiet crystal garden at dusk with glowing blooms",
+        "sunlit-coral-reef" => "a sunlit coral reef under clear turquoise water",
+        "sunny-forest-clearing" => "a sunny forest clearing with a winding path",
+        "friendly-robot-workshop" => "a bright tidy workshop full of rounded friendly machines",
         _ => "a calm imaginary landscape"
     };
 
@@ -77,6 +80,9 @@ public static class SafePuzzleIllustrationPromptBuilder
         "dust-storm-aftermath" => "just after a gentle dust storm has settled",
         "dimmed-crystal-on-the-moon" => "the moment the crystal's glow has faded to a faint spark",
         "dimmed-crystal-garden" => "the moment the garden's light has faded",
+        "lost-glowing-fish" => "as little glowing fish drift gently, looking for their way home",
+        "parade-preparations" => "as forest friends get ready for a cheerful parade",
+        "robot-waking-up" => "the moment a friendly robot blinks awake",
         _ => "a quiet moment in the story"
     };
 
@@ -85,6 +91,9 @@ public static class SafePuzzleIllustrationPromptBuilder
         "warm-orange" => "warm orange and sand tones",
         "silver-and-deep-blue" => "silver, pale grey and deep blue tones",
         "violet-and-moonlight" => "violet, teal and moonlight tones",
+        "turquoise-and-coral" => "turquoise, deep blue and soft coral tones",
+        "leaf-green-and-sunshine" => "fresh leaf green and warm sunshine tones",
+        "mint-and-silver" => "mint green, silver and warm lamp-light tones",
         _ => "soft daylight tones"
     };
 
@@ -93,6 +102,8 @@ public static class SafePuzzleIllustrationPromptBuilder
         "hopeful-adventurous" => "hopeful and adventurous mood with no fear or damage",
         "calm-wonder" => "calm wonder, quiet and safe",
         "gentle-wonder" => "gentle wonder, warm and safe",
+        "playful-cheer" => "playful and cheerful mood, calm and safe",
+        "curious-bright" => "bright and curious mood, calm and safe",
         _ => "calm and curious mood"
     };
 
@@ -111,6 +122,18 @@ public static class SafePuzzleIllustrationPromptBuilder
         "friendly-dragon" => "a small friendly dragon with soft rounded features",
         "crystal-blooms" => "tall crystal blooms",
         "floating-light-motes" => "slow floating motes of light",
+        "coral-arches" => "soft rounded coral arches",
+        "glowing-fish" => "small friendly fish with a gentle glow",
+        "sea-grass" => "swaying sea grass",
+        "pearl-shells" => "pearl shells on the sand",
+        "friendly-forest-animals" => "a friendly bunny, fox and hedgehog",
+        "flower-garlands" => "flower garlands between the trees",
+        "mushroom-houses" => "tiny mushroom houses",
+        "old-oak-tree" => "a wide old oak tree",
+        "workshop-robot" => "a small friendly robot at a workbench",
+        "rounded-machines" => "rounded colorful machines",
+        "gear-shelves" => "shelves with big friendly gears",
+        "desk-lamp" => "a warm desk lamp",
         _ => "simple storybook scenery"
     };
 
