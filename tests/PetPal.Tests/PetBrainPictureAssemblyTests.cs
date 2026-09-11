@@ -61,6 +61,26 @@ public class PetBrainPictureAssemblyTests
     }
 
     /// <summary>
+    /// Qabda heç bir parça öz yerinin nömrəsində durmur — yoxsa uşaq
+    /// parçaları soldan sağa düzməklə şəkli baxmadan yığardı. Çox run və hər
+    /// pillə üzrə yoxlanılır, çünki təsadüfi qarışdırma bunu yalnız bəzən pozur.
+    /// </summary>
+    [Fact]
+    public void Qab_HecBirParcaOzYerindeDurmur()
+    {
+        foreach (var tier in new[] { PetBrainDifficulty.Easy, PetBrainDifficulty.Medium, PetBrainDifficulty.Hard })
+        {
+            for (var seed = 0; seed < 200; seed++)
+            {
+                var context = Context(tier) with { RunId = new Guid(seed, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7) };
+                var slots = Generate(context).Public.Items.Select(i => i.Value!.Value).ToList();
+
+                Assert.DoesNotContain(slots.Select((slot, position) => slot == position), fixedPoint => fixedPoint);
+            }
+        }
+    }
+
+    /// <summary>
     /// Server yalnız TAM və DÜZGÜN yığılmış şəkli qəbul edir: yeri dəyişən iki
     /// parça səhvdir (rədd deyil — normal cəhd), yarımçıq şəkil isə rədd edilir.
     /// </summary>

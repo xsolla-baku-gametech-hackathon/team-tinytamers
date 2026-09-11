@@ -606,8 +606,10 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
     ///
     /// <para>Parça sayı pillədən gəlir: asan 2×3, orta 3×3, çətin 3×4; dəstək
     /// rejimi bir pillə kiçildir. Parçaların id-ləri toxumla qarışdırılır, ona
-    /// görə id-nin adı yeri açmır; qabdakı sıra isə heç vaxt yığılmış sıra ilə
-    /// eyni çıxmır.</para>
+    /// görə id-nin adı yeri açmır. Qabda HEÇ BİR parça öz yerinin nömrəsində
+    /// durmur: təsadüfi qarışdırma bəzən demək olar ki, yığılmış sıra verir və
+    /// uşaq parçaları soldan sağa düzməklə şəkli yığardı. Bir keçid hər belə
+    /// parçanı qonşusu ilə dəyişir — yeni üst-üstə düşmə yaranmır.</para>
     ///
     /// <para><b>Rəsm yenə yalnız görüntüdür.</b> Parçanın <c>Value</c>-su onun
     /// çərçivədəki yeridir və overlay şəklin həmin hissəsini məhz bu rəqəmdən
@@ -629,8 +631,14 @@ public sealed class DeterministicPuzzleGenerator : IPersonalizedPuzzleGenerator
         var tray = Enumerable.Range(0, count).ToList();
         random.Shuffle(tray);
 
-        if (tray.SequenceEqual(Enumerable.Range(0, count)))
-            tray = [.. tray.Skip(1), tray[0]];
+        for (var position = 0; position < count; position++)
+        {
+            if (tray[position] != position)
+                continue;
+
+            var next = (position + 1) % count;
+            (tray[position], tray[next]) = (tray[next], tray[position]);
+        }
 
         var items = tray
             .Select((slot, position) => new PetBrainPuzzleItemDto
