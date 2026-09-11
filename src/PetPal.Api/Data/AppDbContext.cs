@@ -25,6 +25,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<ChildMission> ChildMissions => Set<ChildMission>();
     public DbSet<Discovery> Discoveries => Set<Discovery>();
     public DbSet<ChatTurn> ChatTurns => Set<ChatTurn>();
+    public DbSet<WardrobeDesign> WardrobeDesigns => Set<WardrobeDesign>();
     public DbSet<GameResult> GameResults => Set<GameResult>();
     public DbSet<Friendship> Friendships => Set<Friendship>();
     public DbSet<TeamMission> TeamMissions => Set<TeamMission>();
@@ -265,6 +266,23 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             e.HasIndex(x => new { x.ChildProfileId, x.Sequence });
             e.HasOne(x => x.ChildProfile)
                 .WithMany(c => c.ChatTurns)
+                .HasForeignKey(x => x.ChildProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<WardrobeDesign>(e =>
+        {
+            e.Property(x => x.Text).HasMaxLength(200).IsRequired();
+            e.Property(x => x.PetSpecies).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Provider).HasMaxLength(40).IsRequired();
+            e.Property(x => x.Model).HasMaxLength(80).IsRequired();
+            e.Property(x => x.PromptHash).HasMaxLength(64).IsRequired();
+            e.Property(x => x.AssetKey).HasMaxLength(160).IsRequired();
+            e.Property(x => x.ContentType).HasMaxLength(40).IsRequired();
+            e.HasIndex(x => new { x.ChildProfileId, x.CreatedAt });
+            e.HasIndex(x => new { x.Status, x.CreatedAt });
+            e.HasOne(x => x.ChildProfile)
+                .WithMany()
                 .HasForeignKey(x => x.ChildProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
         });

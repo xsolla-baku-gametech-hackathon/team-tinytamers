@@ -259,6 +259,78 @@ else
                 }
             </div>
 
+            <h2 class="section-title">@Loc.T("Paltar dizayn studiyası (AI)", "Outfit design studio (AI)")</h2>
+            <div class="card">
+                <p class="card__subtitle">
+                    @Loc.T("Açıq olanda uşaq paltar otağında pet-ə geyindirmək istədiyini yazır, şəkil modeli (OpenAI gpt-image-2.5-flare) onu çəkir. Mətn əvvəlcə filtr və moderasiyadan keçir, sonra şəkli yaratmaq üçün xarici xidmətə göndərilir — ona görə studiya standart olaraq bağlıdır və hər arzu aşağıda görünür.",
+                           "When this is on, your child writes what the pet should wear in the dressing room and an image model (OpenAI gpt-image-2.5-flare) draws it. The text first passes a filter and moderation, then goes to an external service to create the image — that is why the studio is off by default and every wish is shown below.")
+                </p>
+
+                <button class="btn @(_wardrobeEnabled ? "btn--ghost" : "btn--primary") btn--block"
+                        disabled="@_savingWardrobe" @onclick="ToggleWardrobeAsync">
+                    @(_savingWardrobe
+                        ? Loc.T("Yadda saxlanılır…", "Saving…")
+                        : _wardrobeEnabled
+                            ? Loc.T("Studiyanı bağla", "Turn the studio off")
+                            : Loc.T("Studiyanı aç", "Turn the studio on"))
+                </button>
+
+                @if (_wardrobeLog is not null)
+                {
+                    <p class="card__subtitle" style="margin-top:12px">
+                        @Loc.T($"Bu gün {_wardrobeLog.DesignsToday}/{_wardrobeLog.DesignsPerDay} dizayn.",
+                               $"{_wardrobeLog.DesignsToday}/{_wardrobeLog.DesignsPerDay} designs today.")
+                    </p>
+
+                    @if (!_wardrobeLog.ServiceReady)
+                    {
+                        <div class="alert alert--info" style="margin-top:8px">
+                            @Loc.T("Şəkil xidməti hələ qurulmayıb — studiya açıq olsa da uşaq dizayn göndərə bilməyəcək.",
+                                   "The image service is not configured yet — even with the studio on, your child cannot send a design.")
+                        </div>
+                    }
+
+                    @if (_wardrobeLog.Entries.Count == 0)
+                    {
+                        <div class="alert alert--info" style="margin-top:8px">
+                            @Loc.T("Hələ dizayn olmayıb.", "No designs yet.")
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="chatlog">
+                            @foreach (var entry in _wardrobeLog.Entries)
+                            {
+                                var item = entry;
+
+                                <div class="chatlog__row chatlog__row--child">
+                                    <span class="chatlog__who">@WardrobeStatusLabel(item)</span>
+                                    <span class="chatlog__text">@item.Text</span>
+                                    @if (item.Status is WardrobeDesignStatus.Blocked or WardrobeDesignStatus.Failed)
+                                    {
+                                        <span class="chatlog__flag">@WardrobeReasonLabel(item.Reason)</span>
+                                    }
+                                    @if (item.HasImage)
+                                    {
+                                        @if (_wardrobeImages.TryGetValue(item.Id, out var image))
+                                        {
+                                            <img class="chatlog__image" src="@image" alt="@item.Text" />
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn--ghost btn--small" @onclick="() => ShowWardrobeImageAsync(item.Id)">
+                                                @Loc.T("Şəklə bax", "View image")
+                                            </button>
+                                        }
+                                    }
+                                    <span class="chatlog__time">@item.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+
             @* Arena söhbətdən FƏRQLİDİR: burada sərbəst mətn yoxdur və üçüncü
                tərəf serverə heç nə getmir, ona görə standart olaraq AÇIQDIR.
                Rəqib hovuzu isə standart olaraq hamıdır — daraltmaq valideynin
@@ -754,6 +826,9 @@ else
         var chat = await ParentApi.GetChatLogAsync(childId.Value);
         _chatLog = chat.Succeeded ? chat.Value : null;
 
+        _wardrobeEnabled = result.Value.WardrobeAiEnabled;
+        await LoadWardrobeAsync(childId.Value);
+
     }
 
     // ---------- Paylaşım ----------
@@ -861,6 +936,79 @@ else
         Session.ActiveChildId is { } childId
             ? ParentApi.GetDiscoveryPhotoAsync(childId, discoveryId)
             : Task.FromResult(ApiResult<string>.Fail(Loc.T("Əvvəlcə uşaq profili seçin.", "Choose a child profile first.")));
+
+    private ParentWardrobeLogDto? _wardrobeLog;
+    private bool _wardrobeEnabled;
+    private bool _savingWardrobe;
+    private readonly Dictionary<Guid, string> _wardrobeImages = [];
+
+    /// <summary>
+    /// Dizayn studiyasının jurnalı. Panelin açılmasını bloklamır: gəlməsə bölmə
+    /// sadəcə boş görünür.
+    /// </summary>
+    private async Task LoadWardrobeAsync(Guid childId)
+    {
+        _wardrobeImages.Clear();
+
+        var log = await ParentApi.GetWardrobeLogAsync(childId);
+        _wardrobeLog = log.Succeeded ? log.Value : null;
+    }
+
+    private async Task ToggleWardrobeAsync()
+    {
+        var childId = Session.ActiveChildId;
+        if (childId is null)
+            return;
+
+        _savingWardrobe = true;
+        var result = await ParentApi.UpdateWardrobeSettingsAsync(childId.Value, !_wardrobeEnabled);
+        _savingWardrobe = false;
+
+        if (!result.Succeeded)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _wardrobeEnabled = !_wardrobeEnabled;
+        await LoadWardrobeAsync(childId.Value);
+    }
+
+    /// <summary>Şəkil siyahı ilə gəlmir — valideyn yalnız baxmaq istədiyini açır.</summary>
+    private async Task ShowWardrobeImageAsync(Guid designId)
+    {
+        var childId = Session.ActiveChildId;
+        if (childId is null)
+            return;
+
+        var image = await ParentApi.GetWardrobeImageAsync(childId.Value, designId);
+
+        if (image is { Succeeded: true, Value: { Length: > 0 } data })
+            _wardrobeImages[designId] = data;
+    }
+
+    private string WardrobeStatusLabel(ParentWardrobeEntryDto entry) => entry switch
+    {
+        { DeletedByChild: true } => Loc.T("Silinib", "Removed"),
+        { Status: WardrobeDesignStatus.Ready } => Loc.T("Çəkilib", "Drawn"),
+        { Status: WardrobeDesignStatus.Pending } => Loc.T("Tikilir", "Drawing"),
+        { Status: WardrobeDesignStatus.Blocked } => Loc.T("Saxlanıldı", "Held back"),
+        _ => Loc.T("Alınmadı", "Not drawn")
+    };
+
+    private string WardrobeReasonLabel(WardrobeBlockReason reason) => reason switch
+    {
+        WardrobeBlockReason.Empty => Loc.T("boş", "empty"),
+        WardrobeBlockReason.TooLong => Loc.T("çox uzun", "too long"),
+        WardrobeBlockReason.Injection => Loc.T("qaydaları dəyişmək cəhdi", "tried to change the rules"),
+        WardrobeBlockReason.ContactInfo => Loc.T("şəxsi məlumat", "personal detail"),
+        WardrobeBlockReason.Repetition => Loc.T("təkrarlanan simvollar", "repeated characters"),
+        WardrobeBlockReason.UnsafeTheme => Loc.T("uşaq üçün uyğun olmayan mövzu", "not suitable for a child"),
+        WardrobeBlockReason.Moderation => Loc.T("moderasiya saxladı", "held by moderation"),
+        WardrobeBlockReason.ProviderRefused => Loc.T("şəkil modeli rədd etdi", "refused by the image model"),
+        WardrobeBlockReason.Unavailable => Loc.T("xidmət cavab vermədi (sayılmadı)", "service unavailable (not counted)"),
+        _ => Loc.T("saxlanıldı", "held back")
+    };
 
     private async Task ToggleChatAsync()
     {

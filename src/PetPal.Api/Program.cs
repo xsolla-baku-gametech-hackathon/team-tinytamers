@@ -41,6 +41,7 @@ using PetPal.Api.Progress;
 using PetPal.Api.Rewards;
 using PetPal.Api.Security;
 using PetPal.Api.Social;
+using PetPal.Api.Wardrobe;
 using PetPal.Shared.Dtos;
 using PetPal.Shared.Enums;
 using Scalar.AspNetCore;
@@ -217,6 +218,21 @@ builder.Services.AddRateLimiter(options =>
             {
                 PermitLimit = chatPermitLimit,
                 Window = TimeSpan.FromSeconds(chatWindowSeconds),
+                QueueLimit = 0
+            }));
+
+    var wardrobePermitLimit = builder.Configuration.GetValue<int?>("RateLimiting:Wardrobe:PermitLimit") ?? 6;
+    var wardrobeWindowSeconds = builder.Configuration.GetValue<int?>("RateLimiting:Wardrobe:WindowSeconds") ?? 60;
+
+    options.AddPolicy(WardrobeEndpoints.RateLimitPolicy, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.User.FindFirst(PetPalClaims.ChildIdClaim)?.Value
+                ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = wardrobePermitLimit,
+                Window = TimeSpan.FromSeconds(wardrobeWindowSeconds),
                 QueueLimit = 0
             }));
 
@@ -445,6 +461,29 @@ builder.Services.AddSingleton<PuzzleIllustrationQueue>();
 builder.Services.AddScoped<PuzzleIllustrationCoordinator>();
 builder.Services.AddHostedService<PuzzleIllustrationWorker>();
 
+builder.Services.Configure<WardrobeOptions>(builder.Configuration.GetSection(WardrobeOptions.SectionName));
+
+var wardrobeOptions = builder.Configuration
+    .GetSection(WardrobeOptions.SectionName)
+    .Get<WardrobeOptions>() ?? new WardrobeOptions();
+
+if (wardrobeOptions.IsEnabled)
+{
+    builder.Services.AddHttpClient<IWardrobeImageProvider, OpenAiWardrobeImageProvider>();
+    builder.Services.AddHttpClient<IWardrobeModeration, OpenAiWardrobeModeration>();
+}
+else
+{
+    builder.Services.AddSingleton<IWardrobeImageProvider, DisabledWardrobeImageProvider>();
+    builder.Services.AddSingleton<IWardrobeModeration, DisabledWardrobeModeration>();
+}
+
+builder.Services.AddSingleton<IWardrobeImageStore, LocalWardrobeImageStore>();
+builder.Services.AddSingleton<WardrobeQueue>();
+builder.Services.AddScoped<WardrobeRenderer>();
+builder.Services.AddScoped<IWardrobeService, WardrobeService>();
+builder.Services.AddHostedService<WardrobeWorker>();
+
 // ---------- Macəranın 10 saniyəlik recap-ı ----------
 // Video PREZENTASİYADIR: seçimləri, xassələri, mükafatı və növbəti tövsiyəni
 // dəyişə bilmir. Altyazılar serverin saxladığı HƏQİQİ seçimlərdən qurulur.
@@ -574,6 +613,7 @@ app.MapHealthChecks("/health/ready");
 app.MapAuthEndpoints();
 app.MapHomeEndpoints();
 app.MapPetEndpoints();
+app.MapWardrobeEndpoints();
 app.MapGameEndpoints();
 app.MapLearningEndpoints();
 app.MapProgressEndpoints();

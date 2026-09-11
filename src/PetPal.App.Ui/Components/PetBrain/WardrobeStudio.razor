@@ -1,0 +1,342 @@
+@implements IDisposable
+@inject GameApiClient Api
+@inject Loc Loc
+
+@if (Open)
+{
+    <section class="studio" role="dialog" aria-label="@Loc.T("Dizayn studiyası", "Design studio")">
+        <header class="studio__head">
+            <h2 class="studio__title">✨ @Loc.T("Öz paltarını fikirləş", "Design your own outfit")</h2>
+            <button class="studio__close" @onclick="OnClose" aria-label="@Loc.T("Bağla", "Close")">✕</button>
+        </header>
+
+        @if (_state is null)
+        {
+            <p class="studio__note">@Loc.T("Dərzi çağırılır…", "Calling the tailor…")</p>
+        }
+        else if (!_state.ParentAllowed)
+        {
+            <p class="studio__note">🔒 @Loc.T("Bu studiyanı valideynin açmalıdır — ondan xahiş et!",
+                                             "A parent needs to turn this studio on — ask them!")</p>
+        }
+        else if (!_state.ServiceReady)
+        {
+            <p class="studio__note">🧵 @Loc.T("Dərzi hələ gəlməyib — bir az sonra yoxla.",
+                                             "The tailor has not arrived yet — try again later.")</p>
+        }
+        else
+        {
+            <form class="studio__form" @onsubmit="SubmitAsync" @onsubmit:preventDefault>
+                <label class="studio__label" for="studio-wish">
+                    @Loc.T("Pet-ə nə geyindirək?", "What should your pet wear?")
+                </label>
+
+                <textarea id="studio-wish" class="studio__input" rows="2" maxlength="@_state.MaxTextLength"
+                          placeholder="@Loc.T("Məsələn: qırmızı pelerin və ulduzlu papaq", "For example: a red cape and a starry hat")"
+                          @bind="_text" @bind:event="oninput" disabled="@_busy"></textarea>
+
+                <div class="studio__meta">
+                    <span>@_text.Length/@_state.MaxTextLength</span>
+                    <span>@Loc.T($"Bu gün {_state.DesignsLeftToday} dizayn qalıb", $"{_state.DesignsLeftToday} designs left today")</span>
+                </div>
+
+                <div class="studio__examples">
+                    @foreach (var example in _state.Examples)
+                    {
+                        var value = example;
+
+                        <button type="button" class="studio__chip" disabled="@_busy" @onclick="() => _text = value">
+                            @value
+                        </button>
+                    }
+                </div>
+
+                <button type="submit" class="btn btn--primary btn--block" disabled="@(!CanSubmit)">
+                    @(_busy ? Loc.T("Göndərilir…", "Sending…") : Loc.T("Pet-ə geyindir ✨", "Dress my pet ✨"))
+                </button>
+            </form>
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <p class="studio__error" role="alert">@_error</p>
+            }
+        }
+
+        @if (VisibleDesigns.Count > 0)
+        {
+            <ul class="studio__gallery" aria-label="@Loc.T("Dizaynlarım", "My designs")">
+                @foreach (var design in VisibleDesigns)
+                {
+                    var item = design;
+
+                    <li class="studio__card @(item.IsEquipped ? "studio__card--on" : null)">
+                        @if (item.Status == WardrobeDesignStatus.Ready && _images.TryGetValue(item.Id, out var image))
+                        {
+                            <img class="studio__thumb" src="@image" alt="@item.Text" />
+                        }
+                        else
+                        {
+                            <div class="studio__thumb @(item.Status == WardrobeDesignStatus.Pending ? "studio__thumb--sewing" : null)"
+                                 aria-hidden="true">
+                                @(item.Status switch
+                                {
+                                    WardrobeDesignStatus.Pending => "🧵",
+                                    WardrobeDesignStatus.Ready => "✨",
+                                    _ => "💭"
+                                })
+                            </div>
+                        }
+
+                        <p class="studio__wish">“@item.Text”</p>
+                        <p class="studio__message" aria-live="polite">@item.Message</p>
+
+                        <div class="studio__actions">
+                            @if (item.Status == WardrobeDesignStatus.Ready)
+                            {
+                                <button class="btn @(item.IsEquipped ? "btn--ghost" : "btn--primary") studio__wear"
+                                        disabled="@_busy" @onclick="() => ToggleEquipAsync(item)">
+                                    @(item.IsEquipped ? Loc.T("Çıxart", "Take off") : Loc.T("Geyindir", "Dress up"))
+                                </button>
+                            }
+
+                            @if (item.Status != WardrobeDesignStatus.Pending)
+                            {
+                                <button class="studio__remove" disabled="@_busy" @onclick="() => DeleteAsync(item)"
+                                        aria-label="@Loc.T("Sil", "Remove")">🗑</button>
+                            }
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+}
+
+@code {
+    /// <summary>Studiya vərəqi açıqdırmı. Komponent otaq açıq olduqca yaşayır — güzgüdəki görünüş üçün.</summary>
+    [Parameter] public bool Open { get; set; }
+
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    /// <summary>
+    /// Geyindirilmiş dizaynın şəkli dəyişəndə çağırılır: güzgü onu göstərir,
+    /// <c>null</c> isə adi görünüşdür.
+    /// </summary>
+    [Parameter] public EventCallback<string?> OnLookChanged { get; set; }
+
+    /// <summary>Hazır olmayan dizayn üçün ən çox neçə yoxlama — sonsuz sorğu olmasın.</summary>
+    private const int MaxPolls = 60;
+
+    private WardrobeStateDto? _state;
+    private string _text = string.Empty;
+    private bool _busy;
+    private string? _error;
+    private bool _polling;
+    private bool _wasOpen;
+    private Guid? _announcedLook;
+    private bool _lookAnnounced;
+    private readonly Dictionary<Guid, string> _images = [];
+    private readonly CancellationTokenSource _lifetime = new();
+
+    private bool CanSubmit =>
+        !_busy && _state is { Enabled: true, DesignsLeftToday: > 0 } && _text.Trim().Length > 0;
+
+    /// <summary>
+    /// Filtrin dərhal saxladığı arzu qalereyada göstərilmir — mesajı elə
+    /// formanın altında görünür. Moderasiyanın və modelin sonradan rədd
+    /// etdiyi isə qalereyada qalır, çünki uşaq onu orada gözləyirdi.
+    /// </summary>
+    private List<WardrobeDesignDto> VisibleDesigns =>
+        _state?.Designs
+            .Where(d => d.Status != WardrobeDesignStatus.Blocked
+                        || d.Reason is WardrobeBlockReason.Moderation or WardrobeBlockReason.ProviderRefused)
+            .ToList() ?? [];
+
+    protected override Task OnInitializedAsync() => RefreshAsync();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Open && !_wasOpen && _state is not null)
+            await RefreshAsync();
+
+        _wasOpen = Open;
+    }
+
+    private async Task RefreshAsync()
+    {
+        var result = await Api.GetWardrobeAsync(_lifetime.Token);
+
+        if (result is not { Succeeded: true, Value: { } state })
+            return;
+
+        _state = state;
+
+        await LoadImagesAsync();
+        await AnnounceLookAsync();
+        StartPolling();
+    }
+
+    private async Task LoadImagesAsync()
+    {
+        if (_state is null)
+            return;
+
+        foreach (var design in _state.Designs.Where(d => d.Status == WardrobeDesignStatus.Ready && !_images.ContainsKey(d.Id)))
+        {
+            if (await ImageAsync(design.Id) is { } image)
+                _images[design.Id] = image;
+        }
+    }
+
+    private async Task<string?> ImageAsync(Guid designId)
+    {
+        var result = await Api.GetWardrobeImageAsync(designId, _lifetime.Token);
+
+        return result is { Succeeded: true, Value: { Length: > 0 } data } ? data : null;
+    }
+
+    /// <summary>Geyindirilmiş dizayn dəyişibsə güzgüyə xəbər verir — dəyişməyibsə təkrar göndərmir.</summary>
+    private async Task AnnounceLookAsync()
+    {
+        var equipped = _state?.EquippedDesignId;
+
+        if (_lookAnnounced && equipped == _announcedLook)
+            return;
+
+        string? image = null;
+
+        if (equipped is { } designId && !_images.TryGetValue(designId, out image))
+        {
+            image = await ImageAsync(designId);
+
+            if (image is not null)
+                _images[designId] = image;
+        }
+
+        _announcedLook = equipped;
+        _lookAnnounced = true;
+
+        await OnLookChanged.InvokeAsync(image);
+    }
+
+    private void StartPolling()
+    {
+        if (_polling || _state?.Designs.Any(d => d.Status == WardrobeDesignStatus.Pending) != true)
+            return;
+
+        _polling = true;
+        _ = PollAsync();
+    }
+
+    /// <summary>
+    /// Dərzi arxa fonda tikir — ekran vəziyyəti seyrələn aralıqlarla soruşur.
+    /// Uşaq bu vaxt otaqda sərbəstdir; dizayn hazır olan kimi qalereyaya düşür.
+    /// </summary>
+    private async Task PollAsync()
+    {
+        var delay = 1_500;
+
+        try
+        {
+            for (var attempt = 0; attempt < MaxPolls && !_lifetime.IsCancellationRequested; attempt++)
+            {
+                await Task.Delay(delay, _lifetime.Token);
+                delay = Math.Min(delay + 500, 4_000);
+
+                var result = await Api.GetWardrobeAsync(_lifetime.Token);
+
+                if (result is not { Succeeded: true, Value: { } state })
+                    continue;
+
+                _state = state;
+
+                await LoadImagesAsync();
+                await AnnounceLookAsync();
+                await InvokeAsync(StateHasChanged);
+
+                if (!state.Designs.Any(d => d.Status == WardrobeDesignStatus.Pending))
+                    break;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            _polling = false;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (!CanSubmit)
+            return;
+
+        _busy = true;
+        _error = null;
+
+        var result = await Api.CreateWardrobeDesignAsync(_text.Trim(), _lifetime.Token);
+
+        _busy = false;
+
+        if (result is not { Succeeded: true, Value: { } design })
+        {
+            _error = result.Error;
+            return;
+        }
+
+        if (design.Status == WardrobeDesignStatus.Blocked)
+        {
+            _error = design.Message;
+            return;
+        }
+
+        _text = string.Empty;
+        await RefreshAsync();
+    }
+
+    private async Task ToggleEquipAsync(WardrobeDesignDto design)
+    {
+        _busy = true;
+        _error = null;
+
+        var result = await Api.EquipWardrobeDesignAsync(design.IsEquipped ? null : design.Id, _lifetime.Token);
+
+        _busy = false;
+
+        if (result is not { Succeeded: true, Value: { } state })
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _state = state;
+        await AnnounceLookAsync();
+    }
+
+    private async Task DeleteAsync(WardrobeDesignDto design)
+    {
+        _busy = true;
+        _error = null;
+
+        var result = await Api.DeleteWardrobeDesignAsync(design.Id, _lifetime.Token);
+
+        _busy = false;
+
+        if (result is not { Succeeded: true, Value: { } state })
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _images.Remove(design.Id);
+        _state = state;
+        await AnnounceLookAsync();
+    }
+
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+}

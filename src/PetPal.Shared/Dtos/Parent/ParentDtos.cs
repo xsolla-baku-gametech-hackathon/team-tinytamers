@@ -70,6 +70,9 @@ public class ParentDashboardDto
     /// <summary>Pet ilə söhbət açıqdırmı — valideyn onu elə bu ekrandan idarə edir.</summary>
     public bool ChatEnabled { get; set; }
 
+    /// <summary>Paltar otağının AI dizayn studiyası açıqdırmı (standart: bağlı).</summary>
+    public bool WardrobeAiEnabled { get; set; }
+
     /// <summary>Bilik Arenası açıqdırmı (standart: açıq).</summary>
     public bool ArenaEnabled { get; set; }
 

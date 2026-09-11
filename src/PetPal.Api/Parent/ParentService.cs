@@ -106,6 +106,7 @@ public class ParentService : IParentService
             Skills = skills,
             Last7Days = trend,
             ChatEnabled = child.ChatEnabled,
+            WardrobeAiEnabled = child.WardrobeAiEnabled,
             ArenaEnabled = child.ArenaEnabled,
             ArenaFriendsOnly = child.ArenaFriendsOnly,
             ScreenTime = new ScreenTimeSettingsDto

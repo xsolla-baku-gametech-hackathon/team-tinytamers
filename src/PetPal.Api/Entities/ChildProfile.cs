@@ -57,6 +57,13 @@ public class ChildProfile
     public bool ChatEnabled { get; set; }
 
     /// <summary>
+    /// Paltar otağının dizayn studiyası: uşaq pet-ə geyindirmək istədiyini
+    /// YAZIR, şəkil modeli çəkir. Standart olaraq BAĞLIDIR — söhbət kimi,
+    /// uşağın mətni xarici modelə gedir, ona görə bunu yalnız valideyn aça bilər.
+    /// </summary>
+    public bool WardrobeAiEnabled { get; set; }
+
+    /// <summary>
     /// Bilik Arenası (uşaq-uşaq yarışı). Söhbətdən fərqli olaraq standart
     /// AÇIQDIR: arenada sərbəst mətn yoxdur, üçüncü tərəf serverə heç nə getmir.
     /// </summary>

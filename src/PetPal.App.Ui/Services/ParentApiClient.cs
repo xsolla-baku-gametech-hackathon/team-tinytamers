@@ -2,6 +2,7 @@ using PetPal.Shared.Dtos.Auth;
 using PetPal.Shared.Dtos.Discovery;
 using PetPal.Shared.Dtos.Parent;
 using PetPal.Shared.Dtos.PetBrain;
+using PetPal.Shared.Dtos.Wardrobe;
 
 namespace PetPal.App.Ui.Services;
 
@@ -77,6 +78,20 @@ public class ParentApiClient : ApiClientBase
         Guid childId, bool enabled, CancellationToken ct = default) =>
         PutAsync<ChatSettingsRequest, ChatSettingsRequest>(
             $"api/parent/children/{childId}/chat", new ChatSettingsRequest { Enabled = enabled }, ct);
+
+    /// <summary>Uşağın paltar otağında yazdığı bütün arzular — saxlanılanlar da daxil.</summary>
+    public Task<ApiResult<ParentWardrobeLogDto>> GetWardrobeLogAsync(Guid childId, CancellationToken ct = default) =>
+        GetAsync<ParentWardrobeLogDto>($"api/parent/children/{childId}/wardrobe", ct);
+
+    public Task<ApiResult<WardrobeSettingsRequest>> UpdateWardrobeSettingsAsync(
+        Guid childId, bool enabled, CancellationToken ct = default) =>
+        PutAsync<WardrobeSettingsRequest, WardrobeSettingsRequest>(
+            $"api/parent/children/{childId}/wardrobe", new WardrobeSettingsRequest { Enabled = enabled }, ct);
+
+    /// <summary>Dizaynın şəkli — valideyn baxışı, sahiblik serverdə yoxlanılır.</summary>
+    public Task<ApiResult<string>> GetWardrobeImageAsync(
+        Guid childId, Guid designId, CancellationToken ct = default) =>
+        GetDataUrlAsync($"api/parent/children/{childId}/wardrobe/designs/{designId}/image", ct);
 
     // ---------- Bilik Arenası ----------
 

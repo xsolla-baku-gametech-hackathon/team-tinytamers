@@ -56,7 +56,8 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
     private static readonly string[] AmbientAiVariables =
     [
         "Ai__Provider", "Ai__BaseUrl", "Ai__ApiKey", "Ai__Model",
-        "Ai__ChatModel", "Ai__ReasoningEffort", "Ai__GuardModel", "Ai__GuardThreshold"
+        "Ai__ChatModel", "Ai__ReasoningEffort", "Ai__GuardModel", "Ai__GuardThreshold",
+        "Wardrobe__Provider", "Wardrobe__ApiKey", "Wardrobe__BaseUrl"
     ];
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)

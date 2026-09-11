@@ -260,21 +260,39 @@
 
                         @* Pet güzgünün qarşısındadır: taxılan paltar elə həmin an,
                            elə həmin yerdə görünür. *@
-                        <div class="closet__pet">
-                            <PetAvatar Stage="_pet.Stage" Mood="_pet.Mood" Species="@_pet.Species" Name="@_pet.Name"
-                                       Accessories="_pet.EquippedAccessories" ReactionClass="@_reaction" />
-                        </div>
+                        @if (_lookImage is not null)
+                        {
+                            <img class="closet__look" src="@_lookImage"
+                                 alt="@Loc.T("Güzgüdə pet-in dizayn paltarı", "Your pet's designed outfit in the mirror")" />
+                        }
+
+                        @if (_lookImage is null)
+                        {
+                            <div class="closet__pet">
+                                <PetAvatar Stage="_pet.Stage" Mood="_pet.Mood" Species="@_pet.Species" Name="@_pet.Name"
+                                           Accessories="_pet.EquippedAccessories" ReactionClass="@_reaction" />
+                            </div>
+                        }
                     </div>
                     <div class="closet__bar">
                         <button class="overlay-close" @onclick="CloseCloset" aria-label="@Loc.T("Otaqdan çıx", "Leave the room")">✕</button>
 
-                        @if (EquippedCount > 0)
-                        {
-                            <button class="closet__clear" disabled="@_busy" @onclick="ClearAccessoriesAsync">
-                                Hamısını çıxart
+                        <div class="closet__bar-actions">
+                            @if (EquippedCount > 0)
+                            {
+                                <button class="closet__clear" disabled="@_busy" @onclick="ClearAccessoriesAsync">
+                                    Hamısını çıxart
+                                </button>
+                            }
+
+                            <button class="closet__design @(_studioOpen ? "closet__design--on" : null)"
+                                    aria-pressed="@_studioOpen" @onclick="ToggleStudio">
+                                ✨ @Loc.T("Öz paltarın", "Your own outfit")
                             </button>
-                        }
+                        </div>
                     </div>
+
+                    <WardrobeStudio Open="_studioOpen" OnClose="CloseStudio" OnLookChanged="ShowLook" />
 
                     @if (!string.IsNullOrWhiteSpace(_actionError))
                     {
@@ -762,6 +780,21 @@
 
     /// <summary>Paltar dəyişmə otağı açıqdır — tam ekran, qulluq rejimlərindən ayrı.</summary>
     private bool _closetOpen;
+
+    /// <summary>Dizayn studiyasının vərəqi açıqdır — uşaq pet-ə geyindirmək istədiyini yazır.</summary>
+    private bool _studioOpen;
+
+    /// <summary>
+    /// Geyindirilmiş dizaynın şəkli. Doludursa güzgü onu göstərir və pet dizayn
+    /// paltarındadır; boşdursa otaq adi görünüşdədir.
+    /// </summary>
+    private string? _lookImage;
+
+    private void ToggleStudio() => _studioOpen = !_studioOpen;
+
+    private void CloseStudio() => _studioOpen = false;
+
+    private void ShowLook(string? image) => _lookImage = image;
 
     /// <summary>Pet yatağa uzanıb — rejim açılan kimi, sürükləmə olmadan.</summary>
     private bool _inBed;

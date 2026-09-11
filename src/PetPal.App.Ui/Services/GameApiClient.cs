@@ -9,6 +9,7 @@ using PetPal.Shared.Dtos.Pets;
 using PetPal.Shared.Dtos.Progress;
 using PetPal.Shared.Dtos.Rewards;
 using PetPal.Shared.Dtos.Social;
+using PetPal.Shared.Dtos.Wardrobe;
 using PetPal.Shared.Enums;
 
 namespace PetPal.App.Ui.Services;
@@ -220,6 +221,30 @@ public class GameApiClient : ApiClientBase
     /// </summary>
     public Task<ApiResult<string>> GetPetBrainSceneAsync(string assetUrl, CancellationToken ct = default) =>
         GetDataUrlAsync(assetUrl.TrimStart('/'), ct);
+
+    /// <summary>Paltar otağının dizayn studiyası — açıqdırmı, bu gün neçə dizayn qalıb, son dizaynlar.</summary>
+    public Task<ApiResult<WardrobeStateDto>> GetWardrobeAsync(CancellationToken ct = default) =>
+        GetAsync<WardrobeStateDto>("api/pet/wardrobe", ct);
+
+    /// <summary>
+    /// Uşağın paltar arzusu. Cavab dərhal gəlir: filtrin saxladığı arzu yumşaq
+    /// mesajla, qəbul edilən isə «tikilir» vəziyyəti ilə — şəkil arxa fonda çəkilir.
+    /// </summary>
+    public Task<ApiResult<WardrobeDesignDto>> CreateWardrobeDesignAsync(string text, CancellationToken ct = default) =>
+        PostAsync<CreateWardrobeDesignRequest, WardrobeDesignDto>(
+            "api/pet/wardrobe/designs", new CreateWardrobeDesignRequest { Text = text }, ct);
+
+    /// <summary>Dizaynın şəkli — app-in ÖZ, sahiblik yoxlanan endpoint-indən.</summary>
+    public Task<ApiResult<string>> GetWardrobeImageAsync(Guid designId, CancellationToken ct = default) =>
+        GetDataUrlAsync($"api/pet/wardrobe/designs/{designId}/image", ct);
+
+    /// <summary>Dizaynı geyindirir; <c>null</c> adi görünüşə qaytarır.</summary>
+    public Task<ApiResult<WardrobeStateDto>> EquipWardrobeDesignAsync(Guid? designId, CancellationToken ct = default) =>
+        PutAsync<EquipWardrobeDesignRequest, WardrobeStateDto>(
+            "api/pet/wardrobe/equipped", new EquipWardrobeDesignRequest { DesignId = designId }, ct);
+
+    public Task<ApiResult<WardrobeStateDto>> DeleteWardrobeDesignAsync(Guid designId, CancellationToken ct = default) =>
+        DeleteAsync<WardrobeStateDto>($"api/pet/wardrobe/designs/{designId}", ct);
 
     /// <summary>
     /// Tamamlanmış macəranın recap vəziyyəti. Video arxa fonda hazırlanır —
