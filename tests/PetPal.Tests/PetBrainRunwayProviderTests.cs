@@ -105,9 +105,9 @@ public sealed class RunwayEmulator : HttpMessageHandler
             return Json($$"""{"id":"{{taskId}}","status":"RUNNING","progress":0.4}""");
 
         if (FailureCode is not null)
-            return Json($$"""{"id":"{{taskId}}","status":"FAILED","failure":"internal diagnostics","failureCode":"{{FailureCode}}","cost":0}""");
+            return Json($$"""{"id":"{{taskId}}","status":"FAILED","cost":{"credits":0},"failure":"internal diagnostics","failureCode":"{{FailureCode}}"}""");
 
-        return Json($$"""{"id":"{{taskId}}","status":"SUCCEEDED","output":["https://{{CdnHost}}/{{taskId}}.bin?_jwt=signed"],"cost":{{Cost}}}""");
+        return Json($$"""{"id":"{{taskId}}","status":"SUCCEEDED","cost":{"credits":{{Cost}}},"output":["https://{{CdnHost}}/{{taskId}}.bin?_jwt=signed"]}""");
     }
 
     /// <summary>Hazır fayl: hansı tapşırığın nəticəsidirsə, onun baytları.</summary>

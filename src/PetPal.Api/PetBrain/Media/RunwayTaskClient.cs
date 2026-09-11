@@ -273,12 +273,7 @@ public sealed class RunwayTaskClient : IRunwayTaskClient
         var id = StringOf(root, "id");
         var status = StringOf(root, "status").ToUpperInvariant();
 
-        int? cost = root.ValueKind == JsonValueKind.Object &&
-                    root.TryGetProperty("cost", out var costElement) &&
-                    costElement.ValueKind == JsonValueKind.Number &&
-                    costElement.TryGetInt32(out var credits)
-            ? credits
-            : null;
+        var cost = Credits(root, "cost");
 
         var state = status switch
         {
@@ -327,6 +322,27 @@ public sealed class RunwayTaskClient : IRunwayTaskClient
             .ToArray());
 
         return code.Length > 0 ? $"failed:{code}" : "failed";
+    }
+
+    /// <summary>
+    /// Kredit sahəsi. <b>Canlı API obyekt qaytarır</b> (<c>"cost": {"credits": 5}</c>,
+    /// 2026-09-11-də ölçülüb); adi rəqəm də qəbul edilir ki, forma dəyişsə
+    /// həqiqi xərc oxunmamış qalmasın.
+    /// </summary>
+    private static int? Credits(JsonElement root, string name)
+    {
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(name, out var element))
+            return null;
+
+        if (element.ValueKind == JsonValueKind.Number && element.TryGetInt32(out var direct))
+            return direct;
+
+        return element.ValueKind == JsonValueKind.Object &&
+               element.TryGetProperty("credits", out var credits) &&
+               credits.ValueKind == JsonValueKind.Number &&
+               credits.TryGetInt32(out var nested)
+            ? nested
+            : null;
     }
 
     private static string StringOf(JsonElement root, string name) =>

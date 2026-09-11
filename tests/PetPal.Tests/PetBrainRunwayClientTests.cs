@@ -285,12 +285,19 @@ public class PetBrainRunwayClientTests
         Assert.DoesNotContain("<", task.FailureReason, StringComparison.Ordinal);
     }
 
-    /// <summary>Provayderin bildirdiyi HƏQİQİ kredit oxunur — dövrə kəsicisi ona baxır.</summary>
-    [Fact]
-    public async Task HeqiqiKredit_TapsiriqdanOxunur()
+    /// <summary>
+    /// Provayderin bildirdiyi HƏQİQİ kredit oxunur — dövrə kəsicisi ona baxır.
+    ///
+    /// <para>Canlı API bu sahəni <b>obyekt</b> kimi qaytarır (2026-09-11-də
+    /// ölçülüb); adi rəqəm də qəbul edilir ki, forma dəyişsə xərc oxunmamış
+    /// qalmasın.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("""{"id":"t","status":"SUCCEEDED","cost":{"credits":50},"output":["https://cdn.example/x.mp4"]}""")]
+    [InlineData("""{"id":"t","status":"SUCCEEDED","cost":50,"output":["https://cdn.example/x.mp4"]}""")]
+    public async Task HeqiqiKredit_TapsiriqdanOxunur(string payload)
     {
-        var task = await NewClient(new CapturingHandler(_ =>
-            Json("""{"id":"t","status":"SUCCEEDED","output":["https://cdn.example/x.mp4"],"cost":50}"""))).PollAsync("t");
+        var task = await NewClient(new CapturingHandler(_ => Json(payload))).PollAsync("t");
 
         Assert.Equal(RunwayTaskState.Succeeded, task.State);
         Assert.Equal(50, task.Cost);

@@ -109,8 +109,9 @@ public class PetBrainRunwayEndToEndTests
             .Where(c => c.Request.RequestUri!.AbsolutePath.EndsWith("text_to_image", StringComparison.Ordinal))
             .ToList();
 
-        var videoJob = Assert.Single(creates
-            .Where(c => c.Request.RequestUri!.AbsolutePath.EndsWith("image_to_video", StringComparison.Ordinal)));
+        var videoJob = Assert.Single(
+            creates,
+            c => c.Request.RequestUri!.AbsolutePath.EndsWith("image_to_video", StringComparison.Ordinal));
 
         Assert.NotEmpty(imageJobs);
         Assert.All(imageJobs, job =>
