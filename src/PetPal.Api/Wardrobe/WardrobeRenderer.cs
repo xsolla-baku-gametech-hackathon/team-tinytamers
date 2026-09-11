@@ -15,6 +15,10 @@ namespace PetPal.Api.Wardrobe;
 /// rəddi «başqa paltar fikirləşək», texniki xəta isə «sonra yoxla» deməkdir və
 /// uşağın günlük həddindən sayılmır.</para>
 ///
+/// <para>Mənaca ön yoxlama qurulmayıbsa (<see cref="ModerationVerdict.NotConfigured"/>)
+/// dizayn davam edir — bu, yerləşdirmənin açıq qərarıdır; qurulub, amma
+/// cavab vermirsə şəkil çəkilmir.</para>
+///
 /// <para>Sorğu pullu modelə getməzdən ƏVVƏL sətir <c>ReachedProvider</c> kimi
 /// yazılır: proses zəngin ortasında ölsə də xərc gündəlik həddə düşür.</para>
 /// </summary>
@@ -79,11 +83,24 @@ public sealed class WardrobeRenderer
             case ModerationVerdict.Unavailable:
                 await FinishAsync(design, WardrobeDesignStatus.Failed, WardrobeBlockReason.Unavailable, ct);
                 return;
+
+            case ModerationVerdict.NotConfigured:
+                _logger.LogDebug("Wardrobe: mənaca ön yoxlama qurulmayıb ({DesignId}).", design.Id);
+                break;
         }
 
         var reference = _options.UseBasePortrait
             ? await BasePortraitAsync(design.PetSpecies, design.PetStage, ct)
             : null;
+
+        if (reference is not null && reference.Bytes.Length > _provider.MaxReferenceBytes)
+        {
+            _logger.LogInformation(
+                "Wardrobe: baza portreti istinad üçün böyükdür ({Bytes} bayt) — dizayn sıfırdan çəkilir.",
+                reference.Bytes.Length);
+
+            reference = null;
+        }
 
         var prompt = WardrobePromptBuilder.Outfit(design.PetSpecies, design.PetStage, design.Text, reference is not null);
 
@@ -111,7 +128,7 @@ public sealed class WardrobeRenderer
             return;
         }
 
-        var check = PuzzleIllustrationValidator.Validate(result.Bytes);
+        var check = PuzzleIllustrationValidator.Validate(result.Bytes, _options.MaxImageBytes);
 
         if (!check.IsValid)
         {
@@ -135,12 +152,16 @@ public sealed class WardrobeRenderer
     /// Növ+mərhələnin baza portreti — varsa saxlancdan, yoxdursa bir dəfə
     /// çəkilir. Alınmasa <c>null</c>: dizayn onda sıfırdan çəkilir, uşaq
     /// fərqi yalnız pet-in bir az başqa görünməsində hiss edir.
+    ///
+    /// <para>Barmaq izində provayder, model, ölçü və keyfiyyət var: provayder
+    /// dəyişəndə köhnə portret yeni üslubla qarışmır.</para>
     /// </summary>
     private async Task<Reference?> BasePortraitAsync(string species, PetStage stage, CancellationToken ct)
     {
         var prompt = WardrobePromptBuilder.BasePortrait(species, stage);
         var fingerprint = WardrobePromptBuilder.Fingerprint(string.Join('|',
-            prompt, _provider.Model, _options.EffectiveSize, _options.EffectiveQuality));
+            prompt, _provider.Name, _provider.Model, _options.EffectiveSize, _options.EffectiveRunwayRatio,
+            _options.EffectiveQuality));
 
         foreach (var format in BaseFormats)
         {
@@ -156,7 +177,7 @@ public sealed class WardrobeRenderer
             return null;
         }
 
-        var check = PuzzleIllustrationValidator.Validate(result.Bytes);
+        var check = PuzzleIllustrationValidator.Validate(result.Bytes, _options.MaxImageBytes);
 
         if (!check.IsValid)
             return null;

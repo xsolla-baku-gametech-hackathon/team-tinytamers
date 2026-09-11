@@ -33,12 +33,31 @@ public sealed record RunwayTask(
     public static RunwayTask Failed(string reason) => new(string.Empty, RunwayTaskState.Failed, null, reason);
 }
 
+/// <summary>
+/// Mətndən şəkil sorğusu — keyfiyyət və istinad şəkilləri ilə.
+///
+/// <para>Üçüncü tərəf modelləri (məsələn <c>gpt_image_2_5_flare</c>) bu sahələri
+/// qəbul edir və promptları <see cref="RunwayTaskClient.MaxPromptLength"/>-dən
+/// xeyli uzundur; boş sahə sorğuya ümumiyyətlə yazılmır.</para>
+/// </summary>
+/// <param name="ReferenceImageDataUris">İstinad şəkilləri <c>data:</c> URI kimi.</param>
+/// <param name="MaxPromptLength">Modelin prompt həddi — aşırsa sorğu GETMİR.</param>
+public sealed record RunwayTextToImageRequest(
+    string Model,
+    string Prompt,
+    string Ratio,
+    string? Quality = null,
+    IReadOnlyList<string>? ReferenceImageDataUris = null,
+    int MaxPromptLength = RunwayTaskClient.MaxPromptLength);
+
 /// <summary>Runway Dev API-nin REST səthi — tapşırıq yaradır və izləyir.</summary>
 public interface IRunwayTaskClient
 {
     bool IsConfigured { get; }
 
     Task<RunwayTask> CreateImageAsync(string model, string prompt, string ratio, CancellationToken ct = default);
+
+    Task<RunwayTask> CreateTextToImageAsync(RunwayTextToImageRequest request, CancellationToken ct = default);
 
     Task<RunwayTask> CreateVideoAsync(
         string model, string prompt, string promptImageDataUri, string ratio, int durationSeconds,
@@ -124,20 +143,44 @@ public sealed class RunwayTaskClient : IRunwayTaskClient
         }, ct);
 
     /// <summary>
+    /// Mətndən şəkil — yalnız verilən sahələrlə. Boş keyfiyyət və istinad
+    /// sorğuya yazılmır: provayder naməlum və ya <c>null</c> sahəni rədd edə bilər.
+    /// </summary>
+    public Task<RunwayTask> CreateTextToImageAsync(RunwayTextToImageRequest request, CancellationToken ct = default)
+    {
+        var body = new Dictionary<string, object>
+        {
+            ["model"] = request.Model,
+            ["promptText"] = request.Prompt,
+            ["ratio"] = request.Ratio
+        };
+
+        if (!string.IsNullOrWhiteSpace(request.Quality))
+            body["quality"] = request.Quality;
+
+        if (request.ReferenceImageDataUris is { Count: > 0 } references)
+            body["referenceImages"] = references.Select(uri => new { uri }).ToArray();
+
+        return CreateAsync(TextToImagePath, request.Prompt, body, ct, request.MaxPromptLength);
+    }
+
+    /// <summary>
     /// Tapşırığı YARADIR.
     ///
     /// <para>Prompt həddi aşırsa sorğu GETMİR: provayder onu onsuz da rədd
-    /// edərdi, səbəb isə «səhnə alınmadı» kimi görünərdi.</para>
+    /// edərdi, səbəb isə «səhnə alınmadı» kimi görünərdi. Hədd modelə görədir —
+    /// Runway-in öz modelləri 1000 simvol, GPT Image modelləri daha çox qəbul edir.</para>
     ///
     /// <para>HTTP xətasının gövdəsi OXUNMUR: provayderin diaqnostikası daxili
     /// məlumat daşıya bilər və loga düşməməlidir.</para>
     /// </summary>
-    private async Task<RunwayTask> CreateAsync(string path, string prompt, object body, CancellationToken ct)
+    private async Task<RunwayTask> CreateAsync(
+        string path, string prompt, object body, CancellationToken ct, int maxPromptLength = MaxPromptLength)
     {
         if (!IsConfigured)
             return RunwayTask.Failed("not-configured");
 
-        if (prompt.Length is 0 or > MaxPromptLength)
+        if (prompt.Length == 0 || prompt.Length > maxPromptLength)
             return RunwayTask.Failed("prompt-length");
 
         try

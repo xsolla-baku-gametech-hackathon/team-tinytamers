@@ -33,12 +33,18 @@ public static class PuzzleIllustrationValidator
         public static Check Invalid(string reason) => new(false, string.Empty, 0, 0, reason);
     }
 
-    public static Check Validate(byte[]? bytes)
+    public static Check Validate(byte[]? bytes) => Validate(bytes, MaxBytes);
+
+    /// <summary>
+    /// Fərqli ölçü həddi ilə yoxlama — dizayn studiyasının portreti tapmaca
+    /// rəsmindən böyükdür. Format, ölçü və portret qaydası eyni qalır.
+    /// </summary>
+    public static Check Validate(byte[]? bytes, int maxBytes)
     {
         if (bytes is null || bytes.Length == 0)
             return Check.Invalid("empty");
 
-        if (bytes.Length > MaxBytes)
+        if (bytes.Length > maxBytes)
             return Check.Invalid("too-large");
 
         var format = Sniff(bytes);

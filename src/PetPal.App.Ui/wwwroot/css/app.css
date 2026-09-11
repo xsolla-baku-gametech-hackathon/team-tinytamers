@@ -3603,6 +3603,12 @@
 
 .studio__thumb--sewing { animation: pbx-hero-glow 1600ms ease-in-out infinite; }
 
+.studio__thumb--peek {
+    border: 2px dashed var(--pp-edge-neutral);
+    color: var(--pp-ink);
+    cursor: pointer;
+}
+
 .studio__wish {
     margin: 0;
     font-size: 12px;

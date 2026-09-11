@@ -46,11 +46,14 @@ public sealed class OpenAiWardrobeImageProvider : IWardrobeImageProvider
             _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
     }
 
-    public bool IsEnabled => _options.IsEnabled;
+    public bool IsEnabled => _options.UsesOpenAi;
 
     public string Name => "openai";
 
     public string Model => _options.EffectiveImageModel;
+
+    /// <summary>OpenAI redaktə endpoint-i böyük istinad qəbul edir — hədd bizim bayt həddimizdir.</summary>
+    public int MaxReferenceBytes => _options.MaxImageBytes;
 
     public Task<WardrobeImageResult> GenerateAsync(string prompt, CancellationToken ct = default)
     {

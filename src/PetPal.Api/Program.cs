@@ -467,16 +467,31 @@ var wardrobeOptions = builder.Configuration
     .GetSection(WardrobeOptions.SectionName)
     .Get<WardrobeOptions>() ?? new WardrobeOptions();
 
-if (wardrobeOptions.IsEnabled)
+if (wardrobeOptions.UsesOpenAi)
 {
     builder.Services.AddHttpClient<IWardrobeImageProvider, OpenAiWardrobeImageProvider>();
-    builder.Services.AddHttpClient<IWardrobeModeration, OpenAiWardrobeModeration>();
+}
+else if (wardrobeOptions.UsesRunway)
+{
+    if (builder.Services.All(service => service.ServiceType != typeof(IRunwayTaskClient)))
+        builder.Services.AddHttpClient<IRunwayTaskClient, RunwayTaskClient>()
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
+
+    builder.Services.AddScoped<IWardrobeImageProvider, RunwayWardrobeImageProvider>();
 }
 else
 {
     builder.Services.AddSingleton<IWardrobeImageProvider, DisabledWardrobeImageProvider>();
-    builder.Services.AddSingleton<IWardrobeModeration, DisabledWardrobeModeration>();
 }
+
+if (!wardrobeOptions.IsEnabled)
+    builder.Services.AddSingleton<IWardrobeModeration, DisabledWardrobeModeration>();
+else if (!string.IsNullOrWhiteSpace(wardrobeOptions.EffectiveModerationKey))
+    builder.Services.AddHttpClient<IWardrobeModeration, OpenAiWardrobeModeration>();
+else if (aiOptions.IsEnabled)
+    builder.Services.AddHttpClient<IWardrobeModeration, ChatModelWardrobeModeration>();
+else
+    builder.Services.AddSingleton<IWardrobeModeration, NoWardrobeModeration>();
 
 builder.Services.AddSingleton<IWardrobeImageStore, LocalWardrobeImageStore>();
 builder.Services.AddSingleton<WardrobeQueue>();

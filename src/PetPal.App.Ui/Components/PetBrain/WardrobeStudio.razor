@@ -74,16 +74,19 @@
                         {
                             <img class="studio__thumb" src="@image" alt="@item.Text" />
                         }
+                        else if (item.Status == WardrobeDesignStatus.Ready)
+                        {
+                            <button class="studio__thumb studio__thumb--peek" disabled="@(_peeking == item.Id)"
+                                    @onclick="() => PeekAsync(item.Id)"
+                                    aria-label="@Loc.T("Şəklə bax", "View the picture")">
+                                @(_peeking == item.Id ? "⏳" : "👀")
+                            </button>
+                        }
                         else
                         {
                             <div class="studio__thumb @(item.Status == WardrobeDesignStatus.Pending ? "studio__thumb--sewing" : null)"
                                  aria-hidden="true">
-                                @(item.Status switch
-                                {
-                                    WardrobeDesignStatus.Pending => "🧵",
-                                    WardrobeDesignStatus.Ready => "✨",
-                                    _ => "💭"
-                                })
+                                @(item.Status == WardrobeDesignStatus.Pending ? "🧵" : "💭")
                             </div>
                         }
 
@@ -135,6 +138,7 @@
     private bool _wasOpen;
     private Guid? _announcedLook;
     private bool _lookAnnounced;
+    private Guid? _peeking;
     private readonly Dictionary<Guid, string> _images = [];
     private readonly CancellationTokenSource _lifetime = new();
 
@@ -171,21 +175,35 @@
 
         _state = state;
 
-        await LoadImagesAsync();
+        await LoadNewestAsync();
         await AnnounceLookAsync();
         StartPolling();
     }
 
-    private async Task LoadImagesAsync()
+    /// <summary>
+    /// Qalereyada yalnız ən yeni hazır dizayn özü yüklənir. Flare portreti bir
+    /// neçə meqabaytdır — hamısını birdən yükləmək cihazın yaddaşını doldurardı;
+    /// qalanları uşaq toxunanda gəlir.
+    /// </summary>
+    private async Task LoadNewestAsync()
     {
-        if (_state is null)
+        var newest = _state?.Designs.FirstOrDefault(d => d.Status == WardrobeDesignStatus.Ready);
+
+        if (newest is not null && !_images.ContainsKey(newest.Id) && await ImageAsync(newest.Id) is { } image)
+            _images[newest.Id] = image;
+    }
+
+    private async Task PeekAsync(Guid designId)
+    {
+        if (_images.ContainsKey(designId))
             return;
 
-        foreach (var design in _state.Designs.Where(d => d.Status == WardrobeDesignStatus.Ready && !_images.ContainsKey(d.Id)))
-        {
-            if (await ImageAsync(design.Id) is { } image)
-                _images[design.Id] = image;
-        }
+        _peeking = designId;
+
+        if (await ImageAsync(designId) is { } image)
+            _images[designId] = image;
+
+        _peeking = null;
     }
 
     private async Task<string?> ImageAsync(Guid designId)
@@ -250,7 +268,7 @@
 
                 _state = state;
 
-                await LoadImagesAsync();
+                await LoadNewestAsync();
                 await AnnounceLookAsync();
                 await InvokeAsync(StateHasChanged);
 

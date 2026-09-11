@@ -32,6 +32,12 @@ public interface IWardrobeImageProvider
 
     string Model { get; }
 
+    /// <summary>
+    /// İstinad şəklinin ən böyük ölçüsü (bayt). Daha böyük istinad göndərilmir —
+    /// dizayn onda sıfırdan çəkilir, uşaq isə yenə şəklini alır.
+    /// </summary>
+    int MaxReferenceBytes { get; }
+
     Task<WardrobeImageResult> GenerateAsync(string prompt, CancellationToken ct = default);
 
     Task<WardrobeImageResult> EditAsync(
@@ -49,6 +55,8 @@ public sealed class DisabledWardrobeImageProvider : IWardrobeImageProvider
     public string Name => "none";
 
     public string Model => string.Empty;
+
+    public int MaxReferenceBytes => 0;
 
     public Task<WardrobeImageResult> GenerateAsync(string prompt, CancellationToken ct = default) =>
         Task.FromResult(WardrobeImageResult.Failed("disabled"));

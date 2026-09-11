@@ -59,6 +59,8 @@ public sealed class FakeWardrobeImageProvider : IWardrobeImageProvider
 
     public string Model => WardrobeOptions.DefaultImageModel;
 
+    public int MaxReferenceBytes { get; set; } = int.MaxValue;
+
     /// <summary><c>ok</c>, <c>refuse</c> (modelin öz rəddi) və ya <c>fail</c> (texniki xəta).</summary>
     public string Behaviour { get; set; } = "ok";
 
