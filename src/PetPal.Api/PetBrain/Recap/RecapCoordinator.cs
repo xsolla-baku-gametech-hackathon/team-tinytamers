@@ -82,8 +82,25 @@ public sealed class RecapCoordinator
     ///
     /// <para>Kvota sətir yaradılmazdan ƏVVƏL yoxlanılır: hədd dolubsa sətir
     /// birbaşa "Fallback" kimi açılır və heç bir iş növbəyə düşmür.</para>
+    ///
+    /// <para>Bu forma BAXIŞ üçündür (yekunu yenidən açmaq, recap ünvanı):
+    /// faylı itmiş videonu yenidən sifariş etmir.</para>
     /// </summary>
-    public async Task<AdventureRecap> EnsureAsync(AdventureRecapSpec spec, CancellationToken ct)
+    public Task<AdventureRecap> EnsureAsync(AdventureRecapSpec spec, CancellationToken ct) =>
+        EnsureAsync(spec, reorderLostVideo: false, ct);
+
+    /// <summary>
+    /// Recap sətrini AÇIR; <paramref name="reorderLostVideo"/> doğrudursa
+    /// faylı itmiş videonu da yenidən sifariş edir.
+    ///
+    /// <para>Bayrağı yalnız macəranın YENİ tamamlanması qaldırır. Hash seçimlərdən
+    /// qurulur və əbədi keşlənir: bayraq olmasa eyni seçimlərlə bitən hər yeni
+    /// macəra itmiş videonun storyboard-ına düşər və bu seçimlər bir daha heç
+    /// vaxt video almazdı. Tamamlanma isə uşağın açıq sifarişidir — video bir
+    /// dəfə yenidən çəkilir, rəfə və yekuna baxmaq isə yenə pul xərcləmir.</para>
+    /// </summary>
+    public async Task<AdventureRecap> EnsureAsync(
+        AdventureRecapSpec spec, bool reorderLostVideo, CancellationToken ct)
     {
         var hash = spec.Hash();
         var now = _clock.GetUtcNow().UtcDateTime;
@@ -91,7 +108,8 @@ public sealed class RecapCoordinator
         var existing = await _db.AdventureRecaps.FirstOrDefaultAsync(r => r.RecapSpecHash == hash, ct);
 
         if (existing is not null)
-            return await ReopenIfNowAllowedAsync(await DropLostVideoAsync(existing, ct), spec, now, ct);
+            return await ReopenIfNowAllowedAsync(
+                await DropLostVideoAsync(existing, ct), spec, now, reorderLostVideo, ct);
 
         var denial = await DenialAsync(spec.ChildProfileId, now, ct);
         var allowed = denial.Length == 0;
@@ -377,7 +395,7 @@ public sealed class RecapCoordinator
         if (row is not { Status: PetBrainRecapStatus.Fallback } || row.FailureReason != NoReferenceImage)
             return row;
 
-        return await ReopenIfNowAllowedAsync(row, spec, _clock.GetUtcNow().UtcDateTime, ct);
+        return await ReopenIfNowAllowedAsync(row, spec, _clock.GetUtcNow().UtcDateTime, reorderLostVideo: false, ct);
     }
 
     /// <summary>Hazır videonun faylı saxlancda yoxdur — sətir artıq «hazır» deyil.</summary>
@@ -387,9 +405,10 @@ public sealed class RecapCoordinator
     /// «Hazır» deyən, amma faylı saxlancda olmayan videonu storyboard-a salır.
     ///
     /// <para>Belə olmasa ekran «videoya bax» düyməsi göstərir, video isə
-    /// açılmır. Yenidən çəkmə AVTOMATİK DEYİL: səbəb «provayderə heç çatmadı»
-    /// siyahısında yoxdur, yəni rəfə və ya yekuna baxmaq pul xərcləmir —
-    /// itmiş videonu yenidən çəkmək böyüklərin açıq qərarıdır.</para>
+    /// açılmır. Səbəb «provayderə heç çatmadı» siyahısında yoxdur, yəni rəfə və
+    /// ya yekuna baxmaq video ÇƏKDİRMİR. Yenidən çəkməni yalnız eyni seçimlərlə
+    /// bitən YENİ macəra sifariş edir
+    /// (<see cref="EnsureAsync(AdventureRecapSpec, bool, CancellationToken)"/>).</para>
     /// </summary>
     private async Task<AdventureRecap> DropLostVideoAsync(AdventureRecap row, CancellationToken ct)
     {
@@ -468,12 +487,18 @@ public sealed class RecapCoordinator
     ///
     /// <para>İlk kadrı gec gələn sətir də buraya aiddir: provayderə heç nə
     /// getməmişdi, rəsm isə indi hazırdır (<see cref="LateSceneArrivedAsync"/>).</para>
+    ///
+    /// <para>Faylı itmiş video isə yalnız <paramref name="reorderLostVideo"/>
+    /// ilə açılır — yəni eyni seçimlərlə YENİ macəra bitəndə. Köhnə tapşırığın
+    /// id-si və fayl açarı silinir: işçi yeni tapşırıq başladır, köhnəni sorğulamır.</para>
     /// </summary>
     private async Task<AdventureRecap> ReopenIfNowAllowedAsync(
-        AdventureRecap row, AdventureRecapSpec spec, DateTime now, CancellationToken ct)
+        AdventureRecap row, AdventureRecapSpec spec, DateTime now, bool reorderLostVideo, CancellationToken ct)
     {
         if (row.Status != PetBrainRecapStatus.Fallback ||
-            !(MediaFailure.NeverReachedProvider(row.FailureReason) || await LateSceneArrivedAsync(row, spec, ct)))
+            !(MediaFailure.NeverReachedProvider(row.FailureReason) ||
+              (reorderLostVideo && row.FailureReason == AssetMissing) ||
+              await LateSceneArrivedAsync(row, spec, ct)))
             return row;
 
         if (!_cost.ForVideo().Allowed || (await DenialAsync(spec.ChildProfileId, now, ct)).Length > 0)
@@ -481,6 +506,8 @@ public sealed class RecapCoordinator
 
         row.Status = PetBrainRecapStatus.Pending;
         row.FailureReason = string.Empty;
+        row.AssetKey = string.Empty;
+        row.ProviderJobId = string.Empty;
         row.ChildProfileId = spec.ChildProfileId;
         row.ExperienceRunId = spec.RunId;
         row.Attempts = 0;

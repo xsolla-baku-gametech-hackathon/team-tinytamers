@@ -1783,7 +1783,7 @@ public class PetBrainService : IPetBrainService
         // Recap TRANZAKSİYADAN SONRA açılır və heç nə gözlətmir: XP, bağ,
         // xatirə və kosmetik artıq verilib. Video gec gəlsə də (və ya heç
         // gəlməsə də) uşağın mükafatı toxunulmazdır.
-        dto.Summary.Recap = await EnsureRecapAsync(run, ct);
+        dto.Summary.Recap = await EnsureRecapAsync(run, freshCompletion: true, ct);
 
         _telemetry.RunCompleted(template.Key, run.EndingKey, run.CurrentStage);
 
@@ -1796,15 +1796,19 @@ public class PetBrainService : IPetBrainService
     /// <para>Storyboard HƏMİŞƏ doludur — video hazır olmasa da uşaq öz
     /// seçimlərini üç kadrda görür və altyazılar serverin saxladığı HƏQİQİ
     /// seçimlərdən qurulur.</para>
+    ///
+    /// <para><paramref name="freshCompletion"/> yalnız macəranın İNDİ bitdiyi
+    /// cavabda doğrudur: faylı itmiş video yalnız onda yenidən sifariş olunur.
+    /// Yekunu yenidən açmaq və recap ünvanı baxışdır — pul xərcləmir.</para>
     /// </summary>
-    private async Task<PetBrainRecapDto> EnsureRecapAsync(ExperienceRun run, CancellationToken ct)
+    private async Task<PetBrainRecapDto> EnsureRecapAsync(ExperienceRun run, bool freshCompletion, CancellationToken ct)
     {
         var spec = await _recapSpecs.BuildAsync(run.Id, ct);
 
         if (spec is null)
             return new PetBrainRecapDto();
 
-        var row = await _recaps.EnsureAsync(spec, ct);
+        var row = await _recaps.EnsureAsync(spec, reorderLostVideo: freshCompletion, ct);
 
         if (row.Status is PetBrainRecapStatus.Pending or PetBrainRecapStatus.Generating)
             _recapQueue.Enqueue(spec);
@@ -1855,7 +1859,7 @@ public class PetBrainService : IPetBrainService
             .FirstOrDefaultAsync(r => r.Id == runId && r.ChildProfileId == childId, ct);
 
         return run is { Status: PetBrainRunStatus.Completed }
-            ? await EnsureRecapAsync(run, ct)
+            ? await EnsureRecapAsync(run, freshCompletion: false, ct)
             : null;
     }
 
@@ -3325,7 +3329,7 @@ public class PetBrainService : IPetBrainService
 
         // Recap KEŞDƏN gəlir: eyni seçimlər eyni hash verir, deməli təkrar
         // baxış heç nə xərcləmir.
-        dto.Summary.Recap = await EnsureRecapAsync(run, ct);
+        dto.Summary.Recap = await EnsureRecapAsync(run, freshCompletion: false, ct);
 
         return dto;
     }

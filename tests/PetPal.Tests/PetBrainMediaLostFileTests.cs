@@ -104,6 +104,50 @@ public class PetBrainMediaLostFileTests
         Assert.Equal(1, factory.Video.Starts);
     }
 
+    /// <summary>
+    /// Faylı itmiş videonu eyni seçimlərlə bitən YENİ macəra bir dəfə yenidən
+    /// sifariş edir: hash eynidir, sətir də eynidir. Baxış isə yenə çəkdirmir.
+    /// </summary>
+    [Fact]
+    public async Task VideonunFayliItende_EyniMacaraniYenidenBitirmek_BirDefeYenidenCekir()
+    {
+        using var factory = new PetBrainRecapFactory();
+
+        var client = await ApiTestClient.CreateAsync(factory, "lost-video-replay@petpal.test", "Aylin");
+        await client.HatchAsync(factory);
+
+        var first = await PetBrainPlaythrough.PlayToEndAsync(client);
+        await PetBrainPlaythrough.CompleteAsync(client, first.RunId);
+        await WaitForShelfAsync(client, first.RunId, PetBrainRecapStatus.Ready);
+
+        foreach (var file in Directory.GetFiles(Path.Combine(factory.StorageRoot, "pet-brain-recaps")))
+            File.Delete(file);
+
+        Assert.Equal(
+            PetBrainRecapStatus.Fallback,
+            Assert.Single(await ShelfAsync(client), e => e.RunId == first.RunId).Recap.Status);
+
+        var start = await client.Http.PostAsJsonAsync(
+            "/api/pet-brain/runs", new StartPetBrainRunRequest { TemplateKey = first.TemplateKey });
+        start.EnsureSuccessStatusCode();
+
+        var replay = await PetBrainPlaythrough.ContinueToEndAsync(
+            client, (await start.Content.ReadFromJsonAsync<PetBrainRunDto>())!);
+
+        await PetBrainPlaythrough.CompleteAsync(client, replay.RunId);
+
+        var healed = await WaitForShelfAsync(client, replay.RunId, PetBrainRecapStatus.Ready);
+
+        Assert.Equal(HttpStatusCode.OK, (await client.Http.GetAsync(healed.Recap.VideoUrl)).StatusCode);
+        Assert.Equal(2, factory.Video.Starts);
+        Assert.Equal(1, await RecapRowsAsync(factory));
+
+        await ShelfAsync(client);
+        await client.Http.GetAsync($"/api/pet-brain/runs/{replay.RunId}/recap");
+
+        Assert.Equal(2, factory.Video.Starts);
+    }
+
     private static PuzzleSceneSpec MarsScene() =>
         PuzzleSceneSpec.For(
             PuzzleBlueprintCatalog.Find(PuzzleBlueprintCatalog.MarsSignalRouteKey)!,
@@ -139,6 +183,13 @@ public class PetBrainMediaLostFileTests
             .PuzzleIllustrations
             .AsNoTracking()
             .FirstAsync(i => i.SceneSpecHash == hash);
+    }
+
+    private static async Task<int> RecapRowsAsync(PetBrainRecapFactory factory)
+    {
+        using var scope = factory.Services.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().AdventureRecaps.CountAsync();
     }
 
     private static async Task<List<PetBrainRecapEntryDto>> ShelfAsync(ApiTestClient client) =>
