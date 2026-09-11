@@ -1,0 +1,138 @@
+@using System.Globalization
+@inject Loc Loc
+@inject GameApiClient Api
+@implements IDisposable
+
+@if (_shelf.Count > 0)
+{
+    <section class="card pbx-recaps" aria-labelledby="pbx-recaps-title">
+        <h2 id="pbx-recaps-title" class="card__title">
+            <span aria-hidden="true">🎬</span>
+            <span>@Loc.T("Macəra videoların", "Your adventure videos")</span>
+        </h2>
+
+        <ul class="pbx-recaps__list">
+            @foreach (var entry in _shelf)
+            {
+                var item = entry;
+                var open = _expanded == item.RunId;
+
+                <li class="pbx-recaps__item">
+                    <button type="button" class="pbx-recaps__row"
+                            aria-expanded="@(open ? "true" : "false")"
+                            @onclick="() => Toggle(item.RunId)">
+                        <span class="pbx-recaps__icon" aria-hidden="true">@item.Icon</span>
+
+                        <span class="pbx-recaps__body">
+                            <span class="pbx-recaps__name">@item.Title</span>
+                            <span class="pbx-recaps__meta">@DateLabel(item) · @StatusLabel(item.Recap.Status)</span>
+                        </span>
+
+                        <span class="pbx-recaps__badge" aria-hidden="true">@StatusIcon(item.Recap.Status)</span>
+                    </button>
+
+                    @if (open)
+                    {
+                        <RecapPlayer Recap="item.Recap" RunId="item.RunId" SceneKey="@item.SceneKey"
+                                     ReducedMotion="ReducedMotion"
+                                     OnWatch="() => OnWatch.InvokeAsync(item)" />
+                    }
+                </li>
+            }
+        </ul>
+    </section>
+}
+
+@code {
+    /// <summary>
+    /// «Macəra videoları» rəfi — uşaq videoya yekun ekranından SONRA da baxır.
+    ///
+    /// <para>Video macəra bitəndən sonra hazırlanır və uşaq «Əla!» deyib çıxmış
+    /// ola bilər. Əvvəl belə video heç yerdə görünmürdü; indi hər bitmiş macəra
+    /// burada qalır: storyboard həmişə, video isə hazır olanda.</para>
+    ///
+    /// <para>Rəfə baxmaq pul xərcləmir — server yalnız oxuyur.</para>
+    /// </summary>
+    [Parameter] public bool ReducedMotion { get; set; }
+
+    /// <summary>Hazır videonu tam ekranda açmaq — oynadıcı səhifənin kökündədir.</summary>
+    [Parameter] public EventCallback<PetBrainRecapEntryDto> OnWatch { get; set; }
+
+    /// <summary>Hazırlanan video ən çox neçə dəfə soruşulur — təxminən on dəqiqə.</summary>
+    private const int MaxChecks = 80;
+
+    private readonly CancellationTokenSource _lifetime = new();
+
+    private List<PetBrainRecapEntryDto> _shelf = [];
+    private Guid? _expanded;
+
+    private bool InProgress => _shelf.Any(e =>
+        e.Recap.Status is PetBrainRecapStatus.Pending or PetBrainRecapStatus.Generating);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+
+        if (InProgress)
+            _ = WatchAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        var result = await Api.GetPetBrainRecapsAsync(_lifetime.Token);
+
+        if (result is { Succeeded: true, Value: { } shelf })
+            _shelf = shelf;
+    }
+
+    /// <summary>
+    /// Hazırlanan video olduqca rəf seyrək yenilənir: 3 saniyədən 8 saniyəyə
+    /// qədər. Hamısı yekunlaşanda və ya hədd dolanda dayanır.
+    /// </summary>
+    private async Task WatchAsync()
+    {
+        var delayMilliseconds = 3_000;
+
+        try
+        {
+            for (var check = 0; check < MaxChecks && InProgress; check++)
+            {
+                await Task.Delay(delayMilliseconds, _lifetime.Token);
+                await RefreshAsync();
+                await InvokeAsync(StateHasChanged);
+
+                delayMilliseconds = Math.Min(delayMilliseconds * 3 / 2, 8_000);
+            }
+        }
+        catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
+        {
+        }
+    }
+
+    private void Toggle(Guid runId) => _expanded = _expanded == runId ? null : runId;
+
+    private static string DateLabel(PetBrainRecapEntryDto entry) =>
+        entry.CompletedAt is { } at
+            ? at.ToLocalTime().ToString("dd.MM.yyyy", CultureInfo.InvariantCulture)
+            : string.Empty;
+
+    private string StatusLabel(PetBrainRecapStatus status) => status switch
+    {
+        PetBrainRecapStatus.Ready => Loc.T("video hazırdır", "video ready"),
+        PetBrainRecapStatus.Pending or PetBrainRecapStatus.Generating => Loc.T("video hazırlanır", "video on its way"),
+        _ => Loc.T("hekayə kadrları", "story frames")
+    };
+
+    private static string StatusIcon(PetBrainRecapStatus status) => status switch
+    {
+        PetBrainRecapStatus.Ready => "▶️",
+        PetBrainRecapStatus.Pending or PetBrainRecapStatus.Generating => "⏳",
+        _ => "📖"
+    };
+
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+}

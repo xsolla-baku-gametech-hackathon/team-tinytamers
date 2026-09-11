@@ -1,0 +1,178 @@
+@using System.Globalization
+@inject Loc Loc
+@inject GameApiClient Api
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+
+<div class="pbx-theater" role="dialog" aria-modal="true" aria-label="@Title" @ref="_root" @onkeydown="OnKeyAsync">
+
+    <div class="pbx-theater__screen">
+        <video @ref="_video"
+               class="pbx-theater__video"
+               hidden="@(!_ready)"
+               controls
+               playsinline
+               preload="auto"
+               aria-label="@Loc.T($"«{Title}» — 10 saniyəlik video", $"“{Title}” — the ten-second video")">
+        </video>
+
+        @if (!_ready)
+        {
+            <p class="pbx-theater__waiting" role="status">
+                <span aria-hidden="true">🎬</span>
+                <span>@(_failed
+                    ? Loc.T("Video açılmadı — bir az sonra yenə yoxla.", "The video did not open — try again a little later.")
+                    : Loc.T("Video açılır…", "Opening the video…"))</span>
+            </p>
+        }
+    </div>
+
+    <div class="pbx-theater__top">
+        <ol class="pbx-theater__captions" @ref="_captions" aria-live="polite">
+            @foreach (var (shot, index) in Recap.Shots.Select((s, i) => (s, i)))
+            {
+                <li class="pbx-theater__caption"
+                    data-start="@Seconds(shot.StartSeconds)"
+                    data-end="@Seconds(shot.EndSeconds)"
+                    data-active="@(index == 0 ? string.Empty : null)">
+                    <span aria-hidden="true">@shot.Icon</span>
+                    <span>@shot.Caption</span>
+                </li>
+            }
+        </ol>
+
+        <button type="button" class="pbx-theater__close" @ref="_close" @onclick="CloseAsync"
+                aria-label="@Loc.T("Videonu bağla", "Close the video")">
+            <span aria-hidden="true">✕</span>
+        </button>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Videonun storyboard-u və altyazıları. Altyazılar serverdəndir və
+    /// videonun içində deyil: model kiçik vizual səhv versə də, yazılan mətn
+    /// uşağın həqiqi seçimidir. Oynayan kadrın altyazısı video vaxtı ilə
+    /// dəyişir.
+    /// </summary>
+    [Parameter, EditorRequired] public PetBrainRecapDto Recap { get; set; } = new();
+
+    /// <summary>Videonun aid olduğu run — baytlar onun ÖZ, sahiblik yoxlanan endpoint-indən alınır.</summary>
+    [Parameter] public Guid RunId { get; set; }
+
+    /// <summary>Macəranın adı — dialoqun oxunan adı.</summary>
+    [Parameter] public string Title { get; set; } = string.Empty;
+
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private readonly CancellationTokenSource _lifetime = new();
+
+    private ElementReference _root;
+    private ElementReference _video;
+    private ElementReference _captions;
+    private ElementReference _close;
+    private IJSObjectReference? _module;
+
+    private bool _ready;
+    private bool _failed;
+
+    /// <summary>
+    /// Açılan kimi bütün ekranı tutur və videonu oynadır.
+    ///
+    /// <para>Qat kətanın tamamını `absolute` ilə örtür; brauzer icazə verirsə
+    /// üstəlik əsl tam ekrana keçir (telefonda ünvan zolağı da gizlənir). Hər
+    /// iki halda video enin tamamını tutur, nisbəti isə pozulmur.</para>
+    ///
+    /// <para>Oynatma uşağın «Videoya bax» toxunuşunun davamıdır — öz-özünə
+    /// başlamır. <c>&lt;video src&gt;</c> bearer başlığı daşıya bilmir, ona
+    /// görə baytlar tipli klientlə alınır və Blob ünvanı kimi verilir. Alınmasa
+    /// uşaq xəta yox, sakit bir cümlə görür və bağlayıb storyboard-a qayıdır.</para>
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            _module = await Js.InvokeAsync<IJSObjectReference>(
+                "import", _lifetime.Token, "./_content/PetPal.App.Ui/js/recapVideo.js");
+
+            await _module.InvokeVoidAsync("enterFullscreen", _lifetime.Token, _root);
+            await _close.FocusAsync();
+
+            var video = await Api.GetPetBrainRecapVideoAsync(RunId, _lifetime.Token);
+
+            if (video is not { Succeeded: true, Value: { Length: > 0 } bytes })
+            {
+                _failed = true;
+                StateHasChanged();
+                return;
+            }
+
+            using var stream = new MemoryStream(bytes);
+            using var streamRef = new DotNetStreamReference(stream);
+
+            await _module.InvokeVoidAsync("attach", _lifetime.Token, _video, streamRef);
+            await _module.InvokeVoidAsync("followCaptions", _lifetime.Token, _video, _captions);
+
+            _ready = true;
+            StateHasChanged();
+
+            await _module.InvokeVoidAsync("play", _lifetime.Token, _video);
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException
+                                       or OperationCanceledException or ObjectDisposedException)
+        {
+        }
+    }
+
+    private async Task OnKeyAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            await CloseAsync();
+    }
+
+    private async Task CloseAsync()
+    {
+        await ExitFullscreenAsync();
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task ExitFullscreenAsync()
+    {
+        if (_module is null)
+            return;
+
+        try
+        {
+            await _module.InvokeVoidAsync("exitFullscreen");
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or ObjectDisposedException)
+        {
+        }
+    }
+
+    private static string Seconds(double value) =>
+        value.ToString("0.###", CultureInfo.InvariantCulture);
+
+    /// <summary>Blob ünvanı buraxılır — əks halda video yaddaşda qalardı.</summary>
+    public async ValueTask DisposeAsync()
+    {
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+
+        if (_module is null)
+            return;
+
+        try
+        {
+            await _module.InvokeVoidAsync("exitFullscreen");
+            await _module.InvokeVoidAsync("release", _video);
+            await _module.DisposeAsync();
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or ObjectDisposedException)
+        {
+        }
+    }
+}

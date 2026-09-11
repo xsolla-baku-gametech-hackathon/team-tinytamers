@@ -47,6 +47,11 @@ public sealed class FakeRecapVideoProvider : IRecapVideoProvider
     /// <summary>Provayderin bildirdiyi HƏQİQİ kredit (0 = təxminlə eyni).</summary>
     public int RealizedCredits { get; set; }
 
+    /// <summary>
+    /// Runway kimi ilk kadrı TƏLƏB etsin: kadrsız iş başlamır və pul getmir.
+    /// </summary>
+    public bool RequireReference { get; set; }
+
     private int _polls;
 
     public Task<RecapJobStart> StartAsync(
@@ -57,6 +62,9 @@ public sealed class FakeRecapVideoProvider : IRecapVideoProvider
 
         if (Behaviour == "start-failed")
             return Task.FromResult(RecapJobStart.Failed("http-503"));
+
+        if (RequireReference && referenceImage is not { Length: > 0 })
+            return Task.FromResult(RecapJobStart.Failed(RecapCoordinator.NoReferenceImage));
 
         Interlocked.Increment(ref _starts);
         ReceivedReferenceImage = referenceImage is { Length: > 0 };

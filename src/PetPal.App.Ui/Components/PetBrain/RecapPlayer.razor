@@ -1,69 +1,33 @@
 @inject Loc Loc
-@inject GameApiClient Api
-@inject IJSRuntime Js
-@implements IAsyncDisposable
-
-@* Macəranın 10 saniyəlik xülasəsi.
-
-   İki qat var və HƏR İKİSİ eyni hekayəni danışır:
-
-   1. DETERMİNİSTİK storyboard — üç kadr, uşağın HƏQİQİ seçimləri ilə. Həmişə
-      işləyir, heç nə xərcləmir və video gəlməsə də tam görünür.
-   2. AI videosu — hazır olanda storyboard-ın YERİNƏ oynayır.
-
-   Altyazılar hər iki halda SERVERDƏN gəlir və videonun içində deyil: model
-   kiçik vizual uyğunsuzluq versə belə, ekranda yazılan şey uşağın seçdiyidir.
-
-   Video üçün brauzerin ÖZ idarəedicilərindən istifadə olunur — onlar
-   klaviatura və ekran oxuyucusu ilə işləyir, bizim yazacağımız düymələr isə
-   JS interop tələb edərdi. `autoplay` və `loop` QƏSDƏN yoxdur: uşağı ekrana
-   bağlamaq və ya onu xəbərdar etmədən başlatmaq düzgün deyil. *@
+@implements IDisposable
 
 <div class="pbx-recap">
 
-    @if (HasVideo)
-    {
-        <video @ref="_video"
-               class="pbx-recap__video"
-               hidden="@(!_videoShown)"
-               controls
-               playsinline
-               preload="metadata"
-               aria-label="@Loc.T("Macəranın 10 saniyəlik xülasəsi", "The ten-second recap of the adventure")">
-        </video>
-    }
-
-    @if (!_videoShown)
-    {
-        <div class="pbx-recap__stage">
-            <div class="pbx-recap__board pbx-recap__board--@SceneKey"
-                 role="img"
-                 aria-label="@Loc.T("Macəranın 10 saniyəlik xülasəsi", "The ten-second recap of the adventure")">
-                @foreach (var (shot, index) in Recap.Shots.Select((s, i) => (s, i)))
-                {
-                    <span class="pbx-recap__shot @(index == _shot && _playing ? "pbx-recap__shot--on" : null)">
-                        @shot.Icon
-                    </span>
-                }
-            </div>
-
-            <div class="pbx-recap__bar">
-                <button type="button" class="pbx-recap__control" @onclick="Toggle"
-                        aria-label="@(_playing ? Loc.T("Dayandır", "Pause") : Loc.T("Oynat", "Play"))">
-                    <span aria-hidden="true">@(_playing ? "⏸" : "▶")</span>
-                </button>
-
-                <button type="button" class="pbx-recap__control" @onclick="Replay"
-                        aria-label="@Loc.T("Yenidən oynat", "Play again")">
-                    <span aria-hidden="true">↻</span>
-                </button>
-
-            </div>
+    <div class="pbx-recap__stage">
+        <div class="pbx-recap__board pbx-recap__board--@SceneKey"
+             role="img"
+             aria-label="@Loc.T("Macəranın 10 saniyəlik xülasəsi", "The ten-second recap of the adventure")">
+            @foreach (var (shot, index) in Recap.Shots.Select((s, i) => (s, i)))
+            {
+                <span class="pbx-recap__shot @(index == _shot && _playing ? "pbx-recap__shot--on" : null)">
+                    @shot.Icon
+                </span>
+            }
         </div>
-    }
 
-    @* Altyazılar HAMISI birdən görünür: uşaq oxumağa tələsmir və heç nəyi
-       qaçırmır. Cari kadr yalnız vurğulanır. *@
+        <div class="pbx-recap__bar">
+            <button type="button" class="pbx-recap__control" @onclick="Toggle"
+                    aria-label="@(_playing ? Loc.T("Dayandır", "Pause") : Loc.T("Oynat", "Play"))">
+                <span aria-hidden="true">@(_playing ? "⏸" : "▶")</span>
+            </button>
+
+            <button type="button" class="pbx-recap__control" @onclick="Replay"
+                    aria-label="@Loc.T("Yenidən oynat", "Play again")">
+                <span aria-hidden="true">↻</span>
+            </button>
+        </div>
+    </div>
+
     <ol class="pbx-recap__captions">
         @foreach (var (shot, index) in Recap.Shots.Select((s, i) => (s, i)))
         {
@@ -73,12 +37,33 @@
             </li>
         }
     </ol>
+
+    @if (HasVideo)
+    {
+        <button type="button" class="btn btn--primary pbx-recap__watch" @onclick="WatchAsync">
+            <span aria-hidden="true">🎬</span>
+            <span>@Loc.T("Videoya tam ekranda bax", "Watch the video full screen")</span>
+        </button>
+    }
+    else if (Recap.Status is PetBrainRecapStatus.Pending or PetBrainRecapStatus.Generating)
+    {
+        <p class="pbx-recap__status" role="status">
+            <span aria-hidden="true">⏳</span>
+            <span>@Loc.T("Video hazırlanır. Hazır olanda «Macəra videoların» bölməsində də qalacaq.",
+                         "The video is on its way. When it is ready, it will also stay in “Your adventure videos”.")</span>
+        </p>
+    }
 </div>
 
 @code {
+    /// <summary>
+    /// Macəranın 10 saniyəlik xülasəsi. Deterministik storyboard HƏMİŞƏ
+    /// görünür — uşağın həqiqi seçimləri ilə, heç nə xərcləmədən. Altyazılar
+    /// serverdən gəlir və videonun içində deyil.
+    /// </summary>
     [Parameter, EditorRequired] public PetBrainRecapDto Recap { get; set; } = new();
 
-    /// <summary>Recap-ın aid olduğu run — video baytları onun ÖZ, sahiblik yoxlanan endpoint-indən alınır.</summary>
+    /// <summary>Recap-ın aid olduğu run — video onun ÖZ, sahiblik yoxlanan endpoint-indən açılır.</summary>
     [Parameter] public Guid RunId { get; set; }
 
     /// <summary>Səhnə açarı — deterministik fonun rəngini seçir.</summary>
@@ -90,20 +75,17 @@
     /// </summary>
     [Parameter] public bool ReducedMotion { get; set; }
 
-    private readonly CancellationTokenSource _lifetime = new();
+    /// <summary>
+    /// Hazır videonu açmaq istəyi. Video bu kartın içində OYNAMIR: tam ekran
+    /// oynadıcı səhifənin kökündədir (<c>RecapTheater</c>), çünki `absolute`
+    /// qat ən yaxın yerləşdirilmiş valideynə yapışır — kartda açılsaydı yalnız
+    /// kartı, kökdə isə bütün ekranı tutur.
+    /// </summary>
+    [Parameter] public EventCallback OnWatch { get; set; }
 
     private Timer? _timer;
     private bool _playing;
     private int _shot;
-
-    private ElementReference _video;
-    private IJSObjectReference? _module;
-
-    /// <summary>Videosu alınmış (və ya alınan) run — eyni video iki dəfə yüklənmir.</summary>
-    private Guid _videoFor;
-
-    /// <summary>Video brauzerə verilib və storyboard-ın yerini tutub.</summary>
-    private bool _videoShown;
 
     private bool HasVideo =>
         Recap.Status == PetBrainRecapStatus.Ready &&
@@ -117,58 +99,12 @@
     private TimeSpan ShotLength => TimeSpan.FromSeconds(
         Recap.Shots.Count == 0 ? Recap.DurationSeconds : Recap.DurationSeconds / Recap.Shots.Count);
 
-    /// <summary>Başqa run-un yekunu gəlibsə köhnə video bir an da göstərilmir.</summary>
-    protected override void OnParametersSet()
+    private async Task WatchAsync()
     {
-        if (_videoFor != Guid.Empty && _videoFor != RunId)
-        {
-            _videoFor = Guid.Empty;
-            _videoShown = false;
-        }
-    }
+        _playing = false;
+        Stop();
 
-    /// <summary>
-    /// Hazır videonu storyboard-ın YERİNƏ qoyur.
-    ///
-    /// <para><c>&lt;video src&gt;</c> bearer başlığı daşıya bilmir, endpoint isə
-    /// uşağın tokenini tələb edir. Ona görə baytlar tipli klientlə (401 → token
-    /// yeniləmə də daxil) alınır və brauzerə Blob ünvanı kimi verilir. Bayt gələnə
-    /// qədər storyboard ekranda qalır; alınmasa da qalır — altyazılar onsuz da
-    /// həqiqəti deyir, uşaq xəta görmür.</para>
-    /// </summary>
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!HasVideo || _videoFor == RunId)
-            return;
-
-        var runId = RunId;
-        _videoFor = runId;
-
-        try
-        {
-            var video = await Api.GetPetBrainRecapVideoAsync(runId, _lifetime.Token);
-
-            if (video is not { Succeeded: true, Value: { Length: > 0 } bytes } || _videoFor != runId)
-                return;
-
-            _module ??= await Js.InvokeAsync<IJSObjectReference>(
-                "import", _lifetime.Token, "./_content/PetPal.App.Ui/js/recapVideo.js");
-
-            using var stream = new MemoryStream(bytes);
-            using var streamRef = new DotNetStreamReference(stream);
-
-            await _module.InvokeVoidAsync("attach", _lifetime.Token, _video, streamRef);
-
-            Stop();
-            _playing = false;
-            _videoShown = true;
-
-            StateHasChanged();
-        }
-        catch (Exception ex) when (ex is JSException or JSDisconnectedException
-                                       or OperationCanceledException or ObjectDisposedException)
-        {
-        }
+        await OnWatch.InvokeAsync();
     }
 
     private void Toggle()
@@ -222,23 +158,5 @@
         _timer = null;
     }
 
-    /// <summary>Blob ünvanı buraxılır — əks halda video yaddaşda qalardı.</summary>
-    public async ValueTask DisposeAsync()
-    {
-        Stop();
-        _lifetime.Cancel();
-        _lifetime.Dispose();
-
-        if (_module is null)
-            return;
-
-        try
-        {
-            await _module.InvokeVoidAsync("release", _video);
-            await _module.DisposeAsync();
-        }
-        catch (Exception ex) when (ex is JSException or JSDisconnectedException or ObjectDisposedException)
-        {
-        }
-    }
+    public void Dispose() => Stop();
 }

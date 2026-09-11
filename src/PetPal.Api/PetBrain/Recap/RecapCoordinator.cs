@@ -30,6 +30,21 @@ public sealed class RecapCoordinator
     /// <summary>Bir səhnə üçün ən çox neçə cəhd — sonsuz təkrar olmasın.</summary>
     private const int MaxAttempts = 3;
 
+    /// <summary>
+    /// İlk kadrın rəsmi hələ çəkilir — sətir <c>Pending</c> qalır və gözləyir.
+    /// Video itmir, sadəcə başlamaq üçün öz ilk kadrını gözləyir.
+    /// </summary>
+    public const string AwaitingScene = "awaiting-scene";
+
+    /// <summary>İlk kadr (tapmacanın hazır rəsmi) yoxdur — image-to-video başlaya bilmir.</summary>
+    public const string NoReferenceImage = "no-reference-image";
+
+    /// <summary>
+    /// Rəsm ən çox bu qədər gözlənilir. Hədd keçsə sətir ehtiyata düşür, rəsm
+    /// sonra hazır olanda isə yenidən açılır — gözləmə sonsuz deyil.
+    /// </summary>
+    private static readonly TimeSpan SceneWaitLimit = TimeSpan.FromMinutes(10);
+
     private readonly AppDbContext _db;
     private readonly IRecapVideoProvider _provider;
     private readonly IRecapVideoStore _store;
@@ -158,16 +173,19 @@ public sealed class RecapCoordinator
             return;
         }
 
+        // Tapmacanın hazır rəsmi videonun ilk kadrıdır — ikinci referans kadr
+        // GENERASİYA OLUNMUR, yəni artıq şəkil xərci yoxdur.
+        var reference = await ReferenceImageAsync(spec, ct);
+
+        if (reference is null && await SceneStillDrawingAsync(row, spec, ct))
+            return;
+
         var shots = RecapStoryboard.Build(spec);
         var prompt = SafeRecapPromptBuilder.Build(spec, shots);
 
         row.PromptHash = SafeRecapPromptBuilder.HashOf(prompt);
         row.PromptTemplateVersion = SafeRecapPromptBuilder.TemplateVersion;
         row.Attempts++;
-
-        // Tapmacanın hazır rəsmi videonun ilk kadrıdır — ikinci referans kadr
-        // GENERASİYA OLUNMUR, yəni artıq şəkil xərci yoxdur.
-        var reference = await ReferenceImageAsync(spec, ct);
 
         var estimate = _cost.ForVideo();
         row.EstimatedCredits = estimate.Allowed ? estimate.Credits : 0;
@@ -188,6 +206,7 @@ public sealed class RecapCoordinator
         }
 
         row.Status = PetBrainRecapStatus.Generating;
+        row.FailureReason = string.Empty;
         row.ProviderJobId = started.JobId;
         row.Provider = started.Provider;
         row.Model = started.Model;
@@ -263,7 +282,13 @@ public sealed class RecapCoordinator
     /// başlatmır: uydurma kadr çəkmək həm pul, həm də vizual davamlılıq
     /// itkisi olardı.</para>
     /// </summary>
-    private async Task<byte[]?> ReferenceImageAsync(AdventureRecapSpec spec, CancellationToken ct)
+    private async Task<byte[]?> ReferenceImageAsync(AdventureRecapSpec spec, CancellationToken ct) =>
+        await ReferenceFileAsync(spec, ct) is { } file
+            ? await File.ReadAllBytesAsync(file.AbsolutePath, ct)
+            : null;
+
+    /// <summary>Hazır rəsmin faylı — baytları oxunmadan, yalnız varlığı.</summary>
+    private async Task<PuzzleIllustrationFile?> ReferenceFileAsync(AdventureRecapSpec spec, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(spec.SceneSpecHash))
             return null;
@@ -276,10 +301,78 @@ public sealed class RecapCoordinator
             string.IsNullOrEmpty(illustration.AssetKey))
             return null;
 
-        if (await _illustrations.OpenAsync(illustration.AssetKey, ct) is not { } file)
-            return null;
+        return await _illustrations.OpenAsync(illustration.AssetKey, ct);
+    }
 
-        return await File.ReadAllBytesAsync(file.AbsolutePath, ct);
+    /// <summary>
+    /// İlk kadrın rəsmi hələ ÇƏKİLİRMİ. Çəkilirsə recap gözləyir: sətir
+    /// <c>Pending</c> qalır, cəhd sayılmır (provayderə heç nə getməyib), işçi
+    /// isə onu bir azdan yenidən yoxlayır.
+    ///
+    /// <para>Əvvəl belə recap dərhal ehtiyata düşürdü. Hash seçimlərdən
+    /// qurulduğu üçün həmin seçimlər bundan sonra HEÇ VAXT video almırdı — uşaq
+    /// macərəni rəsmdən tez bitirəndə video həmişəlik itirdi.</para>
+    ///
+    /// <para>Gözləmə sərhədlidir (<see cref="SceneWaitLimit"/>): rəsm ilişib
+    /// qalsa sətir ehtiyata düşür və rəsm sonra hazır olanda yenidən açılır
+    /// (<see cref="LateSceneArrivedAsync"/>).</para>
+    /// </summary>
+    private async Task<bool> SceneStillDrawingAsync(AdventureRecap row, AdventureRecapSpec spec, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(spec.SceneSpecHash))
+            return false;
+
+        var scene = await _db.PuzzleIllustrations
+            .AsNoTracking()
+            .Where(i => i.SceneSpecHash == spec.SceneSpecHash)
+            .Select(i => (PetBrainIllustrationStatus?)i.Status)
+            .FirstOrDefaultAsync(ct);
+
+        if (scene != PetBrainIllustrationStatus.Pending)
+            return false;
+
+        if (_clock.GetUtcNow().UtcDateTime - row.RequestedAt > SceneWaitLimit)
+        {
+            Settle(row, PetBrainRecapStatus.Fallback, NoReferenceImage);
+            await _db.SaveChangesAsync(ct);
+            return true;
+        }
+
+        if (row.FailureReason != AwaitingScene)
+        {
+            row.FailureReason = AwaitingScene;
+            await _db.SaveChangesAsync(ct);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Ehtiyata düşmənin səbəbi ilk kadrın yoxluğu idisə və rəsm İNDİ
+    /// hazırdırsa, sətir yenidən açıla bilər. Provayderə heç nə getməmişdi —
+    /// bu, ikinci pullu iş deyil; seçimlər sadəcə gec gələn rəsmlə öz videosunu
+    /// alır.
+    /// </summary>
+    private async Task<bool> LateSceneArrivedAsync(AdventureRecap row, AdventureRecapSpec spec, CancellationToken ct) =>
+        row.FailureReason == NoReferenceImage && await ReferenceFileAsync(spec, ct) is not null;
+
+    /// <summary>
+    /// Videolar rəfi üçün sətri OXUYUR — yeni pullu iş yaratmır.
+    ///
+    /// <para>Yeganə istisna ilk kadrı gec gələn recap-dır: o, macəra AI açıq
+    /// ikən bitəndə sifariş olunmuşdu, sadəcə rəsm gecikmişdi. Belə sətir rəsm
+    /// hazır olanda burada yenidən açılır. AI bağlı ikən bitmiş köhnə macəralar
+    /// isə rəfə baxmaqla video ALMIR — rəfi açmaq kredit xərcləməməlidir.</para>
+    /// </summary>
+    public async Task<AdventureRecap?> FindAsync(AdventureRecapSpec spec, CancellationToken ct)
+    {
+        var hash = spec.Hash();
+        var row = await _db.AdventureRecaps.FirstOrDefaultAsync(r => r.RecapSpecHash == hash, ct);
+
+        if (row is not { Status: PetBrainRecapStatus.Fallback } || row.FailureReason != NoReferenceImage)
+            return row;
+
+        return await ReopenIfNowAllowedAsync(row, spec, _clock.GetUtcNow().UtcDateTime, ct);
     }
 
     /// <summary>
@@ -334,11 +427,15 @@ public sealed class RecapCoordinator
     /// <para>Sətir yalnız bu an HƏR ŞEY icazə verəndə açılır — provayder, xərc
     /// siyasəti və kvota. Əks halda o, hər sorğuda açılıb-bağlanardı. Açılan
     /// sətir sorğunu verən uşağın adına keçir: xərc onun kvotasına yazılır.</para>
+    ///
+    /// <para>İlk kadrı gec gələn sətir də buraya aiddir: provayderə heç nə
+    /// getməmişdi, rəsm isə indi hazırdır (<see cref="LateSceneArrivedAsync"/>).</para>
     /// </summary>
     private async Task<AdventureRecap> ReopenIfNowAllowedAsync(
         AdventureRecap row, AdventureRecapSpec spec, DateTime now, CancellationToken ct)
     {
-        if (row.Status != PetBrainRecapStatus.Fallback || !MediaFailure.NeverReachedProvider(row.FailureReason))
+        if (row.Status != PetBrainRecapStatus.Fallback ||
+            !(MediaFailure.NeverReachedProvider(row.FailureReason) || await LateSceneArrivedAsync(row, spec, ct)))
             return row;
 
         if (!_cost.ForVideo().Allowed || (await DenialAsync(spec.ChildProfileId, now, ct)).Length > 0)

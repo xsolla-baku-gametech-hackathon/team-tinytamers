@@ -143,7 +143,8 @@
         @* Xülasə mükafatdan SONRA gəlir və heç nəyi gözlətmir: video hazır
            olmasa da deterministik storyboard oynayır, "Əla!" düyməsi isə
            həmişə yerindədir. *@
-        <RecapPlayer Recap="Summary.Recap" RunId="RunId" SceneKey="@SceneKey" ReducedMotion="ReducedMotion" />
+        <RecapPlayer Recap="Summary.Recap" RunId="RunId" SceneKey="@SceneKey" ReducedMotion="ReducedMotion"
+                     OnWatch="OnWatchVideo" />
 
         <button class="btn btn--primary btn--block pbx-summary__done" @onclick="OnDone">
             @Loc.T("Əla!", "Great!")
@@ -173,4 +174,7 @@
     [Parameter] public IReadOnlyCollection<string>? PetAccessories { get; set; }
 
     [Parameter] public EventCallback OnDone { get; set; }
+
+    /// <summary>Hazır recap videosunu tam ekranda açmaq — oynadıcı səhifənin kökündədir.</summary>
+    [Parameter] public EventCallback OnWatchVideo { get; set; }
 }

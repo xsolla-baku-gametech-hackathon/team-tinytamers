@@ -121,17 +121,41 @@ public sealed class RecapWorker : BackgroundService
 
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            var status = await db.AdventureRecaps
+            var state = await db.AdventureRecaps
                 .AsNoTracking()
                 .Where(r => r.RecapSpecHash == hash)
-                .Select(r => (PetBrainRecapStatus?)r.Status)
+                .Select(r => new { r.Status, r.FailureReason })
                 .FirstOrDefaultAsync(ct);
 
             // Yekunlaşıbsa dövrədən çıxırıq.
-            if (status is not (PetBrainRecapStatus.Pending or PetBrainRecapStatus.Generating))
+            if (state?.Status is not (PetBrainRecapStatus.Pending or PetBrainRecapStatus.Generating))
                 return;
 
+            if (state is { Status: PetBrainRecapStatus.Pending, FailureReason: RecapCoordinator.AwaitingScene })
+            {
+                _ = RequeueLaterAsync(spec, ct);
+                return;
+            }
+
             await Task.Delay(_pollDelay, ct);
+        }
+    }
+
+    /// <summary>
+    /// İlk kadrını gözləyən recap-ı bir azdan növbəyə QAYTARIR.
+    ///
+    /// <para>İşçi növbəni bir-bir emal edir. Gözləyən recap dövrədə qalsaydı,
+    /// rəsm çəkilənə qədər başqa uşaqların videoları da gözləyərdi.</para>
+    /// </summary>
+    private async Task RequeueLaterAsync(AdventureRecapSpec spec, CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(_pollDelay, ct);
+            _queue.Enqueue(spec);
+        }
+        catch (OperationCanceledException)
+        {
         }
     }
 

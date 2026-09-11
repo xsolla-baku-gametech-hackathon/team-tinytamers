@@ -20,3 +20,52 @@ export function release(video) {
     video.load();
     URL.revokeObjectURL(url);
 }
+
+export function play(video) {
+    if (!video) {
+        return;
+    }
+
+    const started = video.play();
+
+    if (started && typeof started.catch === 'function') {
+        started.catch(() => { });
+    }
+}
+
+export function enterFullscreen(element) {
+    if (!element || document.fullscreenElement || typeof element.requestFullscreen !== 'function') {
+        return;
+    }
+
+    element.requestFullscreen().catch(() => { });
+}
+
+export function exitFullscreen() {
+    if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
+        document.exitFullscreen().catch(() => { });
+    }
+}
+
+export function followCaptions(video, list) {
+    if (!video || !list) {
+        return;
+    }
+
+    const update = () => {
+        const items = Array.from(list.querySelectorAll('[data-start]'));
+        const time = video.currentTime;
+
+        items.forEach((item, index) => {
+            const start = Number(item.dataset.start);
+            const end = Number(item.dataset.end);
+            const last = index === items.length - 1;
+
+            item.toggleAttribute('data-active', time >= start && (time < end || last));
+        });
+    };
+
+    video.addEventListener('timeupdate', update);
+    video.addEventListener('seeked', update);
+    update();
+}

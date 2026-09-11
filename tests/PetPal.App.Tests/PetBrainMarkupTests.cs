@@ -16,7 +16,7 @@ public class PetBrainMarkupTests
     [
         "ExperienceShell", "ExperienceScene", "StageChoices", "RunSummary", "BrainDebugPanel",
         "PuzzleBoard", "OrderedRoutePuzzle", "SequenceOrderPuzzle", "RouteLogicPuzzle", "LightFragmentsPuzzle",
-        "RecapPlayer", "PictureAssemblyPuzzle"
+        "RecapPlayer", "PictureAssemblyPuzzle", "RecapTheater", "RecapGallery"
     ];
 
     /// <summary>
@@ -29,7 +29,7 @@ public class PetBrainMarkupTests
     private static readonly string[] ComponentsWithOwnText =
     [
         "ExperienceShell", "RunSummary", "BrainDebugPanel", "PuzzleBoard", "OrderedRoutePuzzle",
-        "LightFragmentsPuzzle", "RecapPlayer", "PictureAssemblyPuzzle"
+        "LightFragmentsPuzzle", "RecapPlayer", "PictureAssemblyPuzzle", "RecapTheater", "RecapGallery"
     ];
 
     /// <summary>Hər QAPALI mexanikanın öz təqdimat komponenti.</summary>
@@ -330,13 +330,17 @@ public class PetBrainMarkupTests
     public void Recap_DovreVurmur_VeAvtomatikBaslamir()
     {
         var player = StripComments(ReadComponent("RecapPlayer"));
+        var theater = StripComments(ReadComponent("RecapTheater"));
 
         // Brauzerin ÖZ idarəediciləri — klaviatura və ekran oxuyucusu ilə işləyir.
-        Assert.Contains("controls", player, StringComparison.Ordinal);
+        Assert.Contains("controls", theater, StringComparison.Ordinal);
 
         // Sonsuz dövrə və avtomatik başlatma YOXDUR.
-        Assert.DoesNotContain("loop", player, StringComparison.Ordinal);
-        Assert.DoesNotContain("autoplay", player, StringComparison.Ordinal);
+        foreach (var source in new[] { player, theater })
+        {
+            Assert.DoesNotContain("loop", source, StringComparison.Ordinal);
+            Assert.DoesNotContain("autoplay", source, StringComparison.Ordinal);
+        }
 
         // Deterministik storyboard-ın öz düymələri oxunan ad daşıyır.
         Assert.Contains("aria-label=\"@(_playing ?", player, StringComparison.Ordinal);
@@ -356,16 +360,59 @@ public class PetBrainMarkupTests
     [Fact]
     public void Recap_VideoTipliKlientVeBlobIleGelir()
     {
-        var player = StripComments(ReadComponent("RecapPlayer"));
+        var theater = StripComments(ReadComponent("RecapTheater"));
 
-        Assert.Contains("GetPetBrainRecapVideoAsync", player, StringComparison.Ordinal);
-        Assert.Contains("js/recapVideo.js", player, StringComparison.Ordinal);
-        Assert.DoesNotContain("src=\"@Recap.VideoUrl\"", player, StringComparison.Ordinal);
+        Assert.Contains("GetPetBrainRecapVideoAsync", theater, StringComparison.Ordinal);
+        Assert.Contains("js/recapVideo.js", theater, StringComparison.Ordinal);
+        Assert.DoesNotContain("src=\"@Recap.VideoUrl\"", theater, StringComparison.Ordinal);
 
         var page = StripComments(ReadPage("PetBrain.razor"));
 
         Assert.Contains("GetPetBrainRecapAsync", page, StringComparison.Ordinal);
         Assert.Contains("MaxRecapChecks", page, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Video itmir və tam ekranda açılır. Yekun ekranından sonra da
+    /// «Macəra videoları» rəfində qalır; oynadıcı isə səhifənin KÖKÜNDƏDİR,
+    /// çünki `absolute` qat ən yaxın yerləşdirilmiş valideynə yapışır — kartın
+    /// içində açılsaydı yalnız kartı tutardı.
+    /// </summary>
+    [Fact]
+    public void Recap_TamEkrandaAcilirVeRefdeQalir()
+    {
+        var page = StripComments(ReadPage("PetBrain.razor"));
+
+        Assert.Contains("<RecapGallery", page, StringComparison.Ordinal);
+        Assert.Contains("OnWatchVideo=\"WatchSummaryRecap\"", page, StringComparison.Ordinal);
+
+        var theaterAt = page.IndexOf("<RecapTheater", StringComparison.Ordinal);
+        var loadingEnd = page.IndexOf("</LoadingState>", StringComparison.Ordinal);
+
+        Assert.True(theaterAt > loadingEnd && loadingEnd > 0,
+            "Tam ekran oynadıcı səhifənin kökündə olmalıdır.");
+
+        Assert.Contains("OnWatch=\"OnWatchVideo\"", StripComments(ReadComponent("RunSummary")), StringComparison.Ordinal);
+
+        var theater = StripComments(ReadComponent("RecapTheater"));
+
+        Assert.Contains("role=\"dialog\"", theater, StringComparison.Ordinal);
+        Assert.Contains("enterFullscreen", theater, StringComparison.Ordinal);
+        Assert.Contains("Videonu bağla", theater, StringComparison.Ordinal);
+
+        var css = PetBrainCss();
+        var layer = RuleBody(css, ".pbx-theater {");
+
+        Assert.Contains("position: absolute", layer, StringComparison.Ordinal);
+        Assert.Contains("inset: 0", layer, StringComparison.Ordinal);
+
+        var video = RuleBody(css, ".pbx-theater__video {");
+
+        Assert.Contains("width: 100%", video, StringComparison.Ordinal);
+        Assert.Contains("object-fit: contain", video, StringComparison.Ordinal);
+
+        Assert.Contains("requestFullscreen", ReadScript("recapVideo.js"), StringComparison.Ordinal);
+        Assert.Contains("api/pet-brain/recaps", ReadService("GameApiClient.cs"), StringComparison.Ordinal);
     }
 
     /// <summary>Macəranın sonunda YEKUN ekranı var — nəticəsiz bitən axın olmaz.</summary>
@@ -716,6 +763,10 @@ public class PetBrainMarkupTests
     private static string ReadService(string name, [CallerFilePath] string path = "") =>
         File.ReadAllText(Path.Combine(
             Path.GetDirectoryName(path)!, "..", "..", "src", "PetPal.App.Ui", "Services", name));
+
+    private static string ReadScript(string name, [CallerFilePath] string path = "") =>
+        File.ReadAllText(Path.Combine(
+            Path.GetDirectoryName(path)!, "..", "..", "src", "PetPal.App.Ui", "wwwroot", "js", name));
 
     /// <summary>
     /// Mexanika açarları KATALOQUN mənbəyindən oxunur, əl ilə sadalanmır.

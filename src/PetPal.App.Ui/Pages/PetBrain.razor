@@ -55,7 +55,8 @@
                             PetAccessories="PetAccessoriesValue"
                             SceneKey="@_run.SceneKey"
                             ReducedMotion="@(_state?.Settings.ReducedMotion == true)"
-                            OnDone="FinishAsync" />
+                            OnDone="FinishAsync"
+                            OnWatchVideo="WatchSummaryRecap" />
             }
             else if (_run.Stage is not null)
             {
@@ -397,6 +398,11 @@
                 }
             }
 
+            @if (!_state.ScreenTimeBlocked)
+            {
+                <RecapGallery ReducedMotion="@_state.Settings.ReducedMotion" OnWatch="OpenTheater" />
+            }
+
             @if (_state.BondUnlocks.Count > 0)
             {
                 <section class="card pbx-ladder-card">
@@ -459,6 +465,11 @@
         </div>
     }
 </LoadingState>
+
+@if (_theater is { } theater)
+{
+    <RecapTheater Recap="theater.Recap" RunId="theater.RunId" Title="@theater.Title" OnClose="CloseTheater" />
+}
 </div>
 
 @code {
@@ -487,6 +498,30 @@
     private PetBrainResumeDto? _resume;
 
     private bool _recallOpen;
+
+    /// <summary>
+    /// Tam ekranda açılan recap videosu — yekun ekranından da, videolar
+    /// rəfindən də. Oynadıcı SƏHİFƏNİN kökündədir: `absolute` qat ən yaxın
+    /// yerləşdirilmiş valideynə yapışır, kökdə isə macəra qatı kimi bütün
+    /// kətanı örtür.
+    /// </summary>
+    private PetBrainRecapEntryDto? _theater;
+
+    private void OpenTheater(PetBrainRecapEntryDto entry) => _theater = entry;
+
+    private void WatchSummaryRecap()
+    {
+        if (_run is { Summary.Recap: { } recap } run)
+            _theater = new PetBrainRecapEntryDto
+            {
+                RunId = run.RunId,
+                Title = run.Title,
+                SceneKey = run.SceneKey,
+                Recap = recap
+            };
+    }
+
+    private void CloseTheater() => _theater = null;
 
     /// <summary>
     /// Hazır hekayə rəsminin <c>data:</c> URI-si və hansı tapmacaya aid olduğu.

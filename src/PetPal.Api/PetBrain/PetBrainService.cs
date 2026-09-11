@@ -1808,7 +1808,7 @@ public class PetBrainService : IPetBrainService
         if (row.Status is PetBrainRecapStatus.Pending or PetBrainRecapStatus.Generating)
             _recapQueue.Enqueue(spec);
 
-        return ToRecapDto(spec, row, run.Id);
+        return ToRecapDto(spec, row.Status, run.Id);
     }
 
     /// <summary>
@@ -1819,11 +1819,11 @@ public class PetBrainService : IPetBrainService
     /// uşaq bir videonu paylaşır, sətir isə birincinin adınadır. Onun run id-si
     /// ikinci uşağa həm <c>404</c> verərdi, həm də yad run-u göstərərdi.</para>
     /// </summary>
-    private static PetBrainRecapDto ToRecapDto(AdventureRecapSpec spec, AdventureRecap row, Guid runId) => new()
+    private static PetBrainRecapDto ToRecapDto(AdventureRecapSpec spec, PetBrainRecapStatus status, Guid runId) => new()
     {
-        Status = row.Status,
+        Status = status,
 
-        VideoUrl = row.Status == PetBrainRecapStatus.Ready
+        VideoUrl = status == PetBrainRecapStatus.Ready
             ? $"/api/pet-brain/runs/{runId}/recap/video"
             : string.Empty,
 
@@ -1886,6 +1886,68 @@ public class PetBrainService : IPetBrainService
         return row is { Status: PetBrainRecapStatus.Ready } && !string.IsNullOrEmpty(row.AssetKey)
             ? row.AssetKey
             : null;
+    }
+
+    /// <summary>Rəfdə neçə macəra görünür — ən yeniləri.</summary>
+    private const int RecapShelfSize = 12;
+
+    /// <summary>
+    /// Uşağın «Macəra videoları» rəfi — bitmiş macəralar, ən yenisi əvvəl.
+    ///
+    /// <para>Hər sətirdə deterministik storyboard HƏMİŞƏ var, video isə hazır
+    /// olanda əlavə olunur. Uşaq yekun ekranını video gəlməmiş bağlasa da onu
+    /// burada sonra tapır — video itmir.</para>
+    ///
+    /// <para><b>Rəf pul xərcləmir.</b> Sətirlər oxunur; yeganə yenidən açılan
+    /// hal ilk kadrı gec gələn recap-dır (bax <see cref="RecapCoordinator.FindAsync"/>).
+    /// Hazırlanan video yenidən növbəyə verilir ki, proses yenidən başlasa da
+    /// iş davam etsin — növbə təkrarı özü süzür.</para>
+    /// </summary>
+    public async Task<List<PetBrainRecapEntryDto>?> ListRecapsAsync(Guid childId, CancellationToken ct = default)
+    {
+        if (!_options.Enabled)
+            return null;
+
+        var language = await _db.ChildProfiles
+            .AsNoTracking()
+            .Where(c => c.Id == childId)
+            .Select(c => c.LanguageCode)
+            .FirstOrDefaultAsync(ct) ?? "az";
+
+        var runs = await _db.ExperienceRuns
+            .AsNoTracking()
+            .Where(r => r.ChildProfileId == childId && r.Status == PetBrainRunStatus.Completed)
+            .OrderByDescending(r => r.CompletedAt)
+            .Take(RecapShelfSize)
+            .Select(r => new { r.Id, r.TemplateKey, r.CompletedAt })
+            .ToListAsync(ct);
+
+        List<PetBrainRecapEntryDto> shelf = [];
+
+        foreach (var run in runs)
+        {
+            if (ExperienceCatalog.Find(run.TemplateKey) is not { } template ||
+                await _recapSpecs.BuildAsync(run.Id, ct) is not { } spec)
+                continue;
+
+            var row = await _recaps.FindAsync(spec, ct);
+
+            if (row?.Status is PetBrainRecapStatus.Pending or PetBrainRecapStatus.Generating)
+                _recapQueue.Enqueue(spec);
+
+            shelf.Add(new PetBrainRecapEntryDto
+            {
+                RunId = run.Id,
+                TemplateKey = template.Key,
+                Title = Localized.T(language, template.TitleAz, template.TitleEn),
+                Icon = template.Icon,
+                SceneKey = template.SceneKey,
+                CompletedAt = run.CompletedAt,
+                Recap = ToRecapDto(spec, row?.Status ?? PetBrainRecapStatus.Fallback, run.Id)
+            });
+        }
+
+        return shelf;
     }
 
     /// <summary>

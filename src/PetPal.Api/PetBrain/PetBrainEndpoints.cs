@@ -301,6 +301,15 @@ public static class PetBrainEndpoints
             })
             .WithSummary("Uşağın ÖZ macərasının 10 saniyəlik recap videosu (hazırdırsa).");
 
+        group.MapGet("/recaps", async (
+                HttpContext http,
+                IPetBrainService service,
+                CancellationToken ct) =>
+                await service.ListRecapsAsync(http.User.ChildIdOrThrow(), ct) is { } shelf
+                    ? Results.Ok(shelf)
+                    : Results.NotFound())
+            .WithSummary("Uşağın «Macəra videoları» rəfi — bitmiş macəralar, storyboard və hazır videolar. Yeni pullu iş başlatmır.");
+
         // ---- Valideyn müqayisəsi ----
         // Uşaq sessiyası bura DÜŞMÜR: bu, ailənin bütün uşaqlarını göstərir.
         app.MapGet("/api/parent/pet-brain/comparison", async (

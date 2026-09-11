@@ -626,6 +626,29 @@ public class PetBrainRecapShotDto
 }
 
 /// <summary>
+/// «Macəra videoları» rəfindəki bir macəra — uşaq videoya sonradan da baxır.
+/// </summary>
+public class PetBrainRecapEntryDto
+{
+    public Guid RunId { get; set; }
+
+    public string TemplateKey { get; set; } = string.Empty;
+
+    /// <summary>Macəranın adı — uşağın dilində.</summary>
+    public string Title { get; set; } = string.Empty;
+
+    public string Icon { get; set; } = string.Empty;
+
+    /// <summary>Səhnə açarı — storyboard fonunun rəngi bundan gəlir.</summary>
+    public string SceneKey { get; set; } = string.Empty;
+
+    public DateTime? CompletedAt { get; set; }
+
+    /// <summary>Storyboard həmişə doludur; video yalnız hazır olanda ünvan alır.</summary>
+    public PetBrainRecapDto Recap { get; set; } = new();
+}
+
+/// <summary>
 /// Təcrübəni başlatmaq. Şablon açarı MƏCBURİ DEYİL: verilməsə server öz
 /// tövsiyəsini başladır. Verilibsə, o, hazırkı tövsiyə ilə ÜST-ÜSTƏ DÜŞMƏLİDİR —
 /// yəni klient kataloqdan istədiyi macərəni seçə bilmir.

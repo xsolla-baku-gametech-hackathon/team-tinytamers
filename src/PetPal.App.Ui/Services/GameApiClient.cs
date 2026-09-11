@@ -225,6 +225,13 @@ public class GameApiClient : ApiClientBase
     public Task<ApiResult<byte[]>> GetPetBrainRecapVideoAsync(Guid runId, CancellationToken ct = default) =>
         GetBytesAsync($"api/pet-brain/runs/{runId}/recap/video", ct);
 
+    /// <summary>
+    /// «Macəra videoları» rəfi — uşağın bitmiş macəraları, ən yenisi əvvəl.
+    /// Rəfi açmaq yeni pullu iş başlatmır.
+    /// </summary>
+    public Task<ApiResult<List<PetBrainRecapEntryDto>>> GetPetBrainRecapsAsync(CancellationToken ct = default) =>
+        GetAsync<List<PetBrainRecapEntryDto>>("api/pet-brain/recaps", ct);
+
     // ---------- Learning ----------
     public Task<ApiResult<LearningSessionDto>> StartSessionAsync(StartSessionRequest request, CancellationToken ct = default) =>
         PostAsync<StartSessionRequest, LearningSessionDto>("api/learn/sessions", request, ct);

@@ -105,6 +105,12 @@ public interface IPetBrainService
     Task<string?> GetRecapVideoKeyAsync(Guid childId, Guid runId, CancellationToken ct = default);
 
     /// <summary>
+    /// Uşağın «Macəra videoları» rəfi — bitmiş macəralar, storyboard və hazır
+    /// videolar, ən yenisi əvvəl. Rəfə baxmaq yeni pullu iş başlatmır.
+    /// </summary>
+    Task<List<PetBrainRecapEntryDto>?> ListRecapsAsync(Guid childId, CancellationToken ct = default);
+
+    /// <summary>
     /// Ana ekranın aqreqatı üçün kompakt təklif. Ayrıca HTTP sorğusu OLMASIN
     /// deyə <c>HomeService</c> bunu birbaşa çağırır.
     /// </summary>
